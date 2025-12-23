@@ -4,207 +4,185 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Cheverly Air Quality Dashboard</title>
-  <link rel="icon" type="image/png" href="https://upload.wikimedia.org/wikipedia/commons/7/7c/Air_quality_icon.png" />
-
-
-  <!-- Libraries -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
-  <link rel="stylesheet" href="style.css" />
-
 
   <style>
-    #layout-row { display: flex; flex-wrap: wrap; }
-    #sidebar { flex: 1 1 320px; padding: 1rem; background: #f4f6f8; }
-    #map-and-chart { flex: 2 1 600px; padding: 1rem; }
-    #map { width: 100%; height: 460px; border: 1px solid #ccc; border-radius: 8px; }
-    #chart { width: 100%; height: 280px; margin-top: 1rem; }
-    .legend-grid { display: grid; gap: .5rem; margin-top: .5rem; }
-    .legend-box { display: flex; align-items: center; gap: .5rem; font-size: .9rem; }
-    .dot { width: 16px; height: 16px; border-radius: 50%; display: inline-block; border: 1px solid #aaa; }
-    .dot--good { background: green; }
-    .dot--acceptable { background: yellow; }
-    .dot--moderate { background: orange; }
-    .dot--unhealthy { background: red; }
-    .dot--veryunhealthy { background: purple; }
-    .dot--emergency { background: maroon; }
+    body, html { margin: 0; padding: 0; height: 100vh; font-family: sans-serif; overflow: hidden; background: #fdfdfd; }
+    .topbar { background: #003366; color: white; padding: 0 20px; display: flex; align-items: center; height: 50px; font-weight: bold; }
+    #layout { display: flex; height: calc(100vh - 50px); width: 100vw; }
+    #sidebar { width: 350px; min-width: 350px; background: #f4f6f8; border-right: 1px solid #ddd; padding: 20px; overflow-y: auto; box-sizing: border-box; }
+    #main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    #map { height: 45%; width: 100%; border-bottom: 1px solid #ddd; z-index: 1; }
+    #chart-box { height: 55%; width: 100%; padding: 20px; box-sizing: border-box; background: white; }
+    .card { background: white; padding: 15px; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    label { font-size: 0.85rem; font-weight: bold; color: #555; margin-bottom: 5px; display: block; }
+    input, select, button { width: 100%; padding: 10px; margin-top: 5px; border-radius: 4px; border: 1px solid #ccc; box-sizing: border-box; font-size: 0.9rem; }
+    button { background: #0074D9; color: white; border: none; font-weight: bold; cursor: pointer; }
+    pre { background: #1a1a1a; color: #00ff00; padding: 12px; font-size: 0.75rem; white-space: pre-wrap; border-radius: 4px; min-height: 80px; overflow-x: hidden; }
+    .legend-item { display: flex; align-items: center; margin-bottom: 8px; font-size: 0.95rem; }
+    .dot { width: 18px; height: 18px; border-radius: 50%; margin-right: 10px; border: 1px solid rgba(0,0,0,0.2); }
   </style>
 </head>
-
-
 <body>
-  <header class="topbar">
-    <div class="brand">Cheverly Air Quality Dashboard</div>
-    <nav class="nav">
-      <a href="index.html">Home</a>
-      <a href="dashboard.html" aria-current="page">Dashboard</a>
-      <a href="writeup.html">Community Insights</a>
-    </nav>
-  </header>
 
+<div class="topbar">Cheverly Air Quality Dashboard</div>
 
-  <div id="layout-row">
-    <aside id="sidebar">
-      <label>Device:</label>
-      <select id="deviceSelect"></select>
-      <button id="refresh">Refresh Data</button>
+<div id="layout">
+  <aside id="sidebar">
+    <div class="card">
+      <label>Search Address:</label>
+      <input type="text" id="addr" placeholder="Enter your Cheverly Address Here">
+      <button id="searchBtn">Find Nearest Sensor</button>
+    </div>
+    <div class="card">
+      <label>Active Sensors:</label>
+      <select id="devSel"><option>Loading...</option></select>
+    </div>
+    <div class="card">
+      <label>Device Details & API Console:</label>
+      <pre id="status">Connecting...</pre>
+    </div>
+    <div class="card">
+      <label>PM2.5 Legend (µg/m³)</label>
+      <div class="legend-item"><span class="dot" style="background:#2e7d32"></span> Good (0-50)</div>
+      <div class="legend-item"><span class="dot" style="background:#ffff00"></span> Acceptable (51-100)</div>
+      <div class="legend-item"><span class="dot" style="background:#ff9800"></span> Moderate (101-150)</div>
+      <div class="legend-item"><span class="dot" style="background:#ff0000"></span> Unhealthy (151-200)</div>
+      <div class="legend-item"><span class="dot" style="background:#800080"></span> Very Unhealthy (201-300)</div>
+    </div>
+  </aside>
 
+  <main id="main">
+    <div id="map"></div>
+    <div id="chart-box"><canvas id="airChart"></canvas></div>
+  </main>
+</div>
 
-      <h4>Device Info</h4>
-      <pre id="deviceInfo">Select a device…</pre>
+<script>
+  const API_KEY = "9ADB5C6C-A9B0-11EF-A261-42010A80000F";
+  const NAT_SENSORS = [146313, 155167, 65301, 38167, 102551];
+  let allDevices = [];
 
+  const map = L.map('map').setView([38.925, -76.91], 14);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+  const markerLayer = L.layerGroup().addTo(map);
 
-      <h4>PM2.5 Legend (µg/m³)</h4>
-      <div class="legend-grid">
-        <div class="legend-box"><span class="dot dot--good"></span><strong>Good</strong> 0–50</div>
-        <div class="legend-box"><span class="dot dot--acceptable"></span><strong>Acceptable</strong> 51-100</div>
-        <div class="legend-box"><span class="dot dot--moderate"></span><strong>Moderate</strong> 101-150</div>
-        <div class="legend-box"><span class="dot dot--unhealthy"></span><strong>Unhealthy</strong> 151-200</div>
-        <div class="legend-box"><span class="dot dot--veryunhealthy"></span><strong>Very Unhealthy</strong> 201-300</div>
-        <div class="legend-box"><span class="dot dot--emergency"></span><strong>Emergency</strong> 301+</div>
-      </div>
-    </aside>
-
-
-    <main id="map-and-chart">
-      <div id="map"></div>
-      <canvas id="chart"></canvas>
-    </main>
-  </div>
-
-
-  <script>
-    const PURPLEAIR_API_KEY = "9ADB5C6C-A9B0-11EF-A261-42010A80000F";
-    const CHEVERLY_CENTER = [38.93, -76.91];
-    const CHEVERLY_POLY = turf.polygon([[[-76.9167,38.9352],[-76.9424,38.9178],[-76.9094,38.8929],[-76.8688,38.9266],[-76.9167,38.9352]]]);
-    const DEMO_QUANTAQ = [{sn:"QA123",source:"QuantAQ",lat:38.93,lon:-76.91,pm25:22,last_seen:new Date()},{sn:"QA456",source:"QuantAQ",lat:38.925,lon:-76.905,pm25:14,last_seen:new Date()}];
-
-    let devices = [];
-    let markersBySN = new Map();
-    const map = L.map("map").setView(CHEVERLY_CENTER, 12);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
-    const layerGroup = L.layerGroup().addTo(map);
-    const sel = document.getElementById("deviceSelect");
-    const infoBox = document.getElementById("deviceInfo");
-    const refreshBtn = document.getElementById("refresh");
-
-    const chart = new Chart(document.getElementById("chart"), {
-      type: "line",
-      data: { datasets: [{label:"PM2.5 (µg/m³)",data:[],borderColor:"#0074D9",fill:false}] },
-      options: { parsing:true, scales:{x:{type:"time",time:{unit:"hour"}},y:{title:{display:true,text:"µg/m³"}}} }
-    });
-
-    // --- CORRECTION FUNCTION ---
-    function correctPm25(rawPm25_atm, humidity) {
-        // Robust check for valid numbers before calculation
-        if (typeof rawPm25_atm !== 'number' || isNaN(rawPm25_atm) || typeof humidity !== 'number' || isNaN(humidity)) {
-            return null;
-        }
-        
-        // US EPA correction formula: 0.52 * Raw PM2.5 - 0.085 * RH + 5.75
-        const corrected = 0.52 * rawPm25_atm - 0.085 * humidity + 5.75;
-        
-        return Math.max(0, corrected); 
+  const ctx = document.getElementById('airChart').getContext('2d');
+  const chart = new Chart(ctx, {
+    type: 'line',
+    data: { 
+      datasets: [
+        { label: 'Cheverly Station', data: [], borderColor: '#0074D9', backgroundColor: 'rgba(0,116,217,0.1)', fill: true, tension: 0.3 },
+        { label: 'National Average', data: [], borderColor: '#ff851b', borderDash: [5, 5], fill: false, tension: 0.3, pointRadius: 0 }
+      ] 
+    },
+    options: { 
+      responsive: true, 
+      maintainAspectRatio: false, 
+      scales: { x: { type: 'time', time: { unit: 'hour' } }, y: { beginAtZero: true } } 
     }
-    // ---------------------------------
+  });
 
-    function pmToColor(v){
-        // Mapped to the user's custom legend breakpoints (0-50, 51-100, etc.)
-        if (v <= 50) return "green";
-        if (v <= 100) return "yellow";
-        if (v <= 150) return "orange";
-        if (v <= 200) return "red";
-        if (v <= 300) return "purple";
-        return "maroon";
+  function log(msg) { document.getElementById('status').textContent = msg; }
+  function correction(p, h) { return Math.max(0, 0.52 * p - 0.085 * h + 5.75); }
+  function getColor(v) {
+    if (v <= 50) return "#2e7d32"; if (v <= 100) return "#ffff00";
+    if (v <= 150) return "#ff9800"; if (v <= 200) return "#ff0000"; return "#800080";
+  }
+
+  async function fetchHistory(sn) {
+    const end = Math.floor(Date.now() / 1000);
+    const start = end - 86400;
+    // We remove 'time_stamp' and use 'timestamp' as per recent PA API changes for certain keys
+    const url = `https://api.purpleair.com/v1/sensors/${sn}/history?fields=pm2.5_atm,humidity&average=60&start_timestamp=${start}&end_timestamp=${end}`;
+    
+    const res = await fetch(url, { headers: {"X-API-Key": API_KEY} });
+    const json = await res.json();
+    
+    if (!json.data) throw new Error(json.description || "No data");
+
+    const iP = json.fields.indexOf("pm2.5_atm");
+    const iH = json.fields.indexOf("humidity");
+    // PA usually includes 'time_stamp' automatically in the data rows even if not in fields request
+    const iT = json.fields.indexOf("time_stamp") !== -1 ? json.fields.indexOf("time_stamp") : 0; 
+
+    return json.data.map(r => ({
+      x: new Date(r[iT] * 1000),
+      y: correction(r[iP], r[iH])
+    })).sort((a,b) => a.x - b.x);
+  }
+
+  async function updateTimeseries(sn) {
+    try {
+      const data = await fetchHistory(sn);
+      chart.data.datasets[0].data = data;
+      chart.update();
+      log(`Station: ${sn}\nPM2.5: ${allDevices.find(d=>d.sn===sn).pm25.toFixed(1)}\nStatus: Active 24h Plot`);
+    } catch (e) { log("Error: " + e.message); }
+  }
+
+  async function loadNational() {
+    let timeMap = {};
+    const tasks = NAT_SENSORS.map(async id => {
+      try {
+        const data = await fetchHistory(id);
+        data.forEach(pt => {
+          const ts = pt.x.getTime();
+          if (!timeMap[ts]) timeMap[ts] = [];
+          timeMap[ts].push(pt.y);
+        });
+      } catch(e) {}
+    });
+    await Promise.all(tasks);
+    chart.data.datasets[1].data = Object.keys(timeMap).map(ts => ({
+      x: new Date(parseInt(ts)),
+      y: timeMap[ts].reduce((a,b) => a+b, 0) / timeMap[ts].length
+    })).sort((a,b) => a.x - b.x);
+    chart.update();
+  }
+
+  async function init() {
+    try {
+      const url = `https://api.purpleair.com/v1/sensors?fields=sensor_index,latitude,longitude,pm2.5_atm,humidity&location_type=0&nwlat=38.96&nwlng=-76.96&selat=38.89&selng=-76.84`;
+      const res = await fetch(url, { headers: {"X-API-Key": API_KEY} });
+      const json = await res.json();
+      if (!res.ok) { log(`API Error: ${json.description}`); return; }
+
+      const f = json.fields;
+      allDevices = json.data.map(r => ({
+        sn: String(r[f.indexOf("sensor_index")]),
+        lat: r[f.indexOf("latitude")], lon: r[f.indexOf("longitude")],
+        pm25: correction(r[f.indexOf("pm2.5_atm")], r[f.indexOf("humidity")])
+      }));
+
+      const sel = document.getElementById('devSel');
+      sel.innerHTML = "";
+      allDevices.forEach(d => {
+        const opt = document.createElement("option"); opt.value = d.sn; opt.textContent = `Sensor ${d.sn}`; sel.append(opt);
+        const m = L.circleMarker([d.lat, d.lon], {radius: 12, color: "#333", weight: 2, fillColor: getColor(d.pm25), fillOpacity: 0.9}).addTo(markerLayer);
+        m.on('click', () => { sel.value = d.sn; updateTimeseries(d.sn); });
+      });
+
+      if (allDevices.length) { sel.value = allDevices[0].sn; updateTimeseries(sel.value); loadNational(); }
+      else { log("No sensors found in Cheverly area."); }
+    } catch (e) { log("Init Failed."); }
+  }
+
+  document.getElementById('searchBtn').onclick = async () => {
+    const val = document.getElementById('addr').value;
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(val + ", Cheverly, MD")}&limit=1`);
+    const data = await res.json();
+    if(data.length > 0) {
+      map.setView([data[0].lat, data[0].lon], 16);
+      L.marker([data[0].lat, data[0].lon]).addTo(map).bindPopup("Your Location").openPopup();
     }
-    function fmt(d){return new Date(d).toLocaleString();}
-    function demoSeries(){return Array.from({length:24},(_,i)=>({x:new Date(Date.now()-i*3600e3),y:10+Math.random()*30}));}
+  };
 
-    async function fetchPurpleAir(){
-        // UPDATED URL: Added 'humidity' to fields list
-      const url="https://api.purpleair.com/v1/sensors?nwlng=-76.955&nwlat=38.955&selng=-76.860&selat=38.900&fields=sensor_index,name,latitude,longitude,pm2.5_atm,last_seen,location_type,humidity";
-      const res=await fetch(url,{headers:{"X-API-Key":PURPLEAIR_API_KEY}});
-      const json=await res.json();
-      const f=json.fields; const idx=n=>f.indexOf(n);
-      
-      return (json.data||[]).map(r=>{
-            // Safely get raw PM2.5 and humidity fields
-            const rawPm25 = Number(r[idx("pm2.5_atm")]);
-            const humidity = Number(r[idx("humidity")]);
-
-            return {
-                sn:String(r[idx("sensor_index")]),
-                name:r[idx("name")],
-                source:"PurpleAir",
-                lat:Number(r[idx("latitude")]),
-                lon:Number(r[idx("longitude")]),
-                // Use the corrected value
-                pm25: correctPm25(rawPm25, humidity), 
-                last_seen:new Date(Number(r[idx("last_seen")])*1000)
-            };
-        // Filter out sensors outside the area or those where the correction returned null
-      }).filter(d=>d.pm25 !== null && turf.booleanPointInPolygon(turf.point([d.lon,d.lat]),CHEVERLY_POLY));
-    }
-
-    async function fetchHist(sn){
-        // UPDATED URL: Added 'humidity' to fields list
-      const url=`https://api.purpleair.com/v1/sensors/${sn}/history?fields=pm2.5_atm,time_stamp,humidity&average=30&n=48`;
-      const r=await fetch(url,{headers:{"X-API-Key":PURPLEAIR_API_KEY}});
-      const j=await r.json(); 
-      const f=j.fields; 
-      const iT=f.indexOf("time_stamp"); 
-      const iP=f.indexOf("pm2.5_atm");
-      const iH=f.indexOf("humidity"); // Get the index for humidity
-      
-      return (j.data||[]).map(x=>{
-          const corrected = correctPm25(x[iP], x[iH]); // Apply correction
-          return {x:new Date(x[iT]*1000),y:corrected};
-      }).filter(x => x.y !== null); // Filter out any points with uncorrectable data
-    }
-
-    function populate(){
-      sel.innerHTML=""; devices.forEach(d=>{const o=document.createElement("option");o.value=d.sn;o.textContent=`${d.sn} (${d.source})`;sel.append(o);});
-    }
-
-    function updateMap(){
-      layerGroup.clearLayers(); markersBySN=new Map();
-      devices.forEach(d=>{
-        const m=L.circleMarker([d.lat,d.lon],{radius:9,color:pmToColor(d.pm25),fillColor:pmToColor(d.pm25),fillOpacity:0.8}).addTo(layerGroup)
-          .bindPopup(`<b>${d.sn}</b><br>PM2.5: ${d.pm25.toFixed(1)} µg/m³`);
-        m.on("click",()=>{sel.value=d.sn;showInfo(d.sn);updateChart(d.sn);});
-        markersBySN.set(d.sn,m);
-      });
-    }
-
-    function showInfo(sn){
-      const d=devices.find(x=>x.sn===sn);
-      // Use toFixed(1) here for display consistency
-      infoBox.textContent=`Source: ${d.source}\nSN: ${d.sn}\nPM2.5: ${d.pm25.toFixed(1)} µg/m³\nLast Seen: ${fmt(d.last_seen)}`;
-      const m=markersBySN.get(sn); if(m){m.openPopup();map.panTo([d.lat,d.lon]);}
-    }
-
-    async function updateChart(sn){
-      const d=devices.find(x=>x.sn===sn);
-      if(d.source==="PurpleAir"){try{const h=await fetchHist(d.sn);if(h.length){chart.data.datasets[0].data=h;chart.update();return;}}catch(e){console.warn("Error fetching history:", e);}}
-      chart.data.datasets[0].data=demoSeries(); chart.update();
-    }
-
-    async function init(){
-      devices=[...DEMO_QUANTAQ];
-      try{const pa=await fetchPurpleAir();devices.push(...pa);}catch(e){console.warn("Error fetching PurpleAir data:", e);}
-      populate(); updateMap();
-      if(devices.length){sel.value=devices[0].sn;showInfo(sel.value);updateChart(sel.value);}
-    }
-
-    refreshBtn.onclick=()=>{showInfo(sel.value);updateChart(sel.value);}
-    sel.onchange=()=>{showInfo(sel.value);updateChart(sel.value);}
-    init();
-  </script>
+  document.getElementById('devSel').onchange = (e) => updateTimeseries(e.target.value);
+  init();
+</script>
 </body>
 </html>
-
-
-
