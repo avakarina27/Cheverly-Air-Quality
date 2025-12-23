@@ -4,7 +4,80 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Community Insights – Cheverly Air Quality</title>
+  <link rel="icon" type="image/png" href="https://upload.wikimedia.org/wikipedia/commons/7/7c/Air_quality_icon.png" />
   <link rel="stylesheet" href="style.css">
+  
+  <style>
+    html { scroll-behavior: smooth; }
+
+    .topbar {
+      background: #1a305e !important;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+
+    .topbar .brand {
+      color: white !important;
+      font-weight: bold;
+      font-size: 1.3rem;
+    }
+
+    .topbar .nav a {
+      color: white !important;
+      text-decoration: none;
+      margin-left: 1.5rem;
+      font-weight: 500;
+      opacity: 0.8;
+      transition: opacity 0.2s;
+      padding-bottom: 4px;
+      border-bottom: 2px solid transparent;
+    }
+
+    .topbar .nav a:hover {
+      opacity: 1;
+    }
+
+    .topbar .nav a[aria-current="page"] {
+      opacity: 1 !important;
+      border-bottom: 2px solid white !important;
+    }
+
+    .writeup-hero {
+      text-align: center;
+      padding: 5rem 1rem 3rem;
+      background: 
+        linear-gradient(180deg, rgba(26,48,94,0.85), rgba(26,48,94,0.55)),
+        url("https://farm3.static.flickr.com/2249/2024469141_cbcd98a5b7.jpg") 
+        center/cover no-repeat !important;
+      color: #fff;
+    }
+
+    .article { 
+      max-width: 800px; 
+      margin: 2rem auto; 
+      padding: 0 1rem 2rem; 
+      line-height: 1.6; 
+    }
+
+    .article h2 { 
+      color: #1a305e; 
+      scroll-margin-top: 80px; 
+      border-left: 5px solid #4477ce; 
+      padding-left: 15px;
+      margin-top: 3rem;
+    }
+
+    .footer {
+      background: #1a305e;
+      color: white;
+      text-align: center;
+      padding: 2rem;
+      margin-top: 4rem;
+    }
+  </style>
 </head>
 
 <body>
@@ -23,28 +96,24 @@
   </section>
 
   <main class="article">
-    <section id="health"><h2>What are the health effects?</h2><p>Brief PM2.5 health guidance for sensitive groups.</p></section>
-    <section id="network"><h2>About the community network</h2><p>How sensors work, PurpleAir vs QuantAQ, and quality notes.</p></section>
-    <section id="action"><h2>Who’s taking action?</h2><p>Town actions, resident tips, and how to get involved.</p></section>
+    <section id="health">
+      <h2>What are the health effects?</h2>
+      <p>Fine particulate matter (PM2.5) consists of tiny particles that can reach deep into the lungs and even the bloodstream. For sensitive groups—including children, seniors, and those with respiratory conditions—elevated levels can trigger asthma attacks or other health issues.</p>
+    </section>
+    
+    <section id="network">
+      <h2>About the community network</h2>
+      <p>Our network uses a mix of PurpleAir and QuantAQ sensors. These devices measure light scattering to estimate particle counts in real-time. By comparing local data to national trends, we can identify specific times of day when air quality might require extra caution.</p>
+    </section>
+    
+    <section id="action">
+      <h2>Who’s taking action?</h2>
+      <p>The Town of Cheverly is committed to environmental justice and transparent data. Residents can take part by monitoring the dashboard before planning outdoor activities and supporting local initiatives to reduce vehicle idling and wood burning.</p>
+    </section>
   </main>
 
   <footer class="footer">
     <p>© 2025 Town of Cheverly</p>
   </footer>
-
-  <style>
-    .writeup-hero{
-      text-align:center;
-      padding:4rem 1rem 2rem;
-      background:
-        linear-gradient(180deg,rgba(44,62,80,.75),rgba(44,62,80,.55)),
-        url("https://farm3.static.flickr.com/2249/2024469141_cbcd98a5b7.jpg")
-        center/cover no-repeat;
-      color:#fff;
-    }
-    .article{max-width:800px;margin:2rem auto;padding:0 1rem 2rem;line-height:1.6;}
-    .article h2{color:#2c3e50;scroll-margin-top:80px;}
-    html{scroll-behavior:smooth;}
-  </style>
 </body>
 </html>
