@@ -96,7 +96,10 @@
   async function fetchHistory(sn) {
     const end = Math.floor(Date.now() / 1000);
     const start = end - 86400;
+<<<<<<< HEAD
     // We remove 'time_stamp' and use 'timestamp' as per recent PA API changes for certain keys
+=======
+>>>>>>> 2ab129281244696e0662addef3f025095eabee4c
     const url = `https://api.purpleair.com/v1/sensors/${sn}/history?fields=pm2.5_atm,humidity&average=60&start_timestamp=${start}&end_timestamp=${end}`;
     
     const res = await fetch(url, { headers: {"X-API-Key": API_KEY} });
@@ -106,7 +109,10 @@
 
     const iP = json.fields.indexOf("pm2.5_atm");
     const iH = json.fields.indexOf("humidity");
+<<<<<<< HEAD
     // PA usually includes 'time_stamp' automatically in the data rows even if not in fields request
+=======
+>>>>>>> 2ab129281244696e0662addef3f025095eabee4c
     const iT = json.fields.indexOf("time_stamp") !== -1 ? json.fields.indexOf("time_stamp") : 0; 
 
     return json.data.map(r => ({
@@ -185,4 +191,8 @@
   init();
 </script>
 </body>
+<<<<<<< HEAD
 </html>
+=======
+</html>
+>>>>>>> 2ab129281244696e0662addef3f025095eabee4c
