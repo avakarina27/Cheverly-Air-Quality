@@ -6,7 +6,61 @@
   <title>Cheverly Air Quality</title>
   <link rel="icon" type="image/png" href="https://upload.wikimedia.org/wikipedia/commons/7/7c/Air_quality_icon.png" />
   <link rel="stylesheet" href="style.css" />
-  <style>html{scroll-behavior:smooth}</style>
+  
+  <style>
+    html { scroll-behavior: smooth; }
+
+    /* Individual Overrides to ensure the Topbar is Blue */
+    .topbar {
+      background: #1a305e !important; /* The Dashboard Navy */
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+
+    .topbar .brand {
+      color: white !important;
+      font-weight: bold;
+      font-size: 1.3rem;
+    }
+
+    .topbar .nav a {
+      color: white !important;
+      text-decoration: none;
+      margin-left: 1.5rem;
+      font-weight: 500;
+      opacity: 0.8;
+      transition: opacity 0.2s;
+      padding-bottom: 4px;
+      border-bottom: 2px solid transparent;
+    }
+
+    .topbar .nav a:hover {
+      opacity: 1;
+    }
+
+    /* Active underline for Home */
+    .topbar .nav a[aria-current="page"] {
+      opacity: 1 !important;
+      border-bottom: 2px solid white !important;
+    }
+
+    /* Match the "Open Live Dashboard" button and "Yesterday" tile to the Search Blue */
+    .btn--primary, .tile--blue {
+      background-color: #4477ce !important;
+      color: white !important;
+      border: none;
+    }
+
+    .hero--image {
+      background: 
+        linear-gradient(180deg, rgba(26,48,94,0.8), rgba(26,48,94,0.4)),
+        url("https://farm3.static.flickr.com/2249/2024469141_cbcd98a5b7.jpg") 
+        center/cover no-repeat !important;
+    }
+  </style>
 </head>
 
 <body>
@@ -19,7 +73,6 @@
     </nav>
   </header>
 
-  <!-- Hero with your existing background via style.css -->
   <section class="hero hero--image">
     <div class="hero__content">
       <h1>Cleaner air, clearer choices</h1>
@@ -35,40 +88,33 @@
   </section>
 
   <main class="container">
-    <!-- Five tiles in one row on desktop -->
     <section class="tiles tiles--five">
-      <!-- 1) Time series -->
-      <a class="tile tile--blue" href="dashboard.html#chart">
+      <a class="tile tile--blue" href="dashboard.html">
         <h3>How did the air look yesterday?</h3>
         <p>See the day as a simple line trend</p>
       </a>
 
-      <!-- 2) Map -->
-      <a class="tile tile--green" href="dashboard.html#map">
+      <a class="tile tile--green" href="dashboard.html">
         <h3>Is the air near me safe?</h3>
         <p>Check nearby sensors on the map</p>
       </a>
 
-      <!-- 3) Health → write-up -->
       <a class="tile tile--orange" href="writeup.html#health">
         <h3>Health guidance</h3>
         <p>What the colors mean for you</p>
       </a>
 
-      <!-- 4) Network → write-up -->
       <a class="tile tile--purple" href="writeup.html#network">
         <h3>About the network</h3>
         <p>How the sensors work together</p>
       </a>
 
-      <!-- 5) Action → write-up -->
       <a class="tile tile--pink" href="writeup.html#action">
         <h3>Take part</h3>
         <p>Ways to help and stay informed</p>
       </a>
     </section>
 
-    <!-- Simple value add below the tiles -->
     <section class="quick-band">
       <div class="quick-card">
         <h4>Today’s tip</h4>
@@ -76,7 +122,7 @@
       </div>
       <div class="quick-card">
         <h4>How to read the map</h4>
-        <p>Green is generally fine for most people.<p>Yellow calls for awareness.</p> Orange or above suggests caution.</p>
+        <p>Green is generally fine for most people. <br>Yellow calls for awareness. <br>Orange or above suggests caution.</p>
       </div>
       <div class="quick-card">
         <h4>Stay in the loop</h4>
@@ -85,7 +131,7 @@
     </section>
   </main>
 
-  <footer class="footer">
+  <footer class="footer" style="background: #1a305e; color: white; text-align: center; padding: 2rem; margin-top: 2rem;">
     <p>© 2025 Town of Cheverly</p>
   </footer>
 </body>
