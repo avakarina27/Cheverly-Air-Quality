@@ -3,67 +3,122 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Cheverly Air Quality Dashboard</title>
+  <title>Dashboard - Cheverly Air Quality</title>
+  <link rel="icon" type="image/png" href="https://upload.wikimedia.org/wikipedia/commons/7/7c/Air_quality_icon.png" />
+  
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
 
   <style>
-    body, html { margin: 0; padding: 0; height: 100vh; font-family: sans-serif; overflow: hidden; background: #fdfdfd; }
-    .topbar { background: #003366; color: white; padding: 0 20px; display: flex; align-items: center; height: 50px; font-weight: bold; }
-    #layout { display: flex; height: calc(100vh - 50px); width: 100vw; }
-    #sidebar { width: 350px; min-width: 350px; background: #f4f6f8; border-right: 1px solid #ddd; padding: 20px; overflow-y: auto; box-sizing: border-box; }
+    /* Unified Brand Blue from your Search Button */
+    :root {
+      --brand-blue: #4477ce; /* Matches search button in image_1bdfa9.jpg */
+      --nav-bg: #1a305e;    /* Deep navy for contrast in top bar */
+    }
+
+    body, html { margin: 0; padding: 0; height: 100vh; font-family: -apple-system, sans-serif; overflow: hidden; background: #fdfdfd; }
+    
+    /* Topbar - Styled to match image_1ccba4.jpg navigation */
+    .topbar { 
+      background: var(--nav-bg); 
+      color: white; 
+      padding: 0 30px; 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      height: 60px; 
+    }
+    .brand { font-weight: bold; font-size: 1.3rem; }
+    .nav { display: flex; gap: 25px; }
+    .nav a { color: white; text-decoration: none; font-weight: 500; opacity: 0.8; }
+    .nav a.active { opacity: 1; border-bottom: 2px solid white; padding-bottom: 4px; }
+
+    #layout { display: flex; height: calc(100vh - 60px); width: 100vw; }
+    
+    #sidebar { 
+      width: 350px; min-width: 350px; background: #f4f6f8; 
+      border-right: 1px solid #ddd; padding: 20px; overflow-y: auto; box-sizing: border-box; 
+    }
+
     #main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
     #map { height: 45%; width: 100%; border-bottom: 1px solid #ddd; z-index: 1; }
     #chart-box { height: 55%; width: 100%; padding: 20px; box-sizing: border-box; background: white; }
+
     .card { background: white; padding: 15px; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-    label { font-size: 0.85rem; font-weight: bold; color: #555; margin-bottom: 5px; display: block; }
-    input, select, button { width: 100%; padding: 10px; margin-top: 5px; border-radius: 4px; border: 1px solid #ccc; box-sizing: border-box; font-size: 0.9rem; }
-    button { background: #0074D9; color: white; border: none; font-weight: bold; cursor: pointer; }
-    pre { background: #1a1a1a; color: #00ff00; padding: 12px; font-size: 0.75rem; white-space: pre-wrap; border-radius: 4px; min-height: 80px; overflow-x: hidden; }
+    label { font-size: 0.9rem; font-weight: bold; color: #333; margin-bottom: 5px; display: block; }
+    
+    input, select { width: 100%; padding: 10px; margin-top: 5px; border-radius: 4px; border: 1px solid #ccc; box-sizing: border-box; }
+    
+    /* Unified Search Button Color */
+    button { 
+      width: 100%; padding: 10px; margin-top: 10px; border-radius: 4px; border: none;
+      background: var(--brand-blue); color: white; font-weight: bold; cursor: pointer; 
+    }
+    
+    pre { background: #f8f8f8; padding: 12px; font-size: 0.85rem; white-space: pre-wrap; border: 1px solid #eee; border-radius: 4px; color: #444; }
+
+    /* Legend matching image_1bf2ac.png */
+    .legend-title { font-weight: bold; font-size: 1.1rem; margin-bottom: 12px; }
     .legend-item { display: flex; align-items: center; margin-bottom: 8px; font-size: 0.95rem; }
-    .dot { width: 18px; height: 18px; border-radius: 50%; margin-right: 10px; border: 1px solid rgba(0,0,0,0.2); }
+    .dot { width: 18px; height: 18px; border-radius: 50%; margin-right: 12px; border: 1px solid rgba(0,0,0,0.1); }
+    .label-text { font-weight: bold; width: 120px; }
   </style>
 </head>
 <body>
 
-<div class="topbar">Cheverly Air Quality Dashboard</div>
+<header class="topbar">
+  <div class="brand">Cheverly Air Quality</div>
+  <nav class="nav">
+    <a href="index.html">Home</a>
+    <a href="dashboard.html" class="active">Dashboard</a>
+    <a href="writeup.html">Community Insights</a>
+  </nav>
+</header>
 
 <div id="layout">
   <aside id="sidebar">
     <div class="card">
-      <label>Search Address:</label>
-      <input type="text" id="addr" placeholder="Enter your Cheverly Address Here">
-      <button id="searchBtn">Find Nearest Sensor</button>
+      <label>Find the Closest Sensor:</label>
+      <input type="text" id="addr" placeholder="Enter Cheverly Street Address">
+      <button id="searchBtn">Search Address</button>
     </div>
+
     <div class="card">
-      <label>Active Sensors:</label>
+      <label>Manual Device Selection:</label>
       <select id="devSel"><option>Loading...</option></select>
     </div>
+
     <div class="card">
-      <label>Device Details & API Console:</label>
-      <pre id="status">Connecting...</pre>
+      <label>Device Info</label>
+      <pre id="details">Source: PurpleAir
+Select a sensor to begin.</pre>
     </div>
+
     <div class="card">
-      <label>PM2.5 Legend (µg/m³)</label>
-      <div class="legend-item"><span class="dot" style="background:#2e7d32"></span> Good (0-50)</div>
-      <div class="legend-item"><span class="dot" style="background:#ffff00"></span> Acceptable (51-100)</div>
-      <div class="legend-item"><span class="dot" style="background:#ff9800"></span> Moderate (101-150)</div>
-      <div class="legend-item"><span class="dot" style="background:#ff0000"></span> Unhealthy (151-200)</div>
-      <div class="legend-item"><span class="dot" style="background:#800080"></span> Very Unhealthy (201-300)</div>
+      <div class="legend-title">PM2.5 Legend (µg/m³)</div>
+      <div class="legend-item"><span class="dot" style="background:#2e7d32"></span> <span class="label-text">Good</span> 0–50</div>
+      <div class="legend-item"><span class="dot" style="background:#ffff00"></span> <span class="label-text">Acceptable</span> 51-100</div>
+      <div class="legend-item"><span class="dot" style="background:#ff9800"></span> <span class="label-text">Moderate</span> 101-150</div>
+      <div class="legend-item"><span class="dot" style="background:#ff0000"></span> <span class="label-text">Unhealthy</span> 151-200</div>
+      <div class="legend-item"><span class="dot" style="background:#800080"></span> <span class="label-text">Very Unhealthy</span> 201-300</div>
+      <div class="legend-item"><span class="dot" style="background:#800000"></span> <span class="label-text">Emergency</span> 301+</div>
     </div>
   </aside>
 
   <main id="main">
     <div id="map"></div>
-    <div id="chart-box"><canvas id="airChart"></canvas></div>
+    <div id="chart-box">
+      <canvas id="airChart"></canvas>
+    </div>
   </main>
 </div>
 
 <script>
   const API_KEY = "9ADB5C6C-A9B0-11EF-A261-42010A80000F";
-  const NAT_SENSORS = [146313, 155167, 65301, 38167, 102551];
+  // Sensors for National Average
+  const NAT_SENSORS = [146313, 155167, 65301, 38167, 102551]; 
   let allDevices = [];
 
   const map = L.map('map').setView([38.925, -76.91], 14);
@@ -73,52 +128,49 @@
   const ctx = document.getElementById('airChart').getContext('2d');
   const chart = new Chart(ctx, {
     type: 'line',
-    data: { 
+    data: {
       datasets: [
-        { label: 'Cheverly Station', data: [], borderColor: '#0074D9', backgroundColor: 'rgba(0,116,217,0.1)', fill: true, tension: 0.3 },
-        { label: 'National Average', data: [], borderColor: '#ff851b', borderDash: [5, 5], fill: false, tension: 0.3, pointRadius: 0 }
-      ] 
+        { 
+          label: 'Selected Station (PM2.5)', 
+          data: [], 
+          borderColor: '#4477ce', // Unified Blue
+          backgroundColor: 'rgba(68, 119, 206, 0.1)', 
+          fill: true, 
+          tension: 0.3 
+        },
+        { 
+          label: 'National Average', 
+          data: [], 
+          borderColor: '#999', 
+          borderDash: [5, 5], 
+          fill: false, 
+          pointRadius: 0 
+        }
+      ]
     },
-    options: { 
-      responsive: true, 
-      maintainAspectRatio: false, 
-      scales: { x: { type: 'time', time: { unit: 'hour' } }, y: { beginAtZero: true } } 
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: { 
+        x: { type: 'time', time: { unit: 'hour' } },
+        y: { beginAtZero: true, title: { display: true, text: 'µg/m³' } }
+      }
     }
   });
 
-  function log(msg) { document.getElementById('status').textContent = msg; }
   function correction(p, h) { return Math.max(0, 0.52 * p - 0.085 * h + 5.75); }
   function getColor(v) {
     if (v <= 50) return "#2e7d32"; if (v <= 100) return "#ffff00";
-    if (v <= 150) return "#ff9800"; if (v <= 200) return "#ff0000"; return "#800080";
+    if (v <= 150) return "#ff9800"; if (v <= 200) return "#ff0000";
+    if (v <= 300) return "#800080"; return "#800000";
   }
 
   async function fetchHistory(sn) {
     const end = Math.floor(Date.now() / 1000);
     const start = end - 86400;
-<<<<<<< HEAD
-    // We remove 'time_stamp' and use 'timestamp' as per recent PA API changes for certain keys
-=======
->>>>>>> 2ab129281244696e0662addef3f025095eabee4c
-    const url = `https://api.purpleair.com/v1/sensors/${sn}/history?fields=pm2.5_atm,humidity&average=60&start_timestamp=${start}&end_timestamp=${end}`;
-    
-    const res = await fetch(url, { headers: {"X-API-Key": API_KEY} });
+    const res = await fetch(`https://api.purpleair.com/v1/sensors/${sn}/history?fields=pm2.5_atm,humidity&average=60&start_timestamp=${start}&end_timestamp=${end}`, { headers: {"X-API-Key": API_KEY} });
     const json = await res.json();
-    
-    if (!json.data) throw new Error(json.description || "No data");
-
-    const iP = json.fields.indexOf("pm2.5_atm");
-    const iH = json.fields.indexOf("humidity");
-<<<<<<< HEAD
-    // PA usually includes 'time_stamp' automatically in the data rows even if not in fields request
-=======
->>>>>>> 2ab129281244696e0662addef3f025095eabee4c
-    const iT = json.fields.indexOf("time_stamp") !== -1 ? json.fields.indexOf("time_stamp") : 0; 
-
-    return json.data.map(r => ({
-      x: new Date(r[iT] * 1000),
-      y: correction(r[iP], r[iH])
-    })).sort((a,b) => a.x - b.x);
+    const iP = json.fields.indexOf("pm2.5_atm"), iH = json.fields.indexOf("humidity");
+    return json.data.map(r => ({ x: new Date(r[0] * 1000), y: correction(r[iP], r[iH]) })).sort((a,b) => a.x - b.x);
   }
 
   async function updateTimeseries(sn) {
@@ -126,8 +178,9 @@
       const data = await fetchHistory(sn);
       chart.data.datasets[0].data = data;
       chart.update();
-      log(`Station: ${sn}\nPM2.5: ${allDevices.find(d=>d.sn===sn).pm25.toFixed(1)}\nStatus: Active 24h Plot`);
-    } catch (e) { log("Error: " + e.message); }
+      const dev = allDevices.find(d => d.sn === sn);
+      document.getElementById('details').textContent = `Source: PurpleAir\nSN: ${sn}\nPM2.5: ${dev.pm25.toFixed(1)} µg/m³\nLast Seen: ${new Date().toLocaleString()}`;
+    } catch (e) { console.error(e); }
   }
 
   async function loadNational() {
@@ -152,11 +205,8 @@
 
   async function init() {
     try {
-      const url = `https://api.purpleair.com/v1/sensors?fields=sensor_index,latitude,longitude,pm2.5_atm,humidity&location_type=0&nwlat=38.96&nwlng=-76.96&selat=38.89&selng=-76.84`;
-      const res = await fetch(url, { headers: {"X-API-Key": API_KEY} });
+      const res = await fetch("https://api.purpleair.com/v1/sensors?nwlng=-76.96&nwlat=38.96&selng=-76.84&selat=38.89&fields=sensor_index,latitude,longitude,pm2.5_atm,humidity", {headers: {"X-API-Key": API_KEY}});
       const json = await res.json();
-      if (!res.ok) { log(`API Error: ${json.description}`); return; }
-
       const f = json.fields;
       allDevices = json.data.map(r => ({
         sn: String(r[f.indexOf("sensor_index")]),
@@ -167,14 +217,12 @@
       const sel = document.getElementById('devSel');
       sel.innerHTML = "";
       allDevices.forEach(d => {
-        const opt = document.createElement("option"); opt.value = d.sn; opt.textContent = `Sensor ${d.sn}`; sel.append(opt);
-        const m = L.circleMarker([d.lat, d.lon], {radius: 12, color: "#333", weight: 2, fillColor: getColor(d.pm25), fillOpacity: 0.9}).addTo(markerLayer);
+        const opt = document.createElement("option"); opt.value = d.sn; opt.textContent = `${d.sn} (PurpleAir)`; sel.append(opt);
+        const m = L.circleMarker([d.lat, d.lon], {radius: 12, color: "#333", weight: 1, fillColor: getColor(d.pm25), fillOpacity: 0.9}).addTo(markerLayer);
         m.on('click', () => { sel.value = d.sn; updateTimeseries(d.sn); });
       });
-
       if (allDevices.length) { sel.value = allDevices[0].sn; updateTimeseries(sel.value); loadNational(); }
-      else { log("No sensors found in Cheverly area."); }
-    } catch (e) { log("Init Failed."); }
+    } catch (e) { console.error(e); }
   }
 
   document.getElementById('searchBtn').onclick = async () => {
@@ -191,8 +239,4 @@
   init();
 </script>
 </body>
-<<<<<<< HEAD
 </html>
-=======
-</html>
->>>>>>> 2ab129281244696e0662addef3f025095eabee4c
