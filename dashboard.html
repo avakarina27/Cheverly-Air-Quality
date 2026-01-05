@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>EJAT Air Quality Network</title>
+  <title>Cheverly Air Quality</title>
   
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -13,30 +13,42 @@
   <style>
     :root { --brand-navy: #1a305e; --search-blue: #4477ce; --orange: #f59e0b; }
     body, html { margin: 0; padding: 0; height: 100vh; width: 100vw; font-family: "Segoe UI", sans-serif; overflow: hidden; background: #fdfdfd; }
+    
+    /* RESTORED TOPBAR & NAV */
     .topbar { background: var(--brand-navy); color: white; padding: 0 25px; display: flex; justify-content: space-between; align-items: center; height: 60px; z-index: 1000; position: relative; }
     .brand { font-size: 1.2rem; font-weight: bold; }
+    .nav a { color: white; text-decoration: none; margin-left: 20px; font-size: 0.9rem; opacity: 0.8; }
+    .nav a:hover { opacity: 1; text-decoration: underline; }
+    .nav a[aria-current="page"] { font-weight: bold; opacity: 1; }
+
     #layout { display: flex; height: calc(100vh - 60px); width: 100vw; }
     #sidebar { width: 380px; min-width: 380px; background: #f4f6f8; border-right: 1px solid #ddd; padding: 20px; overflow-y: auto; box-sizing: border-box; }
+    
     .card { background: white; padding: 15px; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
     label { font-size: 0.75rem; font-weight: bold; color: #666; text-transform: uppercase; margin-bottom: 5px; display: block; }
+    
     input, select { width: 100%; padding: 10px; margin-top: 5px; border-radius: 4px; border: 1px solid #ccc; box-sizing: border-box; }
     button { width: 100%; padding: 10px; margin-top: 10px; border-radius: 4px; border: none; background: var(--search-blue); color: white; font-weight: bold; cursor: pointer; }
+    
     #map { height: 45%; width: 100%; border-bottom: 1px solid #ddd; }
     #chart-box { height: 55%; width: 100%; padding: 20px; box-sizing: border-box; background: white; }
     
-    /* Outline fix for yellow wording/numbering */
-    .aqi-big-num { 
+    .aqi-num { 
       font-size: 58px; font-weight: 900; display: block; line-height: 1; text-align: center; margin: 10px 0;
       text-shadow: -1px -1px 0 #333, 1px -1px 0 #333, -1px 1px 0 #333, 1px 1px 0 #333;
     }
-    .legend-item { display: flex; align-items: center; margin-bottom: 6px; font-size: 0.9rem; font-weight: 600; }
-    .dot { width: 16px; height: 16px; border-radius: 50%; margin-right: 10px; border: 2px solid #333; }
-    .tri-icon { width: 0; height: 0; border-left: 9px solid transparent; border-right: 9px solid transparent; border-bottom: 16px solid var(--orange); margin-right: 10px; filter: drop-shadow(0px 0px 1px #000); }
   </style>
 </head>
 <body>
 
-<header class="topbar"><div class="brand">EJAT Air Quality Network</div></header>
+  <header class="topbar">
+    <div class="brand">Cheverly Air Quality</div>
+    <nav class="nav">
+      <a href="index.html" aria-current="page">Home</a>
+      <a href="dashboard.html">Dashboard</a>
+      <a href="writeup.html">Community Insights</a>
+    </nav>
+  </header>
 
 <div id="layout">
   <aside id="sidebar">
