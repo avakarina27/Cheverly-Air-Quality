@@ -51,7 +51,7 @@
     #map { height: 45% !important; width: 100% !important; border-bottom: 1px solid #ddd; z-index: 1; }
     #chart-box { height: 55% !important; width: 100% !important; padding: 15px; box-sizing: border-box; background: white; }
     
-    /* FORCED BLACK OUTLINE FOR LIVE READINGS */
+    /* Outlined AQI Number for Sidebar */
     .aqi-val { 
       font-size: 72px !important; 
       font-weight: 900 !important; 
@@ -59,14 +59,10 @@
       text-align: center; 
       line-height: 1.1;
       text-shadow: 
-        -2px -2px 0 #000,  
-         2px -2px 0 #000,
-        -2px  2px 0 #000,
-         2px  2px 0 #000,
-         0px  2px 0 #000,
-         0px -2px 0 #000,
-         2px  0px 0 #000,
-        -2px  0px 0 #000;
+        -2px -2px 0 #000, 2px -2px 0 #000,
+        -2px  2px 0 #000, 2px  2px 0 #000,
+         0px  2px 0 #000, 0px -2px 0 #000,
+         2px  0px 0 #000, -2px 0px 0 #000;
     }
     
     .legend-item { display: flex; align-items: center; margin-bottom: 8px; font-size: 0.85rem; font-weight: 600; color: #333; }
@@ -137,7 +133,6 @@
   const PURPLE_AIR_KEY = "9ADB5C6C-A9B0-11EF-A261-42010A80000F";
   const PROXY = "https://corsproxy.io/?"; 
 
-  // Saved Station Information
   const SENSORS = {
     "284362": "EJAT.PG.1.284362", "52823": "EJAT.CV.6.52823", "53677": "EJAT.CV.1.53677",
     "54239": "EJAT.CV.6.54239", "54293": "EJAT.CV.2.54293", "57777": "EJAT.CV.1.57777",
@@ -182,6 +177,14 @@
     return Math.round(pm + 100);
   }
 
+  // Consistent Color Logic Helper
+  function getAQIColor(aqi) {
+    if (aqi <= 50) return "#00e400";
+    if (aqi <= 100) return "#ffff00";
+    if (aqi <= 150) return "#ff7e00";
+    return "#ff0000";
+  }
+
   async function updateDisplay(id) {
     if (id.startsWith("MOD")) {
       document.getElementById('statName').innerText = id;
@@ -200,14 +203,9 @@
       chart.update();
       const aqi = localData.length > 0 ? localData[localData.length-1].y : 0;
       
-      let color = "#00e400";
-      if (aqi > 50) color = "#ffff00";
-      if (aqi > 100) color = "#ff7e00";
-      if (aqi > 150) color = "#ff0000";
-
       document.getElementById('statName').innerText = SENSORS[id];
       document.getElementById('statAQI').innerText = aqi;
-      document.getElementById('statAQI').style.color = color;
+      document.getElementById('statAQI').style.color = getAQIColor(aqi);
     } catch(e) {}
   }
 
@@ -262,10 +260,10 @@
       const id = String(r[0]);
       if (SENSORS[id]) {
         const aqi = pmToAQI(r[3]);
-        const color = aqi <= 50 ? "#00e400" : (aqi <= 100 ? "#ffff00" : "#ff7e00");
+        const color = getAQIColor(aqi);
         const m = L.circleMarker([r[1], r[2]], { radius: 11, fillColor: color, color: "#000", weight: 2, fillOpacity: 0.9 }).addTo(map);
         markerMap[id] = m;
-        m.bindTooltip(`<b>${SENSORS[id]}</b>`);
+        m.bindTooltip(`<b>${SENSORS[id]}</b><br>AQI: ${aqi}`);
         m.on('click', () => { sel.value = id; handleDropdownChange(id); });
         sel.add(new Option(SENSORS[id], id));
       }
