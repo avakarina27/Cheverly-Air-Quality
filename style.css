@@ -1,10 +1,7 @@
-/* --- CSS VARIABLES --- */
 :root {
-  /* Colors synced to image references */
-  --brand-navy: #1a305e;    /* Deep navy for Topbar and Footer */
-  --search-blue: #4477ce;   /* Brand blue for Search Button and Time Series */
+  --brand-navy: #1a305e;
+  --search-blue: #4477ce;
   
-  /* Palette for Tiles and Status */
   --blue: #3b82f6;
   --green: #22c55e;
   --orange: #f59e0b;
@@ -15,7 +12,6 @@
   --paper: #ffffff;
 }
 
-/* --- Global Layout --- */
 body {
   margin: 0;
   font-family: "Segoe UI", Roboto, system-ui, sans-serif;
@@ -24,7 +20,6 @@ body {
   line-height: 1.5;
 }
 
-/* --- Navigation Bar --- */
 .topbar {
   background: var(--brand-navy);
   color: #fff;
@@ -59,19 +54,17 @@ body {
   opacity: 1;
 }
 
-/* Active State Underline */
 .topbar .nav a[aria-current="page"],
 .topbar .nav a.active {
   opacity: 1;
   border-bottom: 2px solid white;
 }
 
-/* --- Hero Section --- */
 .hero--image {
   position: relative;
   color: #fff;
   text-align: center;
-  /* Gradient overlay uses the same navy brand color for consistency */
+
   background:
     linear-gradient(180deg, rgba(26,48,94,0.75), rgba(26,48,94,0.45)),
     url("https://farm3.static.flickr.com/2249/2024469141_cbcd98a5b7.jpg")
@@ -92,7 +85,6 @@ body {
   opacity: 0.95;
 }
 
-/* --- Buttons --- */
 .btn {
   display: inline-block;
   padding: 0.8rem 1.5rem;
@@ -106,7 +98,6 @@ body {
   transform: translateY(-2px);
 }
 
-/* Button synced to the Search Blue shade */
 .btn--primary {
   background: var(--search-blue);
   color: #fff;
@@ -119,7 +110,6 @@ body {
   margin-left: 0.8rem;
 }
 
-/* --- Grid and Tiles --- */
 .container {
   max-width: 1200px;
   margin: 0 auto;
@@ -150,14 +140,14 @@ body {
   box-shadow: 0 8px 20px rgba(0,0,0,0.2);
 }
 
-/* Syncing the blue tile to the Brand Blue */
+
 .tile--blue { background: var(--search-blue); }
 .tile--green { background: var(--green); }
 .tile--orange { background: var(--orange); }
 .tile--purple { background: var(--purple); }
 .tile--pink { background: var(--pink); }
 
-/* --- Quick Info Cards --- */
+
 .quick-band {
   margin-top: 3rem;
   display: grid;
@@ -178,7 +168,7 @@ body {
   color: var(--brand-navy);
 }
 
-/* --- Footer --- */
+
 .footer {
   background: var(--brand-navy);
   color: #fff;
@@ -186,3 +176,4 @@ body {
   padding: 2rem;
   margin-top: 4rem;
 }
+
