@@ -12,8 +12,9 @@
 
   <style>
     :root { --brand-navy: #1a305e; --search-blue: #4477ce; --orange: #f59e0b; }
-    body, html { margin: 0; padding: 0; height: 100vh; width: 100vw; font-family: "Segoe UI", sans-serif; overflow: hidden; background: #fdfdfd; }
+    body, html { margin: 0; padding: 0; height: 100vh; width: 100vw; font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; overflow: hidden; background: #fdfdfd; }
     
+    /* RESTORED NAVIGATION BAR */
     .topbar { background: var(--brand-navy); color: white; padding: 0 25px; display: flex; justify-content: space-between; align-items: center; height: 60px; z-index: 1000; position: relative; }
     .brand { font-size: 1.2rem; font-weight: bold; }
     .nav a { color: white; text-decoration: none; margin-left: 20px; font-size: 0.9rem; opacity: 0.8; }
@@ -22,29 +23,35 @@
 
     #layout { display: flex; height: calc(100vh - 60px); width: 100vw; }
     #sidebar { width: 380px; min-width: 380px; background: #f4f6f8; border-right: 1px solid #ddd; padding: 20px; overflow-y: auto; box-sizing: border-box; }
+    
     .card { background: white; padding: 15px; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
     label { font-size: 0.75rem; font-weight: bold; color: #666; text-transform: uppercase; margin-bottom: 5px; display: block; }
-    input, select { width: 100%; padding: 10px; margin-top: 5px; border-radius: 4px; border: 1px solid #ccc; box-sizing: border-box; }
-    button { width: 100%; padding: 10px; margin-top: 10px; border-radius: 4px; border: none; background: var(--search-blue); color: white; font-weight: bold; cursor: pointer; }
-    #map { height: 45%; width: 100%; border-bottom: 1px solid #ddd; }
+    
+    input, select { width: 100%; padding: 10px; margin-top: 5px; border-radius: 4px; border: 1px solid #ccc; box-sizing: border-box; font-size: 0.9rem; }
+    button { width: 100%; padding: 12px; margin-top: 10px; border-radius: 4px; border: none; background: var(--search-blue); color: white; font-weight: bold; cursor: pointer; transition: background 0.2s; }
+    button:hover { background: #355fb3; }
+
+    #map { height: 45%; width: 100%; border-bottom: 1px solid #ddd; z-index: 1; }
     #chart-box { height: 55%; width: 100%; padding: 20px; box-sizing: border-box; background: white; }
     
-    .aqi-big-num { font-size: 58px; font-weight: 900; display: block; line-height: 1; text-align: center; margin: 10px 0; text-shadow: -1px -1px 0 #333, 1px -1px 0 #333, -1px 1px 0 #333, 1px 1px 0 #333; }
-    .legend-item { display: flex; align-items: center; margin-bottom: 6px; font-size: 0.9rem; font-weight: 600; }
-    .dot { width: 16px; height: 16px; border-radius: 50%; margin-right: 10px; border: 2px solid #333; }
-    .tri-icon { width: 0; height: 0; border-left: 9px solid transparent; border-right: 9px solid transparent; border-bottom: 16px solid var(--orange); margin-right: 10px; filter: drop-shadow(0px 0px 1px #000); }
+    .aqi-big-num { font-size: 64px; font-weight: 900; display: block; line-height: 1; text-align: center; margin: 10px 0; text-shadow: -1px -1px 0 #333, 1px -1px 0 #333, -1px 1px 0 #333, 1px 1px 0 #333; }
+    
+    /* LEGEND STYLING */
+    .legend-item { display: flex; align-items: center; margin-bottom: 8px; font-size: 0.9rem; font-weight: 600; color: #444; }
+    .dot { width: 18px; height: 18px; border-radius: 50%; margin-right: 12px; border: 2px solid #333; }
+    .tri-icon { width: 0; height: 0; border-left: 10px solid transparent; border-right: 10px solid transparent; border-bottom: 18px solid var(--orange); margin-right: 12px; filter: drop-shadow(0px 0px 1px #000); }
   </style>
 </head>
 <body>
 
-<header class="topbar">
-  <div class="brand">Cheverly Air Quality</div>
-  <nav class="nav">
-    <a href="index.html">Home</a>
-    <a href="dashboard.html" aria-current="page">Dashboard</a>
-    <a href="writeup.html">Community Insights</a>
-  </nav>
-</header>
+  <header class="topbar">
+    <div class="brand">Cheverly Air Quality</div>
+    <nav class="nav">
+      <a href="index.html">Home</a>
+      <a href="dashboard.html" aria-current="page">Dashboard</a>
+      <a href="writeup.html">Community Insights</a>
+    </nav>
+  </header>
 
 <div id="layout">
   <aside id="sidebar">
@@ -53,9 +60,17 @@
       <input type="text" id="addrInput" placeholder="Address or zip code">
       <button id="locateBtn">Find Nearest Station</button>
     </div>
-    <div class="card"><label>Station Index</label><select id="devSel" onchange="handleDropdownChange(this.value)"></select></div>
-    <div class="card"><label>Live Station Reading</label><div id="details" style="text-align:center; padding:10px;">Syncing data...</div></div>
     
+    <div class="card">
+        <label>Station Index</label>
+        <select id="devSel" onchange="handleDropdownChange(this.value)"></select>
+    </div>
+
+    <div class="card">
+      <label>Live Station Reading</label>
+      <div id="details" style="text-align:center; padding:10px;">Syncing data...</div>
+    </div>
+
     <div class="card">
       <label>Network Legend</label>
       <div class="legend-item"><span class="dot" style="background:#00e400"></span> Good (0-50)</div>
@@ -65,26 +80,31 @@
       <div class="legend-item"><span class="tri-icon"></span> SPOD Gas Sensor (QuantAQ)</div>
     </div>
   </aside>
-  <main style="flex:1; display:flex; flex-direction:column;"><div id="map"></div><div id="chart-box"><canvas id="airChart"></canvas></div></main>
+  
+  <main style="flex:1; display:flex; flex-direction:column;">
+    <div id="map"></div>
+    <div id="chart-box"><canvas id="airChart"></canvas></div>
+  </main>
 </div>
 
 <script>
   const PURPLE_AIR_KEY = "9ADB5C6C-A9B0-11EF-A261-42010A80000F";
   const PROXY = "https://corsproxy.io/?"; 
 
+  // NAMING CONVENTIONS
   const SENSORS = {
     "284362": "EJAT.PG.1.284362", "52823": "EJAT.CV.6.52823", "53677": "EJAT.CV.1.53677",
     "54239": "EJAT.CV.6.54239", "54293": "EJAT.CV.2.54293", "57777": "EJAT.CV.1.57777",
     "57783": "EJAT.CV.6.57783", "57811": "EJAT.CV.4.57811", "57841": "EJAT.CV.3.57841",
     "57955": "EJAT.FH.1.57955", "160037": "EJAT.PG.1.160037", "175563": "EJAT.PG.1.175563",
     "178169": "EJAT.PG.1.178169", "181253": "EJAT.CH.1.181253", "184191": "EJAT.PG.1.184191",
-    "185085": "EJAT.FH.1.185085", "197937": "EJAT.PG.1.197937", "203577": "EJAT.CV.2.203577",
+    "185085": "EJAT.FH.1.185085", "197937": "EJAT.PG.1.197937", "203577": "EJAT.CV.2.203577 (Supersite)",
     "203597": "EJAT.FH.1.203597", "203601": "EJAT.CV.1.203601", "207729": "EJAT.CV.1.207729",
     "211993": "EJAT.CV.3.211993", "218227": "EJAT.PG.1.218227", "218237": "EJAT.PG.1.218237",
     "218273": "EJAT.PG.1.218273"
   };
 
-  // RESTORED SPOD LIST
+  // SPODS FROM SUPERSITE INFO
   const SPODS = [
     { sn: "MOD-PM-001616", name: "EJAT.SPOD.CV.1616", lat: 38.9221, lon: -76.9215 },
     { sn: "MOD-PM-001619", name: "EJAT.SPOD.CV.1619", lat: 38.9168, lon: -76.9100 }
@@ -100,8 +120,8 @@
   const chart = new Chart(ctx, {
     type: 'line',
     data: { datasets: [
-      { label: 'Local Station', data: [], borderColor: '#4477ce', tension: 0.1 },
-      { label: 'City Average', data: [], borderColor: '#ff4444', borderDash: [5,5], pointRadius: 0 }
+      { label: 'Local Station', data: [], borderColor: '#4477ce', tension: 0.1, fill: false },
+      { label: 'City Average', data: [], borderColor: '#ff4444', borderDash: [5,5], pointRadius: 0, fill: false }
     ]},
     options: { responsive: true, maintainAspectRatio: false, scales: { x: { type: 'time' }, y: { beginAtZero: true } } }
   });
@@ -131,7 +151,7 @@
       const aqi = localData.length > 0 ? localData[localData.length-1].y : 0;
       const color = aqi <= 50 ? "#00e400" : (aqi <= 100 ? "#ffff00" : "#ff7e00");
       document.getElementById('details').innerHTML = `<b>${SENSORS[id]}</b><span class="aqi-big-num" style="color:${color}">${aqi}</span><small>CURRENT AQI</small>`;
-    } catch(e) {}
+    } catch(e) { console.error("Update Error:", e); }
   }
 
   async function loadCityAvg() {
@@ -173,7 +193,7 @@
   async function init() {
     const sel = document.getElementById('devSel');
     
-    // RENDER SPODS
+    // LOAD SPODS FROM LIST
     SPODS.forEach(s => {
       const m = L.marker([s.lat, s.lon], {icon: L.divIcon({ className: 'spod-tri', html: `<div style="width:0;height:0;border-left:12px solid transparent;border-right:12px solid transparent;border-bottom:22px solid var(--orange);filter:drop-shadow(0 0 2px #000);"></div>`, iconSize: [24, 24], iconAnchor: [12, 22] })}).addTo(map).bindTooltip(`<b>${s.name}</b>`);
       markerMap[s.sn] = m;
@@ -181,7 +201,7 @@
       m.on('click', () => { sel.value = s.sn; handleDropdownChange(s.sn); });
     });
 
-    // RENDER PURPLEAIR
+    // LOAD PURPLEAIR FROM LIST
     const url = `${PROXY}${encodeURIComponent("https://api.purpleair.com/v1/sensors?nwlng=-77.1&nwlat=39.0&selng=-76.8&selat=38.8&fields=sensor_index,latitude,longitude,pm2.5_atm")}`;
     const res = await fetch(url, { headers: { "X-API-Key": PURPLE_AIR_KEY } }).then(r=>r.json());
     res.data.forEach(r => {
@@ -189,9 +209,9 @@
       if (SENSORS[id]) {
         const aqi = pmToAQI(r[3]);
         const color = aqi <= 50 ? "#00e400" : (aqi <= 100 ? "#ffff00" : "#ff7e00");
-        const m = L.circleMarker([r[1], r[2]], { radius: 10, fillColor: color, color: "#333", weight: 2, fillOpacity: 0.8 }).addTo(map);
+        const m = L.circleMarker([r[1], r[2]], { radius: 11, fillColor: color, color: "#333", weight: 2, fillOpacity: 0.9 }).addTo(map);
         markerMap[id] = m;
-        m.bindTooltip(`<b>${SENSORS[id]}</b>`);
+        m.bindTooltip(`<b>${SENSORS[id]}</b><br>AQI: ${aqi}`);
         m.on('click', () => { sel.value = id; handleDropdownChange(id); });
         sel.add(new Option(SENSORS[id], id));
       }
