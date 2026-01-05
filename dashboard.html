@@ -51,21 +51,27 @@
     #map { height: 45% !important; width: 100% !important; border-bottom: 1px solid #ddd; z-index: 1; }
     #chart-box { height: 55% !important; width: 100% !important; padding: 15px; box-sizing: border-box; background: white; }
     
-    /* Outlined AQI Number Fix */
     .aqi-val { 
       font-size: 72px !important; 
-      font-weight: 900; 
+      font-weight: 900 !important; 
       display: block; 
       text-align: center; 
       line-height: 1.1;
-      -webkit-text-stroke: 2px black; /* Black Outline */
-      paint-order: stroke fill;
+      text-shadow: 
+        -2px -2px 0 #000,  
+         2px -2px 0 #000,
+        -2px  2px 0 #000,
+         2px  2px 0 #000,
+         0px  2px 0 #000,
+         0px -2px 0 #000,
+         2px  0px 0 #000,
+        -2px  0px 0 #000;
     }
     
     .legend-item { display: flex; align-items: center; margin-bottom: 8px; font-size: 0.85rem; font-weight: 600; color: #333; }
     .dot { 
       width: 18px; height: 18px; border-radius: 50%; 
-      margin-right: 12px; border: 2px solid #000 !important; 
+      margin-right: 12px; border: 2.5px solid #000 !important; 
       display: inline-block;
     }
     
@@ -80,7 +86,7 @@
 <body>
 
 <header class="topbar">
-  <div class="brand">EJAT Air Quality Network</div>
+  <div class="brand">Cheverly Air Quality</div>
   <nav class="nav">
     <a href="index.html">Home</a>
     <a href="dashboard.html" style="font-weight:bold; opacity:1;">Dashboard</a>
@@ -106,7 +112,7 @@
       <div id="details" style="text-align:center;">
         <div id="statName" style="font-weight:bold; font-size:0.9rem; margin-bottom:5px; color:#333;">--</div>
         <div id="statAQI" class="aqi-val" style="color:#ccc;">--</div>
-        <div style="font-size:0.7rem; color:#666; font-weight: bold;">CURRENT AQI</div>
+        <div style="font-size:0.75rem; color:#666; font-weight: bold; margin-top:5px;">CURRENT AQI</div>
       </div>
     </div>
 
@@ -156,10 +162,14 @@
   const chart = new Chart(document.getElementById('airChart').getContext('2d'), {
     type: 'line',
     data: { datasets: [
-      { label: 'Local Station', data: [], borderColor: '#4477ce', tension: 0.1, fill: false },
+      { label: 'Local Station', data: [], borderColor: '#4477ce', tension: 0.1, fill: true, backgroundColor: 'rgba(68, 119, 206, 0.1)' },
       { label: 'City Average', data: [], borderColor: '#ff4444', borderDash: [5,5], pointRadius: 0, fill: false }
     ]},
-    options: { responsive: true, maintainAspectRatio: false, scales: { x: { type: 'time' }, y: { beginAtZero: true } } }
+    options: { 
+      responsive: true, 
+      maintainAspectRatio: false, 
+      scales: { x: { type: 'time' }, y: { beginAtZero: true, title: { display: true, text: 'AQI' } } } 
+    }
   });
 
   function pmToAQI(pm) {
@@ -187,10 +197,12 @@
       chart.data.datasets[0].data = localData;
       chart.update();
       const aqi = localData.length > 0 ? localData[localData.length-1].y : 0;
+      
       let color = "#00e400";
       if (aqi > 50) color = "#ffff00";
       if (aqi > 100) color = "#ff7e00";
       if (aqi > 150) color = "#ff0000";
+
       document.getElementById('statName').innerText = SENSORS[id];
       document.getElementById('statAQI').innerText = aqi;
       document.getElementById('statAQI').style.color = color;
@@ -249,7 +261,7 @@
       if (SENSORS[id]) {
         const aqi = pmToAQI(r[3]);
         const color = aqi <= 50 ? "#00e400" : (aqi <= 100 ? "#ffff00" : "#ff7e00");
-        const m = L.circleMarker([r[1], r[2]], { radius: 10, fillColor: color, color: "#000", weight: 2, fillOpacity: 0.9 }).addTo(map);
+        const m = L.circleMarker([r[1], r[2]], { radius: 11, fillColor: color, color: "#000", weight: 2, fillOpacity: 0.9 }).addTo(map);
         markerMap[id] = m;
         m.bindTooltip(`<b>${SENSORS[id]}</b>`);
         m.on('click', () => { sel.value = id; handleDropdownChange(id); });
