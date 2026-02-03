@@ -9,20 +9,43 @@
   <style>
     :root { --brand-navy: #1a305e; --search-blue: #4477ce; }
     html { scroll-behavior: smooth; }
-    /* Inline styles to ensure layout works if style.css is missing */
     body { margin: 0; font-family: "Segoe UI", sans-serif; }
+    
     .topbar { background: var(--brand-navy); color: white; padding: 0 25px; display: flex; justify-content: space-between; align-items: center; height: 60px; }
     .nav a { color: white; text-decoration: none; margin-left: 20px; font-size: 0.9rem; }
-    .hero { background: linear-gradient(rgba(26,48,94,0.7), rgba(26,48,94,0.7)), url('https://images.unsplash.com/photo-1449156001133-463864a27453?auto=format&fit=crop&w=1600'); background-size: cover; color: white; padding: 80px 20px; text-align: center; }
+    
+    /* Returning your original hero image style */
+    .hero--image { 
+      background: linear-gradient(rgba(26,48,94,0.6), rgba(26,48,94,0.6)), 
+                  url('https://images.unsplash.com/photo-1449156001133-463864a27453?auto=format&fit=crop&q=80&w=1600'); 
+      background-size: cover; 
+      background-position: center;
+      color: white; 
+      padding: 100px 20px; 
+      text-align: center; 
+    }
+
     .container { max-width: 1100px; margin: 40px auto; padding: 0 20px; }
-    .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 40px; }
-    .tile { padding: 25px; border-radius: 12px; text-decoration: none; color: white; transition: transform 0.2s; }
+    
+    .tiles--five { 
+      display: grid; 
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); 
+      gap: 15px; 
+      margin-bottom: 40px; 
+    }
+    
+    .tile { padding: 25px; border-radius: 12px; text-decoration: none; color: white; transition: transform 0.2s; display: block; }
     .tile:hover { transform: translateY(-5px); }
-    .tile--blue { background: #4477ce; } .tile--green { background: #2ecc71; } 
-    .tile--orange { background: #f39c12; } .tile--purple { background: #9b59b6; } .tile--pink { background: #e84393; }
+    .tile--blue { background: #4477ce; } 
+    .tile--green { background: #2ecc71; } 
+    .tile--orange { background: #f39c12; } 
+    .tile--purple { background: #9b59b6; } 
+    .tile--pink { background: #e84393; }
+
     .btn { padding: 12px 25px; border-radius: 4px; text-decoration: none; font-weight: bold; display: inline-block; margin: 10px; }
     .btn--primary { background: var(--search-blue); color: white; }
     .btn--ghost { border: 2px solid white; color: white; }
+
     .quick-band { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 30px; background: #f4f6f8; padding: 40px 20px; border-radius: 12px; }
     .footer { text-align: center; padding: 40px; color: #666; font-size: 0.9rem; }
   </style>
@@ -38,12 +61,11 @@
     </nav>
   </header>
 
-  <section class="hero">
+  <section class="hero hero--image">
     <div class="hero__content">
       <h1>Cleaner air, clearer choices</h1>
       <p class="lead">
-        Track fine particle and cumulative pollution in Cheverly through the EJAT dashboard 
-        [cite: 240].
+        Track fine particle and cumulative pollution in Cheverly through a live dashboard powered by EJAT's community monitoring network.
       </p>
       <p>
         <a class="btn btn--primary" href="dashboard.html">Open Live Dashboard</a>
@@ -53,45 +75,45 @@
   </section>
 
   <main class="container">
-    <section class="tiles">
+    <section class="tiles tiles--five">
       <a class="tile tile--blue" href="dashboard.html">
         <h3>Live Trends</h3>
-        <p>See local PM2.5 and gas sensor readings in real-time[cite: 252, 257].</p>
+        <p>View PM2.5 and gas readings across 25+ stations.</p>
       </a>
 
       <a class="tile tile--green" href="dashboard.html">
         <h3>Neighborhood Map</h3>
-        <p>Check the 25+ stations across the Cheverly network.</p>
+        <p>Find the sensor closest to your home or school.</p>
       </a>
 
       <a class="tile tile--orange" href="writeup.html#health">
-        <h3>CE-AQI Logic</h3>
-        <p>How we calculate cumulative health risks[cite: 286].</p>
+        <h3>Health Risks</h3>
+        <p>What the AQI colors mean for your family.</p>
       </a>
 
-      <a class="tile tile--purple" href="writeup.html#sensors">
-        <h3>Sensor Specs</h3>
-        <p>From PurpleAir to Quant-AQ Modulair sensors[cite: 252, 257].</p>
+      <a class="tile tile--purple" href="writeup.html#network">
+        <h3>The Network</h3>
+        <p>Learn how PurpleAir and Quant-AQ sensors work.</p>
       </a>
 
       <a class="tile tile--pink" href="writeup.html#action">
         <h3>Take Part</h3>
-        <p>Community-led insights for environmental justice[cite: 242].</p>
+        <p>Get involved with environmental justice in Cheverly.</p>
       </a>
     </section>
 
     <section class="quick-band">
       <div class="quick-card">
-        <h4>The "Base Value"</h4>
-        <p>We start with the highest individual pollutant AQI as our foundation for safety[cite: 287, 289].</p>
+        <h4>Today’s Tip</h4>
+        <p>When the map shows yellow or orange, consider reducing heavy outdoor exertion.</p>
       </div>
       <div class="quick-card">
-        <h4>Cumulative Adders</h4>
-        <p>Secondary pollutants add 1% to 3% to the total risk score to account for total exposure[cite: 301, 304].</p>
+        <h4>Cumulative Air Quality</h4>
+        <p>Our CE-AQI accounts for multiple pollutants combined, not just one at a time.</p>
       </div>
       <div class="quick-card">
-        <h4>Responsibility</h4>
-        <p>EJAT believes saying nothing about cumulative risk is irresponsible[cite: 248].</p>
+        <h4>Stay Informed</h4>
+        <p>Bookmark this page to check air quality before your morning commute or school run.</p>
       </div>
     </section>
   </main>
