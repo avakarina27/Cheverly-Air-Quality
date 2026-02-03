@@ -1,85 +1,26 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Community Insights – Cheverly Air Quality</title>
-  <link rel="icon" type="image/png" href="https://upload.wikimedia.org/wikipedia/commons/7/7c/Air_quality_icon.png" />
-  <link rel="stylesheet" href="style.css">
-  
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Community Insights | EJAT CE-AQI Methodology</title>
+  <link rel="stylesheet" href="style.css" />
   <style>
-    html { scroll-behavior: smooth; }
-
-    .topbar {
-      background: #1a305e !important;
-      padding: 1rem 2rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-    }
-
-    .topbar .brand {
-      color: white !important;
-      font-weight: bold;
-      font-size: 1.3rem;
-    }
-
-    .topbar .nav a {
-      color: white !important;
-      text-decoration: none;
-      margin-left: 1.5rem;
-      font-weight: 500;
-      opacity: 0.8;
-      transition: opacity 0.2s;
-      padding-bottom: 4px;
-      border-bottom: 2px solid transparent;
-    }
-
-    .topbar .nav a:hover {
-      opacity: 1;
-    }
-
-    .topbar .nav a[aria-current="page"] {
-      opacity: 1 !important;
-      border-bottom: 2px solid white !important;
-    }
-
-    .writeup-hero {
-      text-align: center;
-      padding: 5rem 1rem 3rem;
-      background: 
-        linear-gradient(180deg, rgba(26,48,94,0.85), rgba(26,48,94,0.55)),
-        url("https://farm3.static.flickr.com/2249/2024469141_cbcd98a5b7.jpg") 
-        center/cover no-repeat !important;
-      color: #fff;
-    }
-
-    .article { 
-      max-width: 800px; 
-      margin: 2rem auto; 
-      padding: 0 1rem 2rem; 
-      line-height: 1.6; 
-    }
-
-    .article h2 { 
-      color: #1a305e; 
-      scroll-margin-top: 80px; 
-      border-left: 5px solid #4477ce; 
-      padding-left: 15px;
-      margin-top: 3rem;
-    }
-
-    .footer {
-      background: #1a305e;
-      color: white;
-      text-align: center;
-      padding: 2rem;
-      margin-top: 4rem;
-    }
+    :root { --brand-navy: #1a305e; --search-blue: #4477ce; }
+    body { margin: 0; font-family: "Segoe UI", sans-serif; background: #fff; line-height: 1.6; color: #333; }
+    .container { max-width: 900px; margin: 40px auto; padding: 0 20px; }
+    .topbar { background: var(--brand-navy); color: white; padding: 0 25px; display: flex; justify-content: space-between; align-items: center; height: 60px; }
+    .nav a { color: white; text-decoration: none; margin-left: 20px; font-size: 0.9rem; }
+    h2 { color: var(--brand-navy); border-bottom: 2px solid #eee; padding-bottom: 10px; margin-top: 40px; text-transform: uppercase; font-size: 1.2rem; }
+    h3 { color: var(--search-blue); margin-top: 25px; font-size: 1.1rem; }
+    .info-box { background: #f8fafc; border-left: 5px solid var(--search-blue); padding: 20px; margin: 20px 0; border-radius: 4px; }
+    table { width: 100%; border-collapse: collapse; margin: 25px 0; font-size: 0.9rem; }
+    th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+    th { background: #f2f2f2; }
+    .footer { text-align: center; padding: 40px; color: #666; font-size: 0.8rem; border-top: 1px solid #eee; margin-top: 50px; }
+    .draft-note { color: #b91c1c; font-weight: bold; font-size: 0.8rem; text-align: right; }
   </style>
 </head>
-
 <body>
   <header class="topbar">
     <div class="brand">Cheverly Air Quality</div>
@@ -90,30 +31,73 @@
     </nav>
   </header>
 
-  <section class="writeup-hero">
-    <h1>Community Air Quality Insights</h1>
-    <p>Analysis and takeaways from Cheverly’s local sensor network</p>
-  </section>
+  <main class="container">
+    <p class="draft-note">DRAFT - FOR DISCUSSION - JANUARY 27, 2026</p>
+    <h1>Community Insights: Using the CE-AQI Concept</h1>
+    <p>Cumulative exposure is real and significant. While many experts are still working on how to address this issue, EJAT believes that saying nothing is irresponsible. [cite_start]We have a responsibility to communicate what all the data says[cite: 8, 9, 10].</p>
 
-  <main class="article">
-    <section id="health">
-      <h2>What are the health effects?</h2>
-      <p>Fine particulate matter (PM2.5) consists of tiny particles that can reach deep into the lungs and even the bloodstream. For sensitive groups—including children, seniors, and those with respiratory conditions—elevated levels can trigger asthma attacks or other health issues.</p>
+    <section id="methodology">
+      <h2>Step 1: Calculate Pollutant Specific AQIs</h2>
+      [cite_start]<p>For every monitor or sensor in the Cheverly area, we first calculate individual scores based on the following hardware[cite: 13]:</p>
+      
+      <h3>PurpleAir Sensors</h3>
+      <ul>
+        [cite_start]<li><strong>PM2.5:</strong> We calculate the 24-hour AQI using the 24-hour NAAQS[cite: 15].</li>
+        [cite_start]<li><strong>Long-term:</strong> We calculate an annual AQI using the average concentration over the previous year compared to the annual NAAQS[cite: 16, 17].</li>
+      </ul>
+
+      <h3>Quant-AQ Modulair</h3>
+      <ul>
+        [cite_start]<li><strong>Ozone:</strong> Calculated using the highest daily rolling 8-hour average[cite: 21].</li>
+        [cite_start]<li><strong>CO & NO2:</strong> Calculated using the highest daily rolling 1-hour and 8-hour averages[cite: 29, 31, 34].</li>
+        [cite_start]<li><strong>Fugitive Dust:</strong> 24-hour AQI calculated for PM10[cite: 37, 38].</li>
+      </ul>
+
+      <h3>Black Carbon / Diesel Particulate Matter (DPM)</h3>
+      [cite_start]<p>We convert Black Carbon measurements to estimate DPM by multiplying by 80%[cite: 45].</p>
+      <ul>
+        [cite_start]<li><strong>Non-cancer:</strong> Calculated using a 600 ng/M3 benchmark[cite: 41].</li>
+        [cite_start]<li><strong>Cancer-based:</strong> Calculated using the 33 ng/M3 de minimis cancer risk benchmark established by the EPA[cite: 46].</li>
+      </ul>
     </section>
-    
-    <section id="network">
-      <h2>About the community network</h2>
-      <p>Our network uses a mix of PurpleAir and QuantAQ sensors. These devices measure light scattering to estimate particle counts in real-time. By comparing local data to national trends, we can identify specific times of day when air quality might require extra caution.</p>
+
+    <section id="ce-aqi">
+      <h2>Step 2: The Cumulative Exposure - AQI</h2>
+      [cite_start]<p>To provide a single health risk number, we identify the highest individual AQI value from Step 1 to serve as the <strong>"Base Value"</strong>[cite: 49, 51].</p>
+      
+      <div class="info-box">
+        <strong>The Additive Logic:</strong>
+        [cite_start]<p>If other pollutants are also elevated, we add the following "adders" to the Base Value[cite: 56]:</p>
+        <ul>
+          [cite_start]<li><strong>1% Adder:</strong> If a secondary pollutant AQI is between 80 and 99[cite: 63].</li>
+          [cite_start]<li><strong>2% Adder:</strong> If a secondary pollutant AQI is between 100 and 119[cite: 63].</li>
+          [cite_start]<li><strong>3% Adder:</strong> If a secondary pollutant AQI is greater than 119[cite: 63].</li>
+        </ul>
+      </div>
     </section>
+
     
-    <section id="action">
-      <h2>Who’s taking action?</h2>
-      <p>The Town of Cheverly is committed to environmental justice and transparent data. Residents can take part by monitoring the dashboard before planning outdoor activities and supporting local initiatives to reduce vehicle idling and wood burning.</p>
+
+    <section id="health-table">
+      <h2>Current AQI Table & Colors</h2>
+      <table>
+        <thead>
+          <tr><th>Category & Color</th><th>Index Value</th><th>Description of Air Quality</th></tr>
+        </thead>
+        <tbody>
+          [cite_start]<tr><td style="color: green; font-weight: bold;">Good</td><td>0 to 50</td><td>Satisfactory; little or no risk[cite: 78].</td></tr>
+          [cite_start]<tr><td style="color: #cccc00; font-weight: bold;">Moderate</td><td>51 to 100</td><td>Acceptable; risk for unusually sensitive people[cite: 78].</td></tr>
+          [cite_start]<tr><td style="color: orange; font-weight: bold;">Unhealthy (Sensitive)</td><td>101 to 150</td><td>Sensitive groups may experience health effects[cite: 78].</td></tr>
+          [cite_start]<tr><td style="color: red; font-weight: bold;">Unhealthy</td><td>151 to 200</td><td>Public may experience health effects; sensitive groups more serious[cite: 78].</td></tr>
+          [cite_start]<tr><td style="color: purple; font-weight: bold;">Very Unhealthy</td><td>201 to 300</td><td>Health alert: The risk is increased for everyone[cite: 78].</td></tr>
+          [cite_start]<tr><td style="color: maroon; font-weight: bold;">Hazardous</td><td>301+</td><td>Health warning of emergency conditions[cite: 78].</td></tr>
+        </tbody>
+      </table>
     </section>
   </main>
 
   <footer class="footer">
-    <p>© 2025 Town of Cheverly</p>
+    <p>© 2026 EJAT Network | DRAFT FOR DISCUSSION FEBRUARY 2026</p>
   </footer>
 </body>
 </html>
