@@ -11,16 +11,12 @@
     .container { max-width: 900px; margin: 40px auto; padding: 0 20px; }
     .topbar { background: var(--brand-navy); color: white; padding: 0 25px; display: flex; justify-content: space-between; align-items: center; height: 60px; }
     .nav a { color: white; text-decoration: none; margin-left: 20px; font-size: 0.9rem; }
-    
     h2 { color: var(--brand-navy); border-bottom: 2px solid #eee; padding-bottom: 10px; margin-top: 40px; text-transform: uppercase; font-size: 1.2rem; }
     h3 { color: var(--search-blue); margin-top: 25px; font-size: 1.1rem; }
-    
     .info-box { background: #f8fafc; border-left: 5px solid var(--search-blue); padding: 20px; margin: 20px 0; border-radius: 4px; }
-    
     table { width: 100%; border-collapse: collapse; margin: 25px 0; font-size: 0.9rem; }
     th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
     th { background: #f2f2f2; }
-    
     .footer { text-align: center; padding: 40px; color: #666; font-size: 0.8rem; border-top: 1px solid #eee; margin-top: 50px; }
   </style>
 </head>
@@ -36,47 +32,46 @@
 
   <main class="container">
     <h1>Understanding the CE-AQI Concept</h1>
-    <p>The EJAT Network uses a unique "Cumulative Exposure - Air Quality Index" (CE-AQI) to communicate the health risks of multiple pollutants simultaneously. Cumulative exposure is real and significant, and we have a responsibility to communicate what all the data says.</p>
+    [cite_start]<p>The EJAT Network uses a "Cumulative Exposure - Air Quality Index" (CE-AQI) to communicate the health risks of multiple pollutants simultaneously[cite: 240, 248]. [cite_start]Cumulative exposure is real and significant, and we have a responsibility to communicate what the data says[cite: 247, 248].</p>
 
     <section id="methodology">
-      <h2>Calculation Step 1: Pollutant Specific AQIs</h2>
-      <p>We first calculate individual scores for every pollutant measured at a site:</p>
+      <h2>Step 1: Pollutant Specific AQIs</h2>
+      [cite_start]<p>Individual scores are calculated for every pollutant at a site using local hardware[cite: 250, 251]:</p>
       
       <div class="info-box">
         <strong>PurpleAir Sensors</strong>
         <ul>
-          <li><strong>PM2.5:</strong> 24-hour AQI based on the 24-hour National Ambient Air Quality Standards (NAAQS).</li>
-          <li><strong>Annual Average:</strong> A long-term AQI based on the previous year's average concentration.</li>
+          [cite_start]<li><strong>PM2.5:</strong> 24-hour AQI calculated using the 24-hour NAAQS[cite: 253].</li>
+          [cite_start]<li><strong>Annual Average:</strong> Long-term AQI based on the previous year's average concentration[cite: 254, 255].</li>
         </ul>
       </div>
 
       <div class="info-box">
         <strong>Quant-AQ Modulair</strong>
         <ul>
-          <li><strong>Ozone:</strong> Highest daily rolling 8-hour average.</li>
-          <li><strong>CO & NO2:</strong> Highest daily rolling 1-hour and 8-hour averages compared to NAAQS.</li>
-          <li><strong>PM10:</strong> 24-hour AQI for fugitive dust monitoring.</li>
+          [cite_start]<li><strong>Ozone:</strong> 8-hour AQI using the highest daily rolling 8-hour average[cite: 258, 259].</li>
+          [cite_start]<li><strong>CO & NO2:</strong> Highest daily rolling averages compared to federal standards[cite: 266, 267, 271, 272].</li>
+          [cite_start]<li><strong>Fugitive Dust:</strong> 24-hour AQI for PM10[cite: 275, 276].</li>
         </ul>
       </div>
 
-      <div class="info-box" id="sensors">
-        <strong>Black Carbon / Diesel Particulate Matter (DPM)</strong>
-        <p>Black Carbon measurements are converted to estimate DPM (80% ratio). We then compare these to both non-cancer (600 ng/M3) and cancer-based (33 ng/M3) benchmarks.</p>
+      <div class="info-box">
+        <strong>Diesel Particulate Matter (DPM)</strong>
+        [cite_start]<p>Black Carbon measurements are converted to estimate DPM by a factor of 80%[cite: 283]. [cite_start]We calculate both non-cancer (600 ng/M3 benchmark) and cancer-based (33 ng/M3 benchmark) risk levels[cite: 279, 280, 284].</p>
       </div>
     </section>
 
     <section id="cumulative">
-      <h2>Calculation Step 2: The Cumulative Base & Adders</h2>
-      <p>To determine the final CE-AQI, we identify the highest individual pollutant score from Step 1 as the <strong>Base Value</strong>. We then apply "Adders" to account for additional pollutants:</p>
+      <h2>Step 2: Cumulative Adders</h2>
+      [cite_start]<p>The highest individual pollutant score serves as the <strong>Base Value</strong>[cite: 287, 289]. [cite_start]If other pollutants are also elevated, we apply small "Adders" to reflect the total health impact[cite: 294, 301, 309]:</p>
       <ul>
-        <li><strong>+1% Adder:</strong> If a secondary pollutant AQI is between 80 and 99.</li>
-        <li><strong>+2% Adder:</strong> If a secondary pollutant AQI is between 100 and 119.</li>
-        <li><strong>+3% Adder:</strong> If a secondary pollutant AQI is 120 or higher.</li>
+        [cite_start]<li><strong>+1% Adder:</strong> For secondary pollutant AQIs between 80 and 99[cite: 301].</li>
+        [cite_start]<li><strong>+2% Adder:</strong> For secondary pollutant AQIs between 100 and 119[cite: 301].</li>
+        [cite_start]<li><strong>+3% Adder:</strong> For secondary pollutant AQIs of 120 or higher[cite: 301].</li>
       </ul>
     </section>
 
     
-
     <section id="health">
       <h2>Air Quality Categories</h2>
       <table>
@@ -84,30 +79,18 @@
           <tr><th>Category</th><th>AQI Value</th><th>Health Description</th></tr>
         </thead>
         <tbody>
-          <tr style="background-color: #f0fff0;"><td><strong>Good</strong></td><td>0 to 50</td><td>Satisfactory; little or no risk.</td></tr>
-          <tr style="background-color: #ffffef;"><td><strong>Moderate</strong></td><td>51 to 100</td><td>Acceptable; risk for unusually sensitive people.</td></tr>
-          <tr style="background-color: #fff5e6;"><td><strong>Unhealthy (Sensitive)</strong></td><td>101 to 150</td><td>Sensitive groups may experience health effects.</td></tr>
-          <tr style="background-color: #ffe6e6;"><td><strong>Unhealthy</strong></td><td>151 to 200</td><td>Public may experience health effects.</td></tr>
-          <tr style="background-color: #f5e6ff;"><td><strong>Very Unhealthy</strong></td><td>201 to 300</td><td>Increased health risk for everyone.</td></tr>
+          [cite_start]<tr style="background-color: #f0fff0;"><td><strong>Good</strong></td><td>0 to 50</td><td>Satisfactory; little or no risk[cite: 316].</td></tr>
+          [cite_start]<tr style="background-color: #ffffef;"><td><strong>Moderate</strong></td><td>51 to 100</td><td>Acceptable; risk for unusually sensitive people[cite: 316].</td></tr>
+          [cite_start]<tr style="background-color: #fff5e6;"><td><strong>Unhealthy (Sensitive)</strong></td><td>101 to 150</td><td>Sensitive groups may experience health effects[cite: 316].</td></tr>
+          [cite_start]<tr style="background-color: #ffe6e6;"><td><strong>Unhealthy</strong></td><td>151 to 200</td><td>Public may experience health effects[cite: 316].</td></tr>
+          [cite_start]<tr style="background-color: #f5e6ff;"><td><strong>Very Unhealthy</strong></td><td>201 to 300</td><td>Increased health risk for everyone[cite: 316].</td></tr>
         </tbody>
       </table>
     </section>
 
     <section id="action">
-      <h2>Taking Part & Staying Informed</h2>
-      <p>The EJAT Network is a community-driven initiative. Your involvement helps us ensure that Cheverly remains a healthy place to live, work, and play.</p>
-      
-      <div class="info-box">
-        <h3>How to Use This Data</h3>
-        <ul>
-          <li><strong>Check Daily:</strong> Use the CE-AQI to plan outdoor activities, especially for children and seniors.</li>
-          <li><strong>Report Issues:</strong> If you notice unusual odors or dust clouds in your neighborhood, note the time and check the nearest sensor.</li>
-          <li><strong>Share:</strong> Help neighbors understand the color-coded system and what "Cumulative Exposure" means for our community.</li>
-        </ul>
-      </div>
-
-      <h3>Get in Touch</h3>
-      <p>If you have questions about the monitoring network, want to host a sensor, or want to join the EJAT community group, please reach out:</p>
+      <h2>Taking Part & Contact Info</h2>
+      <p>The EJAT Network is a community-driven initiative. [cite_start]Your involvement helps ensure Cheverly remains a healthy place to live and work[cite: 320, 361].</p>
       
       <div style="background: #f4f6f8; padding: 20px; border-radius: 8px; border: 1px solid #ddd;">
         <p><strong>Town of Cheverly - EJAT Project</strong><br>
@@ -115,7 +98,11 @@
         <strong>Email:</strong> <a href="mailto:info@cheverly-md.gov">info@cheverly-md.gov</a><br>
         <strong>Phone:</strong> (301) 773-8360</p>
       </div>
-
-      <h3>Environmental Justice Goals</h3>
-      <p>Our network aims to identify "hot spots" of pollution that traditional regional monitors might miss. By taking part, you help us advocate for better air quality standards and protections for all residents.</p>
     </section>
+  </main>
+
+  <footer class="footer">
+    <p>© 2026 EJAT Network | Cheverly, MD</p>
+  </footer>
+</body>
+</html>
