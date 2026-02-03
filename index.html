@@ -14,16 +14,17 @@
     .topbar { background: var(--brand-navy); color: white; padding: 0 25px; display: flex; justify-content: space-between; align-items: center; height: 60px; }
     .nav a { color: white; text-decoration: none; margin-left: 20px; font-size: 0.9rem; }
     
-    /* RESTORED HERO IMAGE STYLE */
+    /* This section fixes the missing image */
     .hero--image { 
-      background-color: #7a86a1; /* Fallback color from your screenshot */
-      background-image: linear-gradient(rgba(26,48,94,0.4), rgba(26,48,94,0.4)), 
-                        url('https://images.unsplash.com/photo-1449156001133-463864a27453?auto=format&fit=crop&q=80&w=1600'); 
-      background-size: cover; 
-      background-position: center;
+      background: linear-gradient(rgba(26, 48, 94, 0.5), rgba(26, 48, 94, 0.5)), 
+                  url('https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&q=80&w=1600') !important; 
+      background-size: cover !important; 
+      background-position: center !important;
+      background-repeat: no-repeat !important;
       color: white; 
       padding: 120px 20px; 
       text-align: center; 
+      min-height: 300px;
     }
 
     .container { max-width: 1100px; margin: 40px auto; padding: 0 20px; }
