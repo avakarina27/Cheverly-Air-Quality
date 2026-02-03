@@ -1,57 +1,103 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>EJAT Cheverly | Using the CE-AQI Concept</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cheverly Air Quality | EJAT Network</title>
+  <link rel="icon" type="image/png" href="https://upload.wikimedia.org/wikipedia/commons/7/7c/Air_quality_icon.png" />
+  <link rel="stylesheet" href="style.css" />
   <style>
     :root { --brand-navy: #1a305e; --search-blue: #4477ce; }
-    body { margin: 0; font-family: "Segoe UI", serif; line-height: 1.6; color: #333; background: #f0f2f5; }
-    
-    .topbar { background: var(--brand-navy); color: white; padding: 15px 25px; display: flex; justify-content: space-between; align-items: center; }
-    .nav a { color: white; text-decoration: none; margin-left: 20px; font-weight: 500; }
-
-    .cover-container { 
-        max-width: 800px; margin: 50px auto; padding: 60px; 
-        background: white; border: 1px solid #ccc; box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
-    }
-    .draft-header { color: #b91c1c; font-weight: 900; border: 2px solid #b91c1c; display: inline-block; padding: 5px 15px; margin-bottom: 20px; }
-    
-    h1 { font-size: 2.4rem; color: var(--brand-navy); margin: 20px 0 10px 0; line-height: 1.2; }
-    .subtitle { font-size: 1.2rem; color: #555; margin-bottom: 40px; border-bottom: 3px solid var(--brand-navy); padding-bottom: 15px; }
-    
-    .meta-info { font-weight: bold; margin-bottom: 40px; }
-    .section-head { text-transform: uppercase; letter-spacing: 1px; color: var(--brand-navy); font-weight: 800; border-left: 4px solid var(--search-blue); padding-left: 15px; margin: 30px 0 15px 0; }
-    
-    .btn-enter { display: inline-block; background: var(--brand-navy); color: white; padding: 15px 35px; text-decoration: none; border-radius: 4px; font-weight: bold; margin-top: 30px; }
+    html { scroll-behavior: smooth; }
+    /* Inline styles to ensure layout works if style.css is missing */
+    body { margin: 0; font-family: "Segoe UI", sans-serif; }
+    .topbar { background: var(--brand-navy); color: white; padding: 0 25px; display: flex; justify-content: space-between; align-items: center; height: 60px; }
+    .nav a { color: white; text-decoration: none; margin-left: 20px; font-size: 0.9rem; }
+    .hero { background: linear-gradient(rgba(26,48,94,0.7), rgba(26,48,94,0.7)), url('https://images.unsplash.com/photo-1449156001133-463864a27453?auto=format&fit=crop&w=1600'); background-size: cover; color: white; padding: 80px 20px; text-align: center; }
+    .container { max-width: 1100px; margin: 40px auto; padding: 0 20px; }
+    .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 40px; }
+    .tile { padding: 25px; border-radius: 12px; text-decoration: none; color: white; transition: transform 0.2s; }
+    .tile:hover { transform: translateY(-5px); }
+    .tile--blue { background: #4477ce; } .tile--green { background: #2ecc71; } 
+    .tile--orange { background: #f39c12; } .tile--purple { background: #9b59b6; } .tile--pink { background: #e84393; }
+    .btn { padding: 12px 25px; border-radius: 4px; text-decoration: none; font-weight: bold; display: inline-block; margin: 10px; }
+    .btn--primary { background: var(--search-blue); color: white; }
+    .btn--ghost { border: 2px solid white; color: white; }
+    .quick-band { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 30px; background: #f4f6f8; padding: 40px 20px; border-radius: 12px; }
+    .footer { text-align: center; padding: 40px; color: #666; font-size: 0.9rem; }
   </style>
 </head>
+
 <body>
+  <header class="topbar">
+    <div class="brand">Cheverly Air Quality</div>
+    <nav class="nav">
+      <a href="index.html" aria-current="page">Home</a>
+      <a href="dashboard.html">Dashboard</a>
+      <a href="writeup.html">Community Insights</a>
+    </nav>
+  </header>
 
-<header class="topbar">
-  <div style="font-weight:bold; letter-spacing:1px;">EJAT CHEVERLY NETWORK</div>
-  <nav class="nav">
-    <a href="index.html">Home</a>
-    <a href="dashboard.html">Dashboard</a>
-    <a href="writeup.html">Insights</a>
-  </nav>
-</header>
+  <section class="hero">
+    <div class="hero__content">
+      <h1>Cleaner air, clearer choices</h1>
+      <p class="lead">
+        Track fine particle and cumulative pollution in Cheverly through the EJAT dashboard 
+        [cite: 240].
+      </p>
+      <p>
+        <a class="btn btn--primary" href="dashboard.html">Open Live Dashboard</a>
+        <a class="btn btn--ghost" href="writeup.html">Learn About CE-AQI</a>
+      </p>
+    </div>
+  </section>
 
-<div class="cover-container">
-  <div class="draft-header">DRAFT - FOR DISCUSSION DURING 2/3/26 CALL</div>
-  <p class="meta-info">JANUARY 27, 2026 — TA</p>
-  
-  <h1>Using the CE-AQI Concept for Communicating Health Risks</h1>
-  <div class="subtitle">For all Monitors/Sensors in the Cheverly Area Dashboard</div>
+  <main class="container">
+    <section class="tiles">
+      <a class="tile tile--blue" href="dashboard.html">
+        <h3>Live Trends</h3>
+        <p>See local PM2.5 and gas sensor readings in real-time[cite: 252, 257].</p>
+      </a>
 
-  <div class="section-head">Background</div>
-  <p>The AQI system is already used across the country and has been highly successful[cite: 6]. However, cumulative exposure is real and significant. Perfection should not be the enemy of the good[cite: 9]. We have a responsibility to communicate what the data—all the data—says[cite: 10].</p>
+      <a class="tile tile--green" href="dashboard.html">
+        <h3>Neighborhood Map</h3>
+        <p>Check the 25+ stations across the Cheverly network.</p>
+      </a>
 
-  <div class="section-head">The CE-AQI Concept</div>
-  <p>This dashboard builds from the color-coded existing AQI communication system using the same colors, health categories, and cutpoints, while adding a unique cumulative calculation[cite: 5, 7].</p>
+      <a class="tile tile--orange" href="writeup.html#health">
+        <h3>CE-AQI Logic</h3>
+        <p>How we calculate cumulative health risks[cite: 286].</p>
+      </a>
 
-  <a href="dashboard.html" class="btn-enter">Enter Live Dashboard</a>
-</div>
+      <a class="tile tile--purple" href="writeup.html#sensors">
+        <h3>Sensor Specs</h3>
+        <p>From PurpleAir to Quant-AQ Modulair sensors[cite: 252, 257].</p>
+      </a>
 
+      <a class="tile tile--pink" href="writeup.html#action">
+        <h3>Take Part</h3>
+        <p>Community-led insights for environmental justice[cite: 242].</p>
+      </a>
+    </section>
+
+    <section class="quick-band">
+      <div class="quick-card">
+        <h4>The "Base Value"</h4>
+        <p>We start with the highest individual pollutant AQI as our foundation for safety[cite: 287, 289].</p>
+      </div>
+      <div class="quick-card">
+        <h4>Cumulative Adders</h4>
+        <p>Secondary pollutants add 1% to 3% to the total risk score to account for total exposure[cite: 301, 304].</p>
+      </div>
+      <div class="quick-card">
+        <h4>Responsibility</h4>
+        <p>EJAT believes saying nothing about cumulative risk is irresponsible[cite: 248].</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p>© 2026 EJAT Network | Town of Cheverly</p>
+  </footer>
 </body>
 </html>
