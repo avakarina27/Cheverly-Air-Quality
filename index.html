@@ -7,39 +7,65 @@
   <link rel="icon" type="image/png" href="https://upload.wikimedia.org/wikipedia/commons/7/7c/Air_quality_icon.png" />
   <link rel="stylesheet" href="style.css" />
   <style>
-    :root { --brand-navy: #1a305e; --search-blue: #4477ce; }
+    :root {
+      --brand-navy: #1a305e;
+      --search-blue: #4477ce;
+    }
     html { scroll-behavior: smooth; }
-    body { margin: 0; font-family: "Segoe UI", sans-serif; }
-    
-    .topbar { background: var(--brand-navy); color: white; padding: 0 25px; display: flex; justify-content: space-between; align-items: center; height: 60px; }
-    .nav a { color: white; text-decoration: none; margin-left: 20px; font-size: 0.9rem; }
-    
-    /* This section fixes the missing image */
-    .hero--image { 
-      background: linear-gradient(rgba(26, 48, 94, 0.5), rgba(26, 48, 94, 0.5)), 
-                  url('https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&q=80&w=1600') !important; 
-      background-size: cover !important; 
-      background-position: center !important;
-      background-repeat: no-repeat !important;
-      color: white; 
-      padding: 120px 20px; 
-      text-align: center; 
-      min-height: 300px;
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Roboto, system-ui, sans-serif;
     }
 
-    .container { max-width: 1100px; margin: 40px auto; padding: 0 20px; }
-    .tiles--five { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 40px; }
-    .tile { padding: 25px; border-radius: 12px; text-decoration: none; color: white; transition: transform 0.2s; display: block; }
+    /* Force the hero image to show even if style.css is broken */
+    .hero--image {
+      position: relative;
+      color: #fff;
+      text-align: center;
+      /* Using a high-quality town/landscape image that fits the blue aesthetic */
+      background: linear-gradient(180deg, rgba(26,48,94,0.75), rgba(26,48,94,0.45)), 
+                  url('https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&q=80&w=1600') 
+                  center/cover no-repeat !important;
+      padding: 6rem 1rem 5rem;
+    }
+
+    .hero__content h1 {
+      font-size: 2.8rem;
+      margin-bottom: 1rem;
+      text-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    }
+
+    .hero__content .lead {
+      font-size: 1.2rem;
+      max-width: 700px;
+      margin: 0 auto 2rem;
+      opacity: 0.95;
+    }
+
+    /* Supporting classes for your original format */
+    .topbar { background: var(--brand-navy); color: #fff; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
+    .topbar .nav { display: flex; gap: 1.5rem; }
+    .topbar .nav a { color: #fff; text-decoration: none; font-weight: 500; opacity: 0.8; }
+    .topbar .nav a[aria-current="page"] { opacity: 1; border-bottom: 2px solid white; }
+    
+    .container { max-width: 1200px; margin: 0 auto; padding: 3rem 1.5rem; }
+    .tiles--five { display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+    
+    @media (min-width: 1200px) {
+      .tiles--five { grid-template-columns: repeat(5, 1fr); }
+    }
+
+    .tile { color: #fff; padding: 1.5rem; border-radius: 12px; text-decoration: none; transition: transform 0.2s ease; }
     .tile:hover { transform: translateY(-5px); }
-    .tile--blue { background: #4477ce; } .tile--green { background: #2ecc71; } 
-    .tile--orange { background: #f39c12; } .tile--purple { background: #9b59b6; } .tile--pink { background: #e84393; }
+    .tile--blue { background: var(--search-blue); }
+    .tile--green { background: #22c55e; }
+    .tile--orange { background: #f59e0b; }
+    .tile--purple { background: #a855f7; }
+    .tile--pink { background: #ec4899; }
 
-    .btn { padding: 12px 25px; border-radius: 4px; text-decoration: none; font-weight: bold; display: inline-block; margin: 10px; }
-    .btn--primary { background: var(--search-blue); color: white; }
-    .btn--ghost { border: 2px solid white; color: white; }
-
-    .quick-band { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 30px; background: #f4f6f8; padding: 40px 20px; border-radius: 12px; }
-    .footer { text-align: center; padding: 40px; color: #666; font-size: 0.9rem; }
+    .quick-band { margin-top: 3rem; display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+    .quick-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 1.5rem; }
+    .footer { background: var(--brand-navy); color: #fff; text-align: center; padding: 2rem; margin-top: 4rem; }
   </style>
 </head>
 
@@ -72,18 +98,22 @@
         <h3>Live Trends</h3>
         <p>View PM2.5 and gas readings across 25+ stations.</p>
       </a>
+
       <a class="tile tile--green" href="dashboard.html">
         <h3>Neighborhood Map</h3>
         <p>Find the sensor closest to your home or school.</p>
       </a>
+
       <a class="tile tile--orange" href="writeup.html#health">
         <h3>Health Risks</h3>
         <p>What the AQI colors mean for your family.</p>
       </a>
+
       <a class="tile tile--purple" href="writeup.html#methodology">
         <h3>The Methodology</h3>
         <p>How we calculate the Cumulative Exposure AQI.</p>
       </a>
+
       <a class="tile tile--pink" href="writeup.html#action">
         <h3>Take Part</h3>
         <p>Ways to get involved and contact the EJAT project team.</p>
@@ -93,15 +123,15 @@
     <section class="quick-band">
       <div class="quick-card">
         <h4>Today’s Tip</h4>
-        <p>When the map shows yellow or orange, consider reducing heavy outdoor exertion.</p>
+        <p>When the map shows yellow or orange, consider reducing heavy outdoor exertion or moving activities indoors.</p>
       </div>
       <div class="quick-card">
         <h4>Cumulative Air Quality</h4>
-        <p>Our CE-AQI accounts for multiple pollutants combined to show the real health impact.</p>
+        <p>Our CE-AQI accounts for multiple pollutants combined—not just one—to show the real health impact of the air we breathe.</p>
       </div>
       <div class="quick-card">
         <h4>Stay Informed</h4>
-        <p>Bookmark this page to check air quality before your morning commute or school run.</p>
+        <p>Bookmark this page to check air quality before your morning commute or before the kids head out to play.</p>
       </div>
     </section>
   </main>
