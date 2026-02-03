@@ -14,32 +14,24 @@
     .topbar { background: var(--brand-navy); color: white; padding: 0 25px; display: flex; justify-content: space-between; align-items: center; height: 60px; }
     .nav a { color: white; text-decoration: none; margin-left: 20px; font-size: 0.9rem; }
     
+    /* RESTORED HERO IMAGE STYLE */
     .hero--image { 
-      background: linear-gradient(rgba(26,48,94,0.6), rgba(26,48,94,0.6)), 
-                  url('https://images.unsplash.com/photo-1449156001133-463864a27453?auto=format&fit=crop&q=80&w=1600'); 
+      background-color: #7a86a1; /* Fallback color from your screenshot */
+      background-image: linear-gradient(rgba(26,48,94,0.4), rgba(26,48,94,0.4)), 
+                        url('https://images.unsplash.com/photo-1449156001133-463864a27453?auto=format&fit=crop&q=80&w=1600'); 
       background-size: cover; 
       background-position: center;
       color: white; 
-      padding: 100px 20px; 
+      padding: 120px 20px; 
       text-align: center; 
     }
 
     .container { max-width: 1100px; margin: 40px auto; padding: 0 20px; }
-    
-    .tiles--five { 
-      display: grid; 
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); 
-      gap: 15px; 
-      margin-bottom: 40px; 
-    }
-    
+    .tiles--five { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 40px; }
     .tile { padding: 25px; border-radius: 12px; text-decoration: none; color: white; transition: transform 0.2s; display: block; }
     .tile:hover { transform: translateY(-5px); }
-    .tile--blue { background: #4477ce; } 
-    .tile--green { background: #2ecc71; } 
-    .tile--orange { background: #f39c12; } 
-    .tile--purple { background: #9b59b6; } 
-    .tile--pink { background: #e84393; }
+    .tile--blue { background: #4477ce; } .tile--green { background: #2ecc71; } 
+    .tile--orange { background: #f39c12; } .tile--purple { background: #9b59b6; } .tile--pink { background: #e84393; }
 
     .btn { padding: 12px 25px; border-radius: 4px; text-decoration: none; font-weight: bold; display: inline-block; margin: 10px; }
     .btn--primary { background: var(--search-blue); color: white; }
@@ -79,26 +71,23 @@
         <h3>Live Trends</h3>
         <p>View PM2.5 and gas readings across 25+ stations.</p>
       </a>
-
       <a class="tile tile--green" href="dashboard.html">
         <h3>Neighborhood Map</h3>
         <p>Find the sensor closest to your home or school.</p>
       </a>
-
       <a class="tile tile--orange" href="writeup.html#health">
         <h3>Health Risks</h3>
         <p>What the AQI colors mean for your family.</p>
       </a>
-
       <a class="tile tile--purple" href="writeup.html#methodology">
         <h3>The Methodology</h3>
         <p>How we calculate the Cumulative Exposure AQI.</p>
       </a>
-
       <a class="tile tile--pink" href="writeup.html#action">
         <h3>Take Part</h3>
         <p>Ways to get involved and contact the EJAT project team.</p>
       </a>
+    </section>
 
     <section class="quick-band">
       <div class="quick-card">
