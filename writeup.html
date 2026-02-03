@@ -32,42 +32,42 @@
 
   <main class="container">
     <h1>Understanding the CE-AQI Concept</h1>
-    [cite_start]<p>The EJAT Network uses a "Cumulative Exposure - Air Quality Index" (CE-AQI) to communicate the health risks of multiple pollutants simultaneously[cite: 240, 248]. [cite_start]Cumulative exposure is real and significant, and we have a responsibility to communicate what the data says[cite: 247, 248].</p>
+    <p>The EJAT Network uses a "Cumulative Exposure - Air Quality Index" (CE-AQI) to communicate the health risks of multiple pollutants simultaneously. Cumulative exposure is real and significant, and we have a responsibility to communicate what the data says.</p>
 
     <section id="methodology">
       <h2>Step 1: Pollutant Specific AQIs</h2>
-      [cite_start]<p>Individual scores are calculated for every pollutant at a site using local hardware[cite: 250, 251]:</p>
+      <p>Individual scores are calculated for every pollutant at a site using local hardware:</p>
       
       <div class="info-box">
         <strong>PurpleAir Sensors</strong>
         <ul>
-          [cite_start]<li><strong>PM2.5:</strong> 24-hour AQI calculated using the 24-hour NAAQS[cite: 253].</li>
-          [cite_start]<li><strong>Annual Average:</strong> Long-term AQI based on the previous year's average concentration[cite: 254, 255].</li>
+          <li><strong>PM2.5:</strong> 24-hour AQI calculated using the 24-hour NAAQS.</li>
+          <li><strong>Annual Average:</strong> Long-term AQI based on the previous year's average concentration.</li>
         </ul>
       </div>
 
       <div class="info-box">
         <strong>Quant-AQ Modulair</strong>
         <ul>
-          [cite_start]<li><strong>Ozone:</strong> 8-hour AQI using the highest daily rolling 8-hour average[cite: 258, 259].</li>
-          [cite_start]<li><strong>CO & NO2:</strong> Highest daily rolling averages compared to federal standards[cite: 266, 267, 271, 272].</li>
-          [cite_start]<li><strong>Fugitive Dust:</strong> 24-hour AQI for PM10[cite: 275, 276].</li>
+          <li><strong>Ozone:</strong> 8-hour AQI using the highest daily rolling 8-hour average.</li>
+          <li><strong>CO & NO2:</strong> Highest daily rolling averages compared to federal standards.</li>
+          <li><strong>Fugitive Dust:</strong> 24-hour AQI for PM10.</li>
         </ul>
       </div>
 
       <div class="info-box">
         <strong>Diesel Particulate Matter (DPM)</strong>
-        [cite_start]<p>Black Carbon measurements are converted to estimate DPM by a factor of 80%[cite: 283]. [cite_start]We calculate both non-cancer (600 ng/M3 benchmark) and cancer-based (33 ng/M3 benchmark) risk levels[cite: 279, 280, 284].</p>
+        <p>Black Carbon measurements are converted to estimate DPM by a factor of 80%. We calculate both non-cancer (600 ng/M3 benchmark) and cancer-based (33 ng/M3 benchmark) risk levels.</p>
       </div>
     </section>
 
     <section id="cumulative">
       <h2>Step 2: Cumulative Adders</h2>
-      [cite_start]<p>The highest individual pollutant score serves as the <strong>Base Value</strong>[cite: 287, 289]. [cite_start]If other pollutants are also elevated, we apply small "Adders" to reflect the total health impact[cite: 294, 301, 309]:</p>
+      <p>The highest individual pollutant score serves as the <strong>Base Value</strong>. If other pollutants are also elevated, we apply small "Adders" to reflect the total health impact:</p>
       <ul>
-        [cite_start]<li><strong>+1% Adder:</strong> For secondary pollutant AQIs between 80 and 99[cite: 301].</li>
-        [cite_start]<li><strong>+2% Adder:</strong> For secondary pollutant AQIs between 100 and 119[cite: 301].</li>
-        [cite_start]<li><strong>+3% Adder:</strong> For secondary pollutant AQIs of 120 or higher[cite: 301].</li>
+        <li><strong>+1% Adder:</strong> For secondary pollutant AQIs between 80 and 99.</li>
+        <li><strong>+2% Adder:</strong> For secondary pollutant AQIs between 100 and 119.</li>
+        <li><strong>+3% Adder:</strong> For secondary pollutant AQIs of 120 or higher.</li>
       </ul>
     </section>
 
@@ -79,18 +79,18 @@
           <tr><th>Category</th><th>AQI Value</th><th>Health Description</th></tr>
         </thead>
         <tbody>
-          [cite_start]<tr style="background-color: #f0fff0;"><td><strong>Good</strong></td><td>0 to 50</td><td>Satisfactory; little or no risk[cite: 316].</td></tr>
-          [cite_start]<tr style="background-color: #ffffef;"><td><strong>Moderate</strong></td><td>51 to 100</td><td>Acceptable; risk for unusually sensitive people[cite: 316].</td></tr>
-          [cite_start]<tr style="background-color: #fff5e6;"><td><strong>Unhealthy (Sensitive)</strong></td><td>101 to 150</td><td>Sensitive groups may experience health effects[cite: 316].</td></tr>
-          [cite_start]<tr style="background-color: #ffe6e6;"><td><strong>Unhealthy</strong></td><td>151 to 200</td><td>Public may experience health effects[cite: 316].</td></tr>
-          [cite_start]<tr style="background-color: #f5e6ff;"><td><strong>Very Unhealthy</strong></td><td>201 to 300</td><td>Increased health risk for everyone[cite: 316].</td></tr>
+          <tr style="background-color: #f0fff0;"><td><strong>Good</strong></td><td>0 to 50</td><td>Satisfactory; little or no risk.</td></tr>
+          <tr style="background-color: #ffffef;"><td><strong>Moderate</strong></td><td>51 to 100</td><td>Acceptable; risk for unusually sensitive people.</td></tr>
+          <tr style="background-color: #fff5e6;"><td><strong>Unhealthy (Sensitive)</strong></td><td>101 to 150</td><td>Sensitive groups may experience health effects.</td></tr>
+          <tr style="background-color: #ffe6e6;"><td><strong>Unhealthy</strong></td><td>151 to 200</td><td>Public may experience health effects.</td></tr>
+          <tr style="background-color: #f5e6ff;"><td><strong>Very Unhealthy</strong></td><td>201 to 300</td><td>Increased health risk for everyone.</td></tr>
         </tbody>
       </table>
     </section>
 
     <section id="action">
       <h2>Taking Part & Contact Info</h2>
-      <p>The EJAT Network is a community-driven initiative. [cite_start]Your involvement helps ensure Cheverly remains a healthy place to live and work[cite: 320, 361].</p>
+      <p>The EJAT Network is a community-driven initiative. Your involvement helps ensure Cheverly remains a healthy place to live and work.</p>
       
       <div style="background: #f4f6f8; padding: 20px; border-radius: 8px; border: 1px solid #ddd;">
         <p><strong>Town of Cheverly - EJAT Project</strong><br>
