@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>EJAT Air Quality Network</title>
- 
+  
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -16,7 +16,7 @@
       --search-blue: #4477ce !important;
       --orange: #f59e0b !important;
     }
-   
+    
     html, body {
       margin: 0 !important; padding: 0 !important;
       height: 100% !important; width: 100% !important;
@@ -34,23 +34,23 @@
     .nav a:hover { opacity: 1; text-decoration: underline; }
 
     #layout { display: flex; height: calc(100vh - 60px); width: 100vw; }
-   
+    
     #sidebar {
       width: 380px !important; min-width: 380px !important;
       background: #f4f6f8; border-right: 1px solid #ddd;
       padding: 15px; overflow-y: auto; box-sizing: border-box;
     }
-   
+    
     .card { background: white; padding: 15px; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
     label { font-size: 0.7rem; font-weight: bold; color: #666; text-transform: uppercase; margin-bottom: 5px; display: block; }
-   
+    
     input, select { width: 100%; padding: 10px; margin-top: 5px; border-radius: 4px; border: 1px solid #ccc; box-sizing: border-box; }
     button { width: 100%; padding: 12px; margin-top: 8px; border-radius: 4px; border: none; background: var(--search-blue); color: white; font-weight: bold; cursor: pointer; }
 
     #main-content { flex: 1; display: flex; flex-direction: column; height: 100%; }
     #map { height: 45% !important; width: 100% !important; border-bottom: 1px solid #ddd; z-index: 1; }
     #chart-box { height: 55% !important; width: 100% !important; padding: 15px; box-sizing: border-box; background: white; }
-   
+    
     .aqi-val {
       font-size: 72px !important;
       font-weight: 900 !important;
@@ -59,14 +59,14 @@
       line-height: 1.1;
       text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
     }
-   
+    
     .legend-item { display: flex; align-items: center; margin-bottom: 8px; font-size: 0.85rem; font-weight: 600; color: #333; }
     .dot {
       width: 18px; height: 18px; border-radius: 50%;
       margin-right: 12px; border: 2px solid #000 !important;
       display: inline-block;
     }
-   
+    
     .tri {
       width: 0; height: 0;
       border-left: 10px solid transparent; border-right: 10px solid transparent;
@@ -90,10 +90,10 @@
   <aside id="sidebar">
     <div class="card">
       <label>Location Search</label>
-      <input type="text" id="addrInput" placeholder="Enter address...">
+      <input type="text" id="addrInput" placeholder="Enter address (e.g. 6401 Forest Rd)">
       <button id="locateBtn">Find Nearest Station</button>
     </div>
-   
+    
     <div class="card">
       <label>Station Index</label>
       <select id="devSel" onchange="handleDropdownChange(this.value)"></select>
@@ -126,7 +126,7 @@
 
 <script>
   const PURPLE_AIR_KEY = "9ADB5C6C-A9B0-11EF-A261-42010A80000F";
-  // Switching to a more stable proxy that works with PurpleAir's Header requirements
+  const C12_API_KEY = "40685f12-d3e5-316e-a274-e0a628c20c97"; 
   const PROXY = "https://api.allorigins.win/get?url=";
 
   const SENSORS = {
@@ -180,7 +180,6 @@
     return "#ff0000";
   }
 
-  // Unified Fetcher to avoid CORS issues
   async function fetchPurpleAir(endpoint) {
     const url = `${endpoint}${endpoint.includes('?') ? '&' : '?'}api_key=${PURPLE_AIR_KEY}`;
     try {
@@ -206,7 +205,7 @@
       chart.data.datasets[0].data = localData;
       chart.update();
       const aqi = localData.length > 0 ? localData[localData.length-1].y : 0;
-     
+      
       document.getElementById('statName').innerText = SENSORS[id];
       document.getElementById('statAQI').innerText = aqi;
       document.getElementById('statAQI').style.color = getAQIColor(aqi);
@@ -232,10 +231,37 @@
 
   function handleDropdownChange(id) { if(markerMap[id]) { map.flyTo(markerMap[id].getLatLng(), 15); updateDisplay(id); } }
 
+  // --- NEW ADDRESS SEARCH LOGIC ---
+  document.getElementById('locateBtn').addEventListener('click', async () => {
+    const query = document.getElementById('addrInput').value;
+    if (!query) return alert("Please enter an address");
+
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ", Cheverly, MD")}`;
+    
+    try {
+      const response = await fetch(url);
+      const results = await response.json();
+      if (results.length > 0) {
+        const userLoc = L.latLng(results[0].lat, results[0].lon);
+        map.flyTo(userLoc, 15);
+        
+        let nearestId = null; let minDist = Infinity;
+        Object.keys(markerMap).forEach(id => {
+          const dist = userLoc.distanceTo(markerMap[id].getLatLng());
+          if (dist < minDist) { minDist = dist; nearestId = id; }
+        });
+
+        if (nearestId) {
+          document.getElementById('devSel').value = nearestId;
+          handleDropdownChange(nearestId);
+        }
+      } else { alert("Address not found."); }
+    } catch (e) { console.error(e); }
+  });
+
   async function init() {
     const sel = document.getElementById('devSel');
     
-    // 1. Add SPODS
     SPODS.forEach(s => {
       const m = L.marker([s.lat, s.lon], {icon: L.divIcon({ className: 'spod-tri', html: `<div style="width:0;height:0;border-left:12px solid transparent;border-right:12px solid transparent;border-bottom:22px solid var(--orange);filter:drop-shadow(0 0 2px #000);"></div>`, iconSize: [24, 24], iconAnchor: [12, 22] })}).addTo(map).bindTooltip(`<b>${s.name}</b>`);
       markerMap[s.sn] = m;
@@ -243,16 +269,13 @@
       m.on('click', () => { sel.value = s.sn; handleDropdownChange(s.sn); });
     });
 
-    // 2. Add PurpleAir Sensors (Increased bounding box to ensure coverage)
     const json = await fetchPurpleAir("https://api.purpleair.com/v1/sensors?nwlng=-77.15&nwlat=39.05&selng=-76.75&selat=38.75&fields=sensor_index,latitude,longitude,pm2.5_atm");
-    
     if (json && json.data) {
       json.data.forEach(r => {
         const id = String(r[0]);
         if (SENSORS[id]) {
           const aqi = pmToAQI(r[3]);
-          const color = getAQIColor(aqi);
-          const m = L.circleMarker([r[1], r[2]], { radius: 11, fillColor: color, color: "#000", weight: 2, fillOpacity: 0.9 }).addTo(map);
+          const m = L.circleMarker([r[1], r[2]], { radius: 11, fillColor: getAQIColor(aqi), color: "#000", weight: 2, fillOpacity: 0.9 }).addTo(map);
           markerMap[id] = m;
           m.bindTooltip(`<b>${SENSORS[id]}</b><br>AQI: ${aqi}`);
           m.on('click', () => { sel.value = id; handleDropdownChange(id); });
@@ -262,7 +285,7 @@
     }
     
     loadCityAvg();
-    updateDisplay("203577"); // Default to Supersite
+    updateDisplay("203577"); 
   }
   init();
 </script>
