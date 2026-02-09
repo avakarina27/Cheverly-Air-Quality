@@ -90,7 +90,7 @@
   <aside id="sidebar">
     <div class="card">
       <label>Location Search</label>
-      <input type="text" id="addrInput" placeholder="Enter address (e.g. 6401 Forest Rd)">
+      <input type="text" id="addrInput" placeholder="Enter Address">
       <button id="locateBtn">Find Nearest Station</button>
     </div>
     
@@ -126,7 +126,6 @@
 
 <script>
   const PURPLE_AIR_KEY = "9ADB5C6C-A9B0-11EF-A261-42010A80000F";
-  const C12_API_KEY = "40685f12-d3e5-316e-a274-e0a628c20c97"; 
   const PROXY = "https://api.allorigins.win/get?url=";
 
   const SENSORS = {
@@ -148,6 +147,7 @@
 
   const CITY_AVG_SENSORS = [14633, 75995, 12595];
   let markerMap = {};
+  let userMarker = null; // Variable to hold the blue pin
 
   const map = L.map('map').setView([38.922, -76.915], 14);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
@@ -206,7 +206,7 @@
       chart.update();
       const aqi = localData.length > 0 ? localData[localData.length-1].y : 0;
       
-      document.getElementById('statName').innerText = SENSORS[id];
+      document.getElementById('statName').innerText = SENSORS[id] || "Unknown Station";
       document.getElementById('statAQI').innerText = aqi;
       document.getElementById('statAQI').style.color = getAQIColor(aqi);
     }
@@ -231,10 +231,10 @@
 
   function handleDropdownChange(id) { if(markerMap[id]) { map.flyTo(markerMap[id].getLatLng(), 15); updateDisplay(id); } }
 
-  // --- NEW ADDRESS SEARCH LOGIC ---
+  // --- ADDRESS SEARCH WITH BLUE PIN ---
   document.getElementById('locateBtn').addEventListener('click', async () => {
     const query = document.getElementById('addrInput').value;
-    if (!query) return alert("Please enter an address");
+    if (!query) return;
 
     const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ", Cheverly, MD")}`;
     
@@ -242,7 +242,16 @@
       const response = await fetch(url);
       const results = await response.json();
       if (results.length > 0) {
-        const userLoc = L.latLng(results[0].lat, results[0].lon);
+        const lat = results[0].lat;
+        const lon = results[0].lon;
+        const userLoc = L.latLng(lat, lon);
+        
+        // Remove old pin if it exists
+        if (userMarker) map.removeLayer(userMarker);
+        
+        // Add new blue pin marker
+        userMarker = L.marker([lat, lon]).addTo(map).bindPopup("Your Location").openPopup();
+        
         map.flyTo(userLoc, 15);
         
         let nearestId = null; let minDist = Infinity;
@@ -255,7 +264,7 @@
           document.getElementById('devSel').value = nearestId;
           handleDropdownChange(nearestId);
         }
-      } else { alert("Address not found."); }
+      }
     } catch (e) { console.error(e); }
   });
 
