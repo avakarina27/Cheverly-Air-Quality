@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>EJAT Integrated Air Network</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EJAT Cheverly: Master Integrated Air Network</title>
   
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -12,179 +12,177 @@
 
   <style>
     :root { --navy: #1a305e; --blue: #4477ce; --orange: #f59e0b; --green: #10b981; }
-    html, body { margin: 0; padding: 0; height: 100%; width: 100%; font-family: "Segoe UI", sans-serif; overflow: hidden; background: #fdfdfd; }
-    .topbar { background: var(--navy); color: white; padding: 0 20px; display: flex; justify-content: space-between; align-items: center; height: 60px; z-index: 2000; position: relative; }
-    #layout { display: flex; height: calc(100vh - 60px); width: 100vw; }
-    #sidebar { width: 380px; min-width: 380px; background: #f4f6f8; border-right: 1px solid #ddd; padding: 15px; overflow-y: auto; box-sizing: border-box; }
-    .card { background: white; padding: 12px; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 10px; }
-    label { font-size: 0.65rem; font-weight: bold; color: #666; text-transform: uppercase; display: block; margin-bottom: 4px; }
-    select, input { width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; font-size: 0.9rem; }
-    button { width: 100%; padding: 10px; margin-top: 8px; border-radius: 4px; border: none; background: var(--blue); color: white; font-weight: bold; cursor: pointer; }
-    #main-content { flex: 1; display: flex; flex-direction: column; }
-    #map { height: 45%; border-bottom: 1px solid #ddd; }
-    #chart-box { height: 55%; padding: 15px; box-sizing: border-box; background: white; }
-    .aqi-val { font-size: 56px; font-weight: 900; display: block; text-align: center; line-height: 1; }
-    .legend-item { display: flex; align-items: center; margin-bottom: 4px; font-size: 0.75rem; font-weight: 600; }
-    .dot { width: 12px; height: 12px; border-radius: 50%; margin-right: 8px; border: 1px solid #333; }
-    .tri { width: 0; height: 0; border-left: 7px solid transparent; border-right: 7px solid transparent; border-bottom: 12px solid var(--orange); margin-right: 8px; }
-    .square { width: 12px; height: 12px; background: var(--green); margin-right: 8px; border: 1px solid #333; }
+    body { margin:0; display:flex; flex-direction:column; height:100vh; font-family: sans-serif; }
+    .header { background: var(--navy); color:white; padding:15px 25px; display:flex; justify-content:space-between; align-items:center; }
+    #layout { display:flex; flex:1; overflow:hidden; }
+    #sidebar { width:380px; background:#f8f9fa; border-right:1px solid #ddd; padding:20px; overflow-y:auto; }
+    #main { flex:1; display:flex; flex-direction:column; }
+    #map { height:50%; border-bottom:1px solid #ccc; }
+    #chart-box { height:50%; padding:20px; background:white; }
+    .card { background:white; border-radius:8px; padding:15px; margin-bottom:15px; border:1px solid #eee; box-shadow:0 2px 4px rgba(0,0,0,0.05); }
+    .aqi-display { font-size: 60px; font-weight: 900; text-align: center; display: block; }
+    .gas-badge { display:inline-block; padding:4px 8px; background:#eee; border-radius:4px; font-size:0.75rem; margin:2px; font-weight:bold; }
+    .legend-icon { width:12px; height:12px; display:inline-block; margin-right:8px; border:1px solid #333; }
   </style>
 </head>
 <body>
 
-<header class="topbar">
-  <div style="font-weight:bold; font-size:1.1rem;">EJAT Cheverly Integrated Network</div>
-  <div id="sync-status" style="font-size:0.7rem; background:rgba(255,255,255,0.1); padding:4px 8px; border-radius:4px;">Multi-Source Feed: CE-AQI Corrected</div>
-</header>
+<div class="header">
+  <div><b>EJAT Integrated Network</b></div>
+  <div style="font-size:0.8rem;">Logic: <b>US EPA Barkjohn (CE-AQI)</b></div>
+</div>
 
 <div id="layout">
   <aside id="sidebar">
     <div class="card">
-      <label>Location Search</label>
-      <input type="text" id="addrInput" placeholder="Enter Address">
-      <button id="locateBtn">Find Nearest Station</button>
-    </div>
-    
-    <div class="card">
-      <label>Device Index (PA, QuantAQ, C12)</label>
-      <select id="devSel" onchange="handleDropdownChange(this.value)"></select>
+      <label style="font-size:0.7rem; font-weight:bold; color:#666;">SELECT SENSOR</label>
+      <select id="sensorDropdown" style="width:100%; padding:10px; margin-top:5px;" onchange="focusSensor(this.value)"></select>
     </div>
 
-    <div class="card" style="text-align:center;">
-      <label id="activeStatName">System Ready</label>
-      <div id="mainReading" class="aqi-val" style="color:#ccc;">--</div>
-      <div id="readingLabel" style="font-size:0.7rem; font-weight:bold; color:#888; margin-top:4px;">PM2.5 AQI</div>
-      <div id="gasReadings" style="display:none; margin-top:10px; font-size:0.8rem; border-top:1px solid #eee; padding-top:10px;">
-        CO: <span id="valCO">--</span> | NO2: <span id="valNO2">--</span>
+    <div class="card">
+      <div id="sensorLabel" style="font-weight:bold; color:#1a305e; margin-bottom:10px;">Network Overview</div>
+      <div id="aqiValue" class="aqi-display" style="color:#ccc;">--</div>
+      <div id="aqiDesc" style="text-align:center; font-weight:bold; font-size:0.8rem;">Select a station on the map</div>
+      
+      <div id="gasData" style="display:none; margin-top:15px; border-top:1px solid #eee; padding-top:10px;">
+        <div class="gas-badge">CO: <span id="valCO">--</span> ppb</div>
+        <div class="gas-badge">NO2: <span id="valNO2">--</span> ppb</div>
+        <div class="gas-badge">O3: <span id="valO3">--</span> ppb</div>
       </div>
     </div>
 
     <div class="card">
-      <label>Network Legend</label>
-      <div class="legend-item"><span class="dot" style="background:#00e400;"></span> PurpleAir (Fixed)</div>
-      <div class="legend-item"><span class="tri"></span> QuantAQ SPOD (Gas + PM)</div>
-      <div class="legend-item"><span class="square"></span> C-12 Portable Fleet</div>
+      <label style="font-size:0.7rem; font-weight:bold; color:#666;">LEGEND</label>
+      <div style="font-size:0.8rem; margin-top:5px;">
+        <span class="legend-icon" style="border-radius:50%; background:#00e400;"></span> PurpleAir (Fixed)<br>
+        <span class="legend-icon" style="width:0; height:0; border-left:6px solid transparent; border-right:6px solid transparent; border-bottom:12px solid #f59e0b; background:transparent; border-top:none;"></span> QuantAQ SPOD (Gas)<br>
+        <span class="legend-icon" style="background:var(--green);"></span> C-12 Portable
+      </div>
     </div>
   </aside>
 
-  <div id="main-content">
+  <div id="main">
     <div id="map"></div>
-    <div id="chart-box"><canvas id="airChart"></canvas></div>
+    <div id="chart-box"><canvas id="historyChart"></canvas></div>
   </div>
 </div>
 
 <script>
   const PA_KEY = "9ADB5C6C-A9B0-11EF-A261-42010A80000F";
-  const QA_KEY = "QC2TTD7QPKL1GXSTHDXAXOC3";
+  const QA_KEY = "QC2TTD7QPKL1GXSTHDXAXOC3"; // Replace with your key
   const PROXY = "https://api.allorigins.win/get?url=";
 
-  const SENSORS_PA = {
-    "284362": "EJAT.PG.1.284362", "52823": "EJAT.CV.6.52823", "53677": "EJAT.CV.1.53677", "54239": "EJAT.CV.6.54239", "54293": "EJAT.CV.2.54293", "57777": "EJAT.CV.1.57777", "57783": "EJAT.CV.6.57783", "57811": "EJAT.CV.4.57811", "57841": "EJAT.CV.3.57841", "57955": "EJAT.FH.1.57955", "160037": "EJAT.PG.1.160037", "175563": "EJAT.PG.1.175563", "178169": "EJAT.PG.1.178169", "181253": "EJAT.CH.1.181253", "184191": "EJAT.PG.1.184191", "185085": "EJAT.FH.1.185085", "197937": "EJAT.PG.1.197937", "203577": "EJAT.CV.2.203577 (Supersite)", "203597": "EJAT.FH.1.203597", "203601": "EJAT.CV.1.203601", "207729": "EJAT.CV.1.207729", "211993": "EJAT.CV.3.211993", "218227": "EJAT.PG.1.218227", "218237": "EJAT.PG.1.218237", "218273": "EJAT.PG.1.218273"
-  };
-
-  const SENSORS_QA = [
+  // Station Data
+  const PA_IDS = ["284362", "52823", "53677", "54239", "54293", "57777", "57783", "57811", "57841", "57955", "160037", "175563", "178169", "181253", "184191", "185085", "197937", "203577", "203597", "203601", "207729", "211993", "218227", "218237", "218273"];
+  const SPODS = [
     { sn: "MOD-PM-001616", name: "EJAT.SPOD.CV.1616", lat: 38.9221, lon: -76.9215 },
     { sn: "MOD-PM-001619", name: "EJAT.SPOD.CV.1619", lat: 38.9168, lon: -76.9100 }
   ];
+  const C12S = [{ id: "C12-01", name: "C12 Handheld (Cheverly Park)", lat: 38.924, lon: -76.914 }];
 
-  const SENSORS_C12 = [
-    { id: "C12-01", name: "Handheld Fleet 01", lat: 38.925, lon: -76.918 }
-  ];
-
-  let markerMap = {};
+  let markers = {};
   const map = L.map('map').setView([38.922, -76.915], 14);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-  const chart = new Chart(document.getElementById('airChart'), {
+  const chart = new Chart(document.getElementById('historyChart'), {
     type: 'line',
-    data: { datasets: [{ label: 'AQI Trend', data: [], borderColor: '#4477ce', tension: 0.1, fill: true, backgroundColor: 'rgba(68,119,206,0.1)' }]},
+    data: { datasets: [{ label: 'Corrected PM2.5 (µg/m³)', data: [], borderColor: '#4477ce', tension: 0.2, fill: true, backgroundColor: 'rgba(68,119,206,0.1)' }]},
     options: { responsive: true, maintainAspectRatio: false, scales: { x: { type: 'time' }, y: { beginAtZero: true } } }
   });
 
-  function applyCEAQI(pm, rh = 50) {
-    let corrected = (0.524 * pm) - (0.0862 * rh) + 5.75;
-    if (corrected < 0) corrected = 0;
-    return corrected <= 12 ? Math.round(corrected * 4.16) : Math.round(2.1 * (corrected - 12) + 51);
+  // CE-AQI (EPA) Logic for 2026
+  function calculateCE_AQI(rawPM, rh) {
+    if (rawPM < 0) return 0;
+    let pm = 0;
+    // Barkjohn/EPA Extended Multi-stage Correction
+    if (rawPM < 570) {
+      pm = (0.524 * rawPM) - (0.0862 * rh) + 5.75;
+    } else {
+      pm = (4.21e-4 * Math.pow(rawPM, 2)) + (0.392 * rawPM) + 3.44;
+    }
+    return Math.max(0, pm);
   }
 
-  function getColor(aqi) {
-    if (aqi <= 50) return "#00e400";
-    if (aqi <= 100) return "#ffff00";
-    if (aqi <= 150) return "#ff7e00";
-    return "#ff0000";
+  function getAQI(pm) {
+    if (pm <= 12) return Math.round((50/12)*pm);
+    if (pm <= 35.4) return Math.round(((100-51)/(35.4-12.1))*(pm-12.1)+51);
+    if (pm <= 55.4) return Math.round(((150-101)/(55.4-35.5))*(pm-35.5)+101);
+    return Math.round(pm + 100);
   }
 
-  async function api(url, isQA = false) {
-    try {
-      const headers = isQA ? { 'Authorization': 'Basic ' + btoa(QA_KEY + ':') } : {};
-      const r = await fetch(PROXY + encodeURIComponent(url), { headers });
-      const d = await r.json();
-      return JSON.parse(d.contents);
-    } catch (e) { return null; }
+  function aqiColor(aqi) {
+    if (aqi <= 50) return "#00e400"; if (aqi <= 100) return "#ffff00";
+    if (aqi <= 150) return "#ff7e00"; return "#ff0000";
   }
 
-  async function updateDisplay(id) {
-    const mainVal = document.getElementById('mainReading');
-    const gasBox = document.getElementById('gasReadings');
+  async function fetchJSON(url, isQA = false) {
+    const headers = isQA ? { 'Authorization': 'Basic ' + btoa(QA_KEY + ':') } : {};
+    const r = await fetch(PROXY + encodeURIComponent(url), { headers });
+    const d = await r.json();
+    return JSON.parse(d.contents);
+  }
+
+  async function focusSensor(id) {
+    const aqiVal = document.getElementById('aqiValue');
+    const gasBox = document.getElementById('gasData');
     gasBox.style.display = "none";
 
-    if (id.startsWith("MOD")) { // QuantAQ Logic
-      const res = await api(`https://api.quant-aq.com/device-api/v1/devices/${id}/data/?limit=1`, true);
-      if (res && res.data) {
-        const aqi = applyCEAQI(res.data[0].pm25);
-        mainVal.innerText = aqi; mainVal.style.color = getColor(aqi);
+    if (id.startsWith("MOD")) { // QuantAQ
+      const data = await fetchJSON(`https://api.quant-aq.com/device-api/v1/devices/${id}/data/?limit=1`, true);
+      if (data && data.data[0]) {
+        const d = data.data[0];
+        const pm = calculateCE_AQI(d.pm25, d.rh || 50);
+        const aqi = getAQI(pm);
+        aqiVal.innerText = aqi; aqiVal.style.color = aqiColor(aqi);
         gasBox.style.display = "block";
-        document.getElementById('valCO').innerText = res.data[0].co || "N/A";
-        document.getElementById('valNO2').innerText = res.data[0].no2 || "N/A";
+        document.getElementById('valCO').innerText = d.co || "N/A";
+        document.getElementById('valNO2').innerText = d.no2 || "N/A";
+        document.getElementById('valO3').innerText = d.o3 || "N/A";
       }
-    } else if (id.startsWith("C12")) { // C12 Logic
-      mainVal.innerText = "LIVE"; mainVal.style.color = "#10b981";
-    } else { // PurpleAir Logic
-      const start = Math.floor(Date.now()/1000)-86400;
-      const res = await api(`https://api.purpleair.com/v1/sensors/${id}/history?fields=pm2.5_atm,humidity&average=60&start_timestamp=${start}&api_key=${PA_KEY}`);
-      if (res && res.data) {
-        const history = res.data.map(r => ({ x: r[0]*1000, y: applyCEAQI(r[1], r[2]) })).reverse();
-        chart.data.datasets[0].data = history; chart.update();
-        const aqi = history[history.length-1].y;
-        mainVal.innerText = aqi; mainVal.style.color = getColor(aqi);
+    } else { // PurpleAir
+      const start = Math.floor(Date.now()/1000) - 86400;
+      const data = await fetchJSON(`https://api.purpleair.com/v1/sensors/${id}/history?fields=pm2.5_atm,humidity&average=60&start_timestamp=${start}&api_key=${PA_KEY}`);
+      if (data && data.data) {
+        const history = data.data.map(r => ({ x: r[0]*1000, y: calculateCE_AQI(r[1], r[2]) })).reverse();
+        chart.data.datasets[0].data = history;
+        chart.update();
+        const latest = history[history.length-1].y;
+        const aqi = getAQI(latest);
+        aqiVal.innerText = aqi; aqiVal.style.color = aqiColor(aqi);
       }
     }
-    document.getElementById('activeStatName').innerText = SENSORS_PA[id] || id;
+    if(markers[id]) map.flyTo(markers[id].getLatLng(), 15);
   }
-
-  function handleDropdownChange(id) { if(markerMap[id]) { map.flyTo(markerMap[id].getLatLng(), 15); updateDisplay(id); } }
 
   async function init() {
-    const sel = document.getElementById('devSel');
-    
-    // 1. QuantAQ (SPODS)
-    SENSORS_QA.forEach(s => {
-      const m = L.marker([s.lat, s.lon], {icon: L.divIcon({ className: 'qa', html: `<div style="width:0;height:0;border-left:9px solid transparent;border-right:9px solid transparent;border-bottom:16px solid #f59e0b;filter:drop-shadow(0 0 2px #000);"></div>`, iconAnchor: [9, 16] })}).addTo(map);
-      markerMap[s.sn] = m; sel.add(new Option(s.name, s.sn));
-      m.on('click', () => { sel.value = s.sn; handleDropdownChange(s.sn); });
+    const sel = document.getElementById('sensorDropdown');
+
+    // Load QuantAQ
+    SPODS.forEach(s => {
+      const m = L.marker([s.lat, s.lon], {icon: L.divIcon({ className:'qa', html:'<div style="width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-bottom:14px solid #f59e0b;"></div>', iconAnchor:[8,14]})}).addTo(map);
+      markers[s.sn] = m; m.on('click', () => { sel.value = s.sn; focusSensor(s.sn); });
+      sel.add(new Option(s.name, s.sn));
     });
 
-    // 2. C12 Fleet
-    SENSORS_C12.forEach(s => {
-      const m = L.marker([s.lat, s.lon], {icon: L.divIcon({ className: 'c12', html: `<div style="width:14px;height:14px;background:#10b981;border:2px solid #000;"></div>`, iconAnchor: [7, 7] })}).addTo(map);
-      markerMap[s.id] = m; sel.add(new Option(s.name, s.id));
-      m.on('click', () => { sel.value = s.id; handleDropdownChange(s.id); });
+    // Load C12
+    C12S.forEach(s => {
+      const m = L.marker([s.lat, s.lon], {icon: L.divIcon({ className:'c12', html:`<div style="width:12px;height:12px;background:${C12S[0].color || '#10b981'};border:1px solid #000;"></div>` })}).addTo(map);
+      markers[s.id] = m; sel.add(new Option(s.name, s.id));
     });
 
-    // 3. PurpleAir
-    const ids = Object.keys(SENSORS_PA).join(',');
-    const res = await api(`https://api.purpleair.com/v1/sensors?show_only=${ids}&fields=latitude,longitude,pm2.5_atm,humidity&api_key=${PA_KEY}`);
-    if (res && res.data) {
-      res.data.forEach(r => {
-        const id = String(r[0]); const aqi = applyCEAQI(r[3], r[4]);
-        const m = L.circleMarker([r[1], r[2]], { radius: 10, fillColor: getColor(aqi), color: "#000", weight: 2, fillOpacity: 0.9 }).addTo(map);
-        markerMap[id] = m; m.on('click', () => { sel.value = id; handleDropdownChange(id); });
-        sel.add(new Option(SENSORS_PA[id], id));
+    // Load PurpleAir
+    const paData = await fetchJSON(`https://api.purpleair.com/v1/sensors?show_only=${PA_IDS.join(',')}&fields=latitude,longitude,pm2.5_atm,humidity&api_key=${PA_KEY}`);
+    if (paData && paData.data) {
+      paData.data.forEach(r => {
+        const id = String(r[0]);
+        const pm = calculateCE_AQI(r[3], r[4]);
+        const aqi = getAQI(pm);
+        const m = L.circleMarker([r[1], r[2]], { radius: 10, fillColor: aqiColor(aqi), color: "#000", weight: 2, fillOpacity: 0.9 }).addTo(map);
+        markers[id] = m; m.on('click', () => { sel.value = id; focusSensor(id); });
+        sel.add(new Option(`PA: ${id}`, id));
       });
     }
-    updateDisplay("203577");
   }
-
   init();
 </script>
 </body>
