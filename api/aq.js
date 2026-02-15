@@ -15,6 +15,7 @@ export default async function handler(req, res) {
       return { ok: r.ok, status: r.status, data };
     };
 
+    // PurpleAir can work either via header or query param depending on account/endpoint
     const purpleairFetch = async (baseUrl) => {
       // Attempt 1: header auth
       let out = await fetchJson(baseUrl, { headers: { "X-API-Key": PURPLEAIR_KEY } });
@@ -23,11 +24,12 @@ export default async function handler(req, res) {
       // Attempt 2: query auth
       const join = baseUrl.includes("?") ? "&" : "?";
       const url2 = `${baseUrl}${join}api_key=${encodeURIComponent(PURPLEAIR_KEY)}`;
-      let out2 = await fetchJson(url2);
-      return out2;
+      return await fetchJson(url2);
     };
 
-    // PurpleAir box query for map markers
+    // ------------------------
+    // PurpleAir: map marker box query
+    // ------------------------
     if (action === "purpleair_box") {
       if (!PURPLEAIR_KEY) return res.status(500).json({ error: "missing_PURPLEAIR_API_KEY" });
 
@@ -49,7 +51,9 @@ export default async function handler(req, res) {
       return res.status(200).json(out.data);
     }
 
-    // PurpleAir history for a station
+    // ------------------------
+    // PurpleAir: history for a station
+    // ------------------------
     if (action === "purpleair_history") {
       if (!PURPLEAIR_KEY) return res.status(500).json({ error: "missing_PURPLEAIR_API_KEY" });
 
@@ -74,7 +78,10 @@ export default async function handler(req, res) {
       return res.status(200).json(out.data);
     }
 
-    // QuantAQ data by date
+    // ------------------------
+    // QuantAQ: data-by-date endpoint
+    // Try multiple base URLs because QuantAQ deployments vary.
+    // ------------------------
     if (action === "quantaq_by_date") {
       if (!QUANTAQ_KEY) return res.status(500).json({ error: "missing_QUANTAQ_API_KEY" });
 
@@ -82,27 +89,31 @@ export default async function handler(req, res) {
       const date = req.query.date;
       if (!sn || !date) return res.status(400).json({ error: "missing_sn_or_date" });
 
-      const url =
-        `https://api.quant-aq.com/device-api/v1/devices/${encodeURIComponent(sn)}/data-by-date/${encodeURIComponent(date)}/`;
-
+      // Basic auth: username=API key, password blank
       const auth = Buffer.from(`${QUANTAQ_KEY}:`).toString("base64");
+      const headers = {
+        "Accept": "application/json",
+        "Authorization": `Basic ${auth}`
+      };
 
-      const out = await fetchJson(url, {
-        headers: {
-          "Accept": "application/json",
-          "Authorization": `Basic ${auth}`
-        }
-      });
+      const urls = [
+        `https://api.quant-aq.com/device-api/v1/devices/${encodeURIComponent(sn)}/data-by-date/${encodeURIComponent(date)}/`,
+        `https://api.quant-aq.com/v1/devices/${encodeURIComponent(sn)}/data-by-date/${encodeURIComponent(date)}/`
+      ];
 
-      if (!out.ok) {
-        return res.status(out.status).json({
-          error: "quantaq_failed",
-          status: out.status,
-          details: out.data
-        });
+      let last = null;
+
+      for (const url of urls) {
+        const out = await fetchJson(url, { headers });
+        if (out.ok) return res.status(200).json(out.data);
+        last = { url, status: out.status, details: out.data };
       }
 
-      return res.status(200).json(out.data);
+      return res.status(last?.status || 502).json({
+        error: "quantaq_failed",
+        tried: urls,
+        last
+      });
     }
 
     return res.status(404).json({ error: "unknown_action", action });
