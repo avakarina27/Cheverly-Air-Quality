@@ -26,12 +26,13 @@
     }
 
     .topbar {
-      background: var(--brand-navy); color: white;
+      background: #1a305e; color: white;
       padding: 0 25px; display: flex; justify-content: space-between;
       align-items: center; height: 60px; z-index: 2000;
     }
     .brand { font-size: 1.2rem; font-weight: bold; }
     .nav a { color: white; text-decoration: none; margin-left: 20px; font-size: 0.9rem; opacity: 0.8; }
+    
     #layout { display: flex; height: calc(100vh - 60px); width: 100vw; }
     
     #sidebar {
@@ -44,7 +45,7 @@
     label { font-size: 0.7rem; font-weight: bold; color: #666; text-transform: uppercase; margin-bottom: 5px; display: block; }
     
     input, select { width: 100%; padding: 10px; margin-top: 5px; border-radius: 4px; border: 1px solid #ccc; box-sizing: border-box; }
-    button { width: 100%; padding: 12px; margin-top: 8px; border-radius: 4px; border: none; background: var(--search-blue); color: white; font-weight: bold; cursor: pointer; }
+    button { width: 100%; padding: 12px; margin-top: 8px; border-radius: 4px; border: none; background: #4477ce; color: white; font-weight: bold; cursor: pointer; }
 
     #main-content { flex: 1; display: flex; flex-direction: column; height: 100%; }
     #map { height: 45%; width: 100%; border-bottom: 1px solid #ddd; z-index: 1; }
@@ -57,7 +58,7 @@
     
     .legend-item { display: flex; align-items: center; margin-bottom: 8px; font-size: 0.85rem; font-weight: 600; }
     .dot { width: 18px; height: 18px; border-radius: 50%; margin-right: 12px; border: 2px solid #000; display: inline-block; }
-    .tri { width: 0; height: 0; border-left: 10px solid transparent; border-right: 10px solid transparent; border-bottom: 18px solid var(--orange); margin-right: 12px; }
+    .tri { width: 0; height: 0; border-left: 10px solid transparent; border-right: 10px solid transparent; border-bottom: 18px solid #f59e0b; margin-right: 12px; }
   </style>
 </head>
 <body>
@@ -106,8 +107,9 @@
 </div>
 
 <script>
+  // API CONFIG
   const PURPLE_AIR_KEY = "9ADB5C6C-A9B0-11EF-A261-42010A80000F";
-  const QUANTAQ_APIKEY = "QC2TTD7QPKL1GXSTHDXAXOC3";
+  const QUANTAQ_APIKEY = "QC2TTD7QPKL1GXSTHDXAXOC3"; 
   const C12_API_KEY = "40685f12-d3e5-316e-a274-e0a628c20c97";
   const PROXY = "https://api.allorigins.win/get?url=";
 
@@ -132,14 +134,15 @@
   let markerMap = {};
   let userMarker = null;
 
+  // Initialize Map
   const map = L.map('map').setView([38.922, -76.915], 14);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-  const chart = new Chart(document.getElementById('airChart').getContext('2d'), {
+  // Initialize Chart
+  const ctx = document.getElementById('airChart').getContext('2d');
+  const chart = new Chart(ctx, {
     type: 'line',
-    data: { datasets: [
-      { label: 'Local Station', data: [], borderColor: '#4477ce', tension: 0.1, fill: true, backgroundColor: 'rgba(68, 119, 206, 0.1)' }
-    ]},
+    data: { datasets: [{ label: 'Local Station', data: [], borderColor: '#4477ce', tension: 0.1, fill: true, backgroundColor: 'rgba(68, 119, 206, 0.1)' }] },
     options: { responsive: true, maintainAspectRatio: false, scales: { x: { type: 'time' }, y: { beginAtZero: true } } }
   });
 
@@ -158,6 +161,7 @@
     return "#ff0000";
   }
 
+  // --- API FETCHERS ---
   async function fetchPurpleAir(endpoint) {
     try {
       const url = `${endpoint}${endpoint.includes('?') ? '&' : '?'}api_key=${PURPLE_AIR_KEY}`;
@@ -168,7 +172,7 @@
   }
 
   async function fetchQuantAQ(sn) {
-    if (!QUANTAQ_APIKEY || QUANTAQ_APIKEY.includes("YOUR")) return null;
+    if (!QUANTAQ_APIKEY || QUANTAQ_APIKEY === "PASTE_YOUR_KEY_HERE") return null;
     try {
       const url = `https://api.quant-aq.com/device-api/v1/devices/${sn}/data/?limit=1`;
       const auth = btoa(QUANTAQ_APIKEY + ':');
@@ -188,74 +192,71 @@
     } catch (e) { return null; }
   }
 
+  // --- CORE LOGIC ---
   async function updateDisplay(id) {
     const nameBox = document.getElementById('statName');
     const aqiBox = document.getElementById('statAQI');
     const unitBox = document.getElementById('unitLabel');
     
-    // Clear Previous
     aqiBox.style.color = "#ccc";
     unitBox.innerText = "CURRENT AQI";
 
-    // CASE 1: QuantAQ SPOD
+    // QuantAQ Logic
     if (id.startsWith("MOD")) {
-      nameBox.innerText = "Fetching SPOD...";
+      nameBox.innerText = "Connecting to SPOD...";
       const data = await fetchQuantAQ(id);
       if (data) {
         const aqi = pmToAQI(data.pm25);
         nameBox.innerText = id;
         aqiBox.innerText = aqi;
-        aqiBox.style.color = "#f59e0b";
+        aqiBox.style.color = "#f59e0b"; // Fixed color string
         chart.data.datasets[0].data = [{x: new Date(data.timestamp), y: aqi}];
         chart.update();
-      }
+      } else { nameBox.innerText = id + " (Offline)"; }
       return;
     }
 
-    // CASE 2: PurpleAir & C-12 Hybrid
+    // PurpleAir & C12 Logic
     nameBox.innerText = SENSORS[id] || "Station";
-    
-    // Check for C-12 Diesel Data first
+
     if (C12_MAPPING[id]) {
       const dpm = await fetchC12(C12_MAPPING[id]);
-      if (dpm !== null) {
+      if (dpm) {
         aqiBox.innerText = dpm.toFixed(2);
         aqiBox.style.color = "#8e44ad";
         unitBox.innerText = "DPM (µg/m³)";
       }
     }
 
-    // Always fetch PurpleAir History for Chart
     const start = Math.floor(Date.now()/1000)-86400;
     const json = await fetchPurpleAir(`https://api.purpleair.com/v1/sensors/${id}/history?fields=pm2.5_atm&average=60&start_timestamp=${start}`);
     if (json && json.data) {
-      const history = (json.data || []).sort((a,b)=>a[0]-b[0]).map(r => ({ x: r[0]*1000, y: pmToAQI(r[1]) }));
+      const history = json.data.map(r => ({ x: r[0]*1000, y: pmToAQI(r[1]) })).sort((a,b)=>a.x-b.x);
       chart.data.datasets[0].data = history;
       chart.update();
       
-      // If no Diesel data was found, use the PurpleAir value for the big number
       if (!C12_MAPPING[id]) {
-        const latestAQI = history.length > 0 ? history[history.length-1].y : 0;
+        const latestAQI = history[history.length-1]?.y || 0;
         aqiBox.innerText = latestAQI;
         aqiBox.style.color = getAQIColor(latestAQI);
       }
     }
   }
 
-  function handleDropdownChange(id) { if(markerMap[id]) { map.flyTo(markerMap[id].getLatLng(), 15); updateDisplay(id); } }
+  function handleDropdownChange(val) { if(markerMap[val]) { map.flyTo(markerMap[val].getLatLng(), 15); updateDisplay(val); } }
 
   async function init() {
     const sel = document.getElementById('devSel');
     
-    // Add SPODs to Map & Select
+    // Setup SPOD markers
     SPODS.forEach(s => {
-      const m = L.marker([s.lat, s.lon], {icon: L.divIcon({ className: 'spod-tri', html: `<div style="width:0;height:0;border-left:12px solid transparent;border-right:12px solid transparent;border-bottom:22px solid #f59e0b;filter:drop-shadow(0 0 2px #000);"></div>`, iconSize: [24, 24], iconAnchor: [12, 22] })}).addTo(map);
+      const m = L.marker([s.lat, s.lon], { icon: L.divIcon({ className: 'spod-tri', html: '<div style="width:0;height:0;border-left:12px solid transparent;border-right:12px solid transparent;border-bottom:22px solid #f59e0b;filter:drop-shadow(0 0 2px #000);"></div>', iconSize: [24, 24], iconAnchor: [12, 22] })}).addTo(map);
       markerMap[s.sn] = m;
       sel.add(new Option(s.name, s.sn));
       m.on('click', () => { sel.value = s.sn; updateDisplay(s.sn); });
     });
 
-    // Add PurpleAir Sensors to Map & Select
+    // Setup PurpleAir markers
     const json = await fetchPurpleAir("https://api.purpleair.com/v1/sensors?nwlng=-77.15&nwlat=39.05&selng=-76.75&selat=38.75&fields=sensor_index,latitude,longitude,pm2.5_atm");
     if (json && json.data) {
       json.data.forEach(r => {
@@ -271,7 +272,23 @@
     }
     updateDisplay("203577"); 
   }
-  init();
+
+  // Start initialization
+  init().catch(console.error);
+
+  // Address Locate Logic
+  document.getElementById('locateBtn').onclick = async () => {
+    const q = document.getElementById('addrInput').value;
+    if(!q) return;
+    const resp = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q + ", Cheverly, MD")}`);
+    const res = await resp.json();
+    if(res.length > 0) {
+      const loc = L.latLng(res[0].lat, res[0].lon);
+      if(userMarker) map.removeLayer(userMarker);
+      userMarker = L.marker(loc).addTo(map);
+      map.flyTo(loc, 15);
+    }
+  };
 </script>
 </body>
 </html>
