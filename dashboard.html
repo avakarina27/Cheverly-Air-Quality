@@ -2,65 +2,86 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>EJAT Network Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>EJAT Air Quality Network</title>
   
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
 
   <style>
-    :root { --navy: #1a305e; --blue: #4477ce; --orange: #f59e0b; --purple: #8e44ad; }
-    body { margin: 0; font-family: sans-serif; display: flex; flex-direction: column; height: 100vh; background: #fdfdfd; overflow: hidden; }
-    .header { background: var(--navy); color: white; padding: 0 20px; height: 60px; display: flex; align-items: center; justify-content: space-between; z-index: 1000; }
-    #container { display: flex; flex: 1; overflow: hidden; }
-    #sidebar { width: 380px; background: #f4f6f8; border-right: 1px solid #ddd; padding: 15px; overflow-y: auto; box-sizing: border-box; }
-    #main { flex: 1; display: flex; flex-direction: column; }
-    #map { height: 45%; width: 100%; border-bottom: 1px solid #ddd; }
-    #chart-box { flex: 1; padding: 15px; background: white; box-sizing: border-box; }
-    .card { background: white; padding: 15px; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 12px; text-align: center; }
-    .aqi-val { font-size: 72px; font-weight: 900; line-height: 1; margin: 10px 0; text-shadow: 1px 1px 0 #000; }
-    label { font-size: 0.7rem; font-weight: bold; color: #666; text-transform: uppercase; display: block; text-align: left; margin-bottom: 5px; }
-    select { width: 100%; padding: 10px; border-radius: 4px; border: 1px solid #ccc; margin-bottom: 10px; }
+    :root { --brand-navy: #1a305e; --search-blue: #4477ce; --orange: #f59e0b; }
+    html, body { margin: 0; padding: 0; height: 100%; width: 100%; font-family: "Segoe UI", Tahoma, sans-serif; overflow: hidden; background: #fdfdfd; }
+    .topbar { background: var(--brand-navy); color: white; padding: 0 25px; display: flex; justify-content: space-between; align-items: center; height: 60px; box-sizing: border-box; z-index: 2000; }
+    .brand { font-size: 1.2rem; font-weight: bold; }
+    .nav a { color: white; text-decoration: none; margin-left: 20px; font-size: 0.9rem; opacity: 0.8; }
+    #layout { display: flex; height: calc(100vh - 60px); width: 100vw; }
+    #sidebar { width: 380px; min-width: 380px; background: #f4f6f8; border-right: 1px solid #ddd; padding: 15px; overflow-y: auto; box-sizing: border-box; }
+    .card { background: white; padding: 15px; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 12px; }
+    label { font-size: 0.7rem; font-weight: bold; color: #666; text-transform: uppercase; margin-bottom: 5px; display: block; }
+    input, select { width: 100%; padding: 10px; margin-top: 5px; border-radius: 4px; border: 1px solid #ccc; box-sizing: border-box; }
+    button { width: 100%; padding: 12px; margin-top: 8px; border-radius: 4px; border: none; background: var(--search-blue); color: white; font-weight: bold; cursor: pointer; }
+    #main-content { flex: 1; display: flex; flex-direction: column; height: 100%; }
+    #map { height: 45%; width: 100%; border-bottom: 1px solid #ddd; z-index: 1; }
+    #chart-box { height: 55%; width: 100%; padding: 15px; box-sizing: border-box; background: white; }
+    .aqi-val { font-size: 72px; font-weight: 900; display: block; text-align: center; line-height: 1.1; text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; }
+    .legend-item { display: flex; align-items: center; margin-bottom: 8px; font-size: 0.85rem; font-weight: 600; color: #333; }
+    .dot { width: 18px; height: 18px; border-radius: 50%; margin-right: 12px; border: 2px solid #000; display: inline-block; }
+    .tri { width: 0; height: 0; border-left: 10px solid transparent; border-right: 10px solid transparent; border-bottom: 18px solid #f59e0b; margin-right: 12px; }
   </style>
 </head>
 <body>
 
-<div class="header">
-  <div style="font-size: 1.2rem; font-weight: bold;">Cheverly Air Quality Network</div>
-  <nav><a href="index.html" style="color:white; text-decoration:none;">Home</a></nav>
-</div>
+<header class="topbar">
+  <div class="brand">Cheverly Air Quality Network</div>
+  <nav class="nav">
+    <a href="index.html">Home</a>
+    <a href="dashboard.html" style="font-weight:bold; opacity:1;">Dashboard</a>
+  </nav>
+</header>
 
-<div id="container">
+<div id="layout">
   <aside id="sidebar">
     <div class="card">
-      <label>Live Reading</label>
-      <div id="statName" style="font-weight:bold; font-size:0.9rem;">Select a Station</div>
-      <div id="statAQI" class="aqi-val" style="color:#ccc;">--</div>
-      <div id="unitLabel" style="font-size:0.75rem; font-weight: bold; color: #666;">CURRENT AQI</div>
+      <label>Location Search</label>
+      <input type="text" id="addrInput" placeholder="Enter Address">
+      <button id="locateBtn">Find Nearest Station</button>
+    </div>
+    
+    <div class="card">
+      <label>Station Index</label>
+      <select id="devSel" onchange="handleDropdownChange(this.value)"></select>
+    </div>
+
+    <div class="card" style="min-height: 150px;">
+      <label id="readingLabel">Live Station Reading</label>
+      <div id="details" style="text-align:center;">
+        <div id="statName" style="font-weight:bold; font-size:0.9rem; margin-bottom:5px; color:#333;">--</div>
+        <div id="statAQI" class="aqi-val" style="color:#ccc;">--</div>
+        <div id="unitLabel" style="font-size:0.75rem; color:#666; font-weight: bold; margin-top:5px;">CURRENT AQI</div>
+      </div>
     </div>
 
     <div class="card">
-      <label>Station Selection</label>
-      <select id="devSel" onchange="updateDisplay(this.value)"></select>
-    </div>
-    
-    <div style="font-size:0.7rem; color:#999; text-align:center;">
-      Map: Circles (PurpleAir) | Triangles (SPODs)
+      <label>Network Legend</label>
+      <div class="legend-item"><span class="dot" style="background-color: #00e400;"></span> Good (0-50)</div>
+      <div class="legend-item"><span class="dot" style="background-color: #ffff00;"></span> Moderate (51-100)</div>
+      <div class="legend-item"><span class="dot" style="background-color: #ff7e00;"></span> Sensitive (101-150)</div>
+      <div class="legend-item"><span class="dot" style="background-color: #ff0000;"></span> Unhealthy (151+)</div>
+      <div class="legend-item"><span class="tri"></span> SPOD Gas Sensor</div>
     </div>
   </aside>
 
-  <div id="main">
+  <div id="main-content">
     <div id="map"></div>
     <div id="chart-box"><canvas id="airChart"></canvas></div>
   </div>
 </div>
 
 <script>
-  // API CONFIG
-  const PA_KEY = "9ADB5C6C-A9B0-11EF-A261-42010A80000F";
-  const Q_KEY = "QC2TTD7QPKL1GXSTHDXAXOC3";
-  const C12_KEY = "40685f12-d3e5-316e-a274-e0a628c20c97";
+  const PURPLE_AIR_KEY = "9ADB5C6C-A9B0-11EF-A261-42010A80000F";
+  const QUANTAQ_KEY = "QC2TTD7QPKL1GXSTHDXAXOC3"; 
   const PROXY = "https://api.allorigins.win/get?url=";
 
   const SENSORS = {
@@ -80,79 +101,116 @@
     { sn: "MOD-PM-001619", name: "EJAT.SPOD.CV.1619", lat: 38.9168, lon: -76.9100 }
   ];
 
-  // Map & Chart Init
+  let markerMap = {};
+  let userMarker = null;
+
   const map = L.map('map').setView([38.922, -76.915], 14);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-  const chart = new Chart(document.getElementById('airChart'), {
+  const chart = new Chart(document.getElementById('airChart').getContext('2d'), {
     type: 'line',
-    data: { datasets: [{ label: 'AQI Level', data: [], borderColor: '#4477ce', fill: true, backgroundColor: 'rgba(68,119,206,0.1)' }] },
-    options: { responsive: true, maintainAspectRatio: false }
+    data: { datasets: [{ label: 'Station AQI', data: [], borderColor: '#4477ce', tension: 0.1, fill: true, backgroundColor: 'rgba(68, 119, 206, 0.1)' }]},
+    options: { responsive: true, maintainAspectRatio: false, scales: { x: { type: 'time' }, y: { beginAtZero: true } } }
   });
 
-  async function api(url, auth = null) {
+  function pmToAQI(pm) {
+    if (!pm || pm < 0) return 0;
+    if (pm <= 12) return Math.round(pm * 4.16);
+    if (pm <= 35.4) return Math.round(2.1 * (pm - 12) + 51);
+    return Math.round(pm + 100);
+  }
+
+  function getAQIColor(aqi) {
+    if (aqi <= 50) return "#00e400";
+    if (aqi <= 100) return "#ffff00";
+    if (aqi <= 150) return "#ff7e00";
+    return "#ff0000";
+  }
+
+  async function apiFetch(url, auth = null) {
     try {
       const headers = auth ? { 'Authorization': 'Basic ' + btoa(auth + ':') } : {};
-      const r = await fetch(PROXY + encodeURIComponent(url), { headers });
-      const d = await r.json();
-      return JSON.parse(d.contents);
+      const res = await fetch(PROXY + encodeURIComponent(url), { headers });
+      const data = await res.json();
+      return JSON.parse(data.contents);
     } catch (e) { return null; }
   }
 
   async function updateDisplay(id) {
     const aqiEl = document.getElementById('statAQI');
+    const unitEl = document.getElementById('unitLabel');
     const nameEl = document.getElementById('statName');
+    
+    unitEl.innerText = "CURRENT AQI";
     nameEl.innerText = SENSORS[id] || id;
 
     if (id.startsWith("MOD")) {
-      const res = await api(`https://api.quant-aq.com/device-api/v1/devices/${id}/data/?limit=1`, Q_KEY);
+      const res = await apiFetch(`https://api.quant-aq.com/device-api/v1/devices/${id}/data/?limit=1`, QUANTAQ_KEY);
       if (res && res.data) {
-        aqiEl.innerText = Math.round(res.data[0].pm25 * 3); // Simple AQI calc
-        aqiEl.style.color = "#f59e0b";
+        const aqi = pmToAQI(res.data[0].pm25);
+        aqiEl.innerText = aqi; aqiEl.style.color = "#f59e0b";
       }
       return;
     }
 
-    const res = await api(`https://api.purpleair.com/v1/sensors/${id}?fields=pm2.5_atm&api_key=${PA_KEY}`);
-    if (res && res.sensor) {
-      const aqi = Math.round(res.sensor.pm2_5_atm * 3);
-      aqiEl.innerText = aqi;
-      aqiEl.style.color = aqi > 50 ? "#ff7e00" : "#00e400";
-      
-      chart.data.labels = ['-4h', '-3h', '-2h', '-1h', 'Now'];
-      chart.data.datasets[0].data = [aqi-2, aqi+5, aqi-1, aqi+2, aqi];
+    const start = Math.floor(Date.now()/1000)-86400;
+    const json = await apiFetch(`https://api.purpleair.com/v1/sensors/${id}/history?fields=pm2.5_atm&average=60&start_timestamp=${start}&api_key=${PURPLE_AIR_KEY}`);
+    
+    if (json && json.data) {
+      const localData = json.data.map(r => ({ x: r[0]*1000, y: pmToAQI(r[1]) })).reverse();
+      chart.data.datasets[0].data = localData;
       chart.update();
+      const lastAQI = localData[localData.length-1].y;
+      aqiEl.innerText = lastAQI;
+      aqiEl.style.color = getAQIColor(lastAQI);
     }
   }
+
+  function handleDropdownChange(id) { if(markerMap[id]) { map.flyTo(markerMap[id].getLatLng(), 15); updateDisplay(id); } }
 
   async function init() {
     const sel = document.getElementById('devSel');
     
-    // 1. Add SPODs (Triangles)
+    // 1. Load SPODs
     SPODS.forEach(s => {
-      L.marker([s.lat, s.lon], { icon: L.divIcon({ html: '<div style="width:0;height:0;border-left:10px solid transparent;border-right:10px solid transparent;border-bottom:18px solid #f59e0b;"></div>' })}).addTo(map)
-       .on('click', () => { sel.value = s.sn; updateDisplay(s.sn); });
+      const m = L.marker([s.lat, s.lon], {icon: L.divIcon({ className: 's-tri', html: `<div style="width:0;height:0;border-left:12px solid transparent;border-right:12px solid transparent;border-bottom:22px solid #f59e0b;filter:drop-shadow(0 0 2px #000);"></div>`, iconSize: [24, 24], iconAnchor: [12, 22] })}).addTo(map);
+      markerMap[s.sn] = m;
       sel.add(new Option(s.name, s.sn));
+      m.on('click', () => { sel.value = s.sn; handleDropdownChange(s.sn); });
     });
 
-    // 2. Add ALL PurpleAir Sensors (Circles)
-    // We loop through the SENSORS object directly so they ALWAYS show up.
-    Object.keys(SENSORS).forEach((id, index) => {
-      // Create a slight spread so markers don't stack if coordinates are missing
-      const lat = 38.92 + (index * 0.001);
-      const lon = -76.92 + (index * 0.001);
-
-      L.circleMarker([lat, lon], { radius: 10, color: '#000', fillColor: '#4477ce', fillOpacity: 0.8 }).addTo(map)
-       .on('click', () => { sel.value = id; updateDisplay(id); })
-       .bindTooltip(SENSORS[id]);
-      
-      sel.add(new Option(SENSORS[id], id));
-    });
-
-    updateDisplay("203577");
+    // 2. Load PurpleAir Sensors in the Cheverly Box
+    const json = await apiFetch(`https://api.purpleair.com/v1/sensors?nwlng=-77.05&nwlat=38.98&selng=-76.85&selat=38.88&fields=sensor_index,latitude,longitude,pm2.5_atm&api_key=${PURPLE_AIR_KEY}`);
+    if (json && json.data) {
+      json.data.forEach(r => {
+        const id = String(r[0]);
+        if (SENSORS[id]) {
+          const aqi = pmToAQI(r[3]);
+          const m = L.circleMarker([r[1], r[2]], { radius: 11, fillColor: getAQIColor(aqi), color: "#000", weight: 2, fillOpacity: 0.9 }).addTo(map);
+          markerMap[id] = m;
+          m.on('click', () => { sel.value = id; handleDropdownChange(id); });
+          m.bindTooltip(SENSORS[id]);
+          sel.add(new Option(SENSORS[id], id));
+        }
+      });
+    }
+    updateDisplay("203577"); 
   }
-
+  
   init();
+
+  document.getElementById('locateBtn').onclick = async () => {
+    const query = document.getElementById('addrInput').value;
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ", Cheverly, MD")}`;
+    const res = await fetch(url);
+    const results = await res.json();
+    if (results.length > 0) {
+      const lat = results[0].lat; const lon = results[0].lon;
+      if (userMarker) map.removeLayer(userMarker);
+      userMarker = L.marker([lat, lon]).addTo(map).bindPopup("Your Location").openPopup();
+      map.flyTo([lat, lon], 15);
+    }
+  };
 </script>
 </body>
 </html>
