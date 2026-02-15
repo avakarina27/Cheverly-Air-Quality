@@ -7,12 +7,24 @@ export default async function handler(req, res) {
 
     if (!action) return res.status(400).json({ error: "missing_action" });
 
-    const jsonFetch = async (url, options = {}) => {
+    const fetchJson = async (url, options = {}) => {
       const r = await fetch(url, options);
       const text = await r.text();
       let data = text;
       try { data = JSON.parse(text); } catch {}
       return { ok: r.ok, status: r.status, data };
+    };
+
+    const purpleairFetch = async (baseUrl) => {
+      // Attempt 1: header auth
+      let out = await fetchJson(baseUrl, { headers: { "X-API-Key": PURPLEAIR_KEY } });
+      if (out.ok) return out;
+
+      // Attempt 2: query auth
+      const join = baseUrl.includes("?") ? "&" : "?";
+      const url2 = `${baseUrl}${join}api_key=${encodeURIComponent(PURPLEAIR_KEY)}`;
+      let out2 = await fetchJson(url2);
+      return out2;
     };
 
     // PurpleAir box query for map markers
@@ -24,8 +36,17 @@ export default async function handler(req, res) {
         "?nwlng=-77.15&nwlat=39.05&selng=-76.75&selat=38.75" +
         "&fields=sensor_index,latitude,longitude,pm2.5_atm";
 
-      const out = await jsonFetch(url, { headers: { "X-API-Key": PURPLEAIR_KEY } });
-      return res.status(out.ok ? 200 : out.status).json(out.data);
+      const out = await purpleairFetch(url);
+
+      if (!out.ok) {
+        return res.status(out.status).json({
+          error: "purpleair_box_failed",
+          status: out.status,
+          details: out.data
+        });
+      }
+
+      return res.status(200).json(out.data);
     }
 
     // PurpleAir history for a station
@@ -40,8 +61,17 @@ export default async function handler(req, res) {
         `https://api.purpleair.com/v1/sensors/${encodeURIComponent(id)}/history` +
         `?fields=pm2.5_atm&average=60&start_timestamp=${encodeURIComponent(start)}`;
 
-      const out = await jsonFetch(url, { headers: { "X-API-Key": PURPLEAIR_KEY } });
-      return res.status(out.ok ? 200 : out.status).json(out.data);
+      const out = await purpleairFetch(url);
+
+      if (!out.ok) {
+        return res.status(out.status).json({
+          error: "purpleair_history_failed",
+          status: out.status,
+          details: out.data
+        });
+      }
+
+      return res.status(200).json(out.data);
     }
 
     // QuantAQ data by date
@@ -55,17 +85,24 @@ export default async function handler(req, res) {
       const url =
         `https://api.quant-aq.com/device-api/v1/devices/${encodeURIComponent(sn)}/data-by-date/${encodeURIComponent(date)}/`;
 
-      // QuantAQ uses Basic Auth where username is API key, password is blank
       const auth = Buffer.from(`${QUANTAQ_KEY}:`).toString("base64");
 
-      const out = await jsonFetch(url, {
+      const out = await fetchJson(url, {
         headers: {
           "Accept": "application/json",
           "Authorization": `Basic ${auth}`
         }
       });
 
-      return res.status(out.ok ? 200 : out.status).json(out.data);
+      if (!out.ok) {
+        return res.status(out.status).json({
+          error: "quantaq_failed",
+          status: out.status,
+          details: out.data
+        });
+      }
+
+      return res.status(200).json(out.data);
     }
 
     return res.status(404).json({ error: "unknown_action", action });
