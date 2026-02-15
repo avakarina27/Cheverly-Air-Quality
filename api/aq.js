@@ -15,7 +15,6 @@ export default async function handler(req, res) {
       return { ok: r.ok, status: r.status, data };
     };
 
-    // PurpleAir can work either via header or query param depending on account/endpoint
     const purpleairFetch = async (baseUrl) => {
       // Attempt 1: header auth
       let out = await fetchJson(baseUrl, { headers: { "X-API-Key": PURPLEAIR_KEY } });
@@ -27,9 +26,7 @@ export default async function handler(req, res) {
       return await fetchJson(url2);
     };
 
-    // ------------------------
-    // PurpleAir: map marker box query
-    // ------------------------
+    // PurpleAir map marker box query
     if (action === "purpleair_box") {
       if (!PURPLEAIR_KEY) return res.status(500).json({ error: "missing_PURPLEAIR_API_KEY" });
 
@@ -51,9 +48,7 @@ export default async function handler(req, res) {
       return res.status(200).json(out.data);
     }
 
-    // ------------------------
-    // PurpleAir: history for a station
-    // ------------------------
+    // PurpleAir history
     if (action === "purpleair_history") {
       if (!PURPLEAIR_KEY) return res.status(500).json({ error: "missing_PURPLEAIR_API_KEY" });
 
@@ -78,10 +73,39 @@ export default async function handler(req, res) {
       return res.status(200).json(out.data);
     }
 
-    // ------------------------
-    // QuantAQ: data-by-date endpoint
-    // Try multiple base URLs because QuantAQ deployments vary.
-    // ------------------------
+    // QuantAQ helpers
+    const quantHeaders = () => {
+      const auth = Buffer.from(`${QUANTAQ_KEY}:`).toString("base64");
+      return {
+        Accept: "application/json",
+        Authorization: `Basic ${auth}`
+      };
+    };
+
+    const quantFetch = async (url) => {
+      return await fetchJson(url, { headers: quantHeaders() });
+    };
+
+    // QuantAQ list devices you have access to
+    if (action === "quantaq_devices") {
+      if (!QUANTAQ_KEY) return res.status(500).json({ error: "missing_QUANTAQ_API_KEY" });
+
+      // Page size should be enough for your use case
+      const url = "https://api.quant-aq.com/v1/devices?per_page=200&page=1";
+      const out = await quantFetch(url);
+
+      if (!out.ok) {
+        return res.status(out.status).json({
+          error: "quantaq_devices_failed",
+          status: out.status,
+          details: out.data
+        });
+      }
+
+      return res.status(200).json(out.data);
+    }
+
+    // QuantAQ data by date
     if (action === "quantaq_by_date") {
       if (!QUANTAQ_KEY) return res.status(500).json({ error: "missing_QUANTAQ_API_KEY" });
 
@@ -89,22 +113,15 @@ export default async function handler(req, res) {
       const date = req.query.date;
       if (!sn || !date) return res.status(400).json({ error: "missing_sn_or_date" });
 
-      // Basic auth: username=API key, password blank
-      const auth = Buffer.from(`${QUANTAQ_KEY}:`).toString("base64");
-      const headers = {
-        "Accept": "application/json",
-        "Authorization": `Basic ${auth}`
-      };
-
+      // Try two common bases
       const urls = [
         `https://api.quant-aq.com/device-api/v1/devices/${encodeURIComponent(sn)}/data-by-date/${encodeURIComponent(date)}/`,
         `https://api.quant-aq.com/v1/devices/${encodeURIComponent(sn)}/data-by-date/${encodeURIComponent(date)}/`
       ];
 
       let last = null;
-
       for (const url of urls) {
-        const out = await fetchJson(url, { headers });
+        const out = await quantFetch(url);
         if (out.ok) return res.status(200).json(out.data);
         last = { url, status: out.status, details: out.data };
       }
