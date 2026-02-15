@@ -110,10 +110,10 @@
 
     <div class="card">
       <label>Network Legend</label>
-      <div class="legend-item"><span class="dot" style="background-color: #00e400;"></span> Good (0 to 50)</div>
-      <div class="legend-item"><span class="dot" style="background-color: #ffff00;"></span> Moderate (51 to 100)</div>
-      <div class="legend-item"><span class="dot" style="background-color: #ff7e00;"></span> Sensitive (101 to 150)</div>
-      <div class="legend-item"><span class="dot" style="background-color: #ff0000;"></span> Unhealthy (151 plus)</div>
+      <div class="legend-item"><span class="dot" style="background-color: #00e400;"></span> Good (0-50)</div>
+      <div class="legend-item"><span class="dot" style="background-color: #ffff00;"></span> Moderate (51-100)</div>
+      <div class="legend-item"><span class="dot" style="background-color: #ff7e00;"></span> Sensitive (101-150)</div>
+      <div class="legend-item"><span class="dot" style="background-color: #ff0000;"></span> Unhealthy (151+)</div>
       <div class="legend-item"><span class="tri"></span> SPOD (QuantAQ)</div>
     </div>
   </aside>
@@ -125,7 +125,6 @@
 </div>
 
 <script>
-  // IMPORTANT: leading slash prevents 404s on Vercel
   const API_PROXY = "/api/aq";
 
   const SENSORS = {
@@ -140,9 +139,11 @@
     "218273": "EJAT.PG.1.218273"
   };
 
+  // ✅ UPDATED: use your real QuantAQ SNs (from /quantaq_devices)
   const SPODS = [
-    { sn: "MOD-PM-001616", name: "EJAT.SPOD.CV.1616", lat: 38.9221, lon: -76.9215 },
-    { sn: "MOD-PM-001619", name: "EJAT.SPOD.CV.1619", lat: 38.9168, lon: -76.9100 }
+    { sn: "MOD-00536", name: "EJAT.SPOD.Cheverly.MOD-00536", lat: 38.920551, lon: -76.91951 }
+    // Add more if you want:
+    // { sn: "MOD-00733", name: "EJAT.SPOD.UMD_Lab.MOD-00733", lat: 38.9057, lon: -76.9115 }
   ];
 
   const CITY_AVG_SENSORS = [14633, 75995, 12595];
@@ -186,12 +187,7 @@
   async function proxyGet(params) {
     const url = API_PROXY + "?" + new URLSearchParams(params).toString();
     const res = await fetch(url);
-    if (!res.ok) {
-      let detail = null;
-      try { detail = await res.json(); } catch {}
-      console.error("API error", res.status, detail);
-      return null;
-    }
+    if (!res.ok) return null;
     return await res.json();
   }
 
@@ -218,12 +214,14 @@
     const a = await proxyGet({ action: "quantaq_by_date", sn, date: today });
     const b = await proxyGet({ action: "quantaq_by_date", sn, date: yday });
 
+    // QuantAQ returns a JSON object that includes "data"
     const rows = [];
     if (b && b.data) rows.push(...b.data);
     if (a && a.data) rows.push(...a.data);
 
     const cutoff = Date.now() - 86400000;
 
+    // NOTE: if your chart is blank, we will adjust the pm field here after you paste one row
     return rows
       .map(r => {
         const tRaw = r.timestamp_local || r.timestamp || r.time || r.datetime;
@@ -247,7 +245,8 @@
   async function updateDisplay(id) {
     const start = Math.floor(Date.now() / 1000) - 86400;
 
-    if (id.startsWith("MOD")) {
+    // QuantAQ SPOD
+    if (id.startsWith("MOD-")) {
       const meta = SPODS.find(s => s.sn === id);
       document.getElementById("statName").innerText = meta ? meta.name : id;
 
@@ -263,6 +262,7 @@
       return;
     }
 
+    // PurpleAir
     const json = await fetchPurpleAirHistory(id, start);
     if (json && json.data) {
       const localData = (json.data || [])
@@ -362,16 +362,8 @@
       markerMap[s.sn] = m;
       sel.add(new Option(s.name, s.sn));
 
-      m.bindTooltip(`<b>${s.name}</b><br>Loading...`);
+      m.bindTooltip(`<b>${s.name}</b><br>QuantAQ`);
       m.on("click", () => { sel.value = s.sn; handleDropdownChange(s.sn); });
-
-      try {
-        const series = await fetchQuantAQLast24h(s.sn);
-        const lastAqi = series.length ? pmToAQI(series[series.length - 1].pm) : 0;
-        m.setTooltipContent(`<b>${s.name}</b><br>AQI: ${lastAqi}`);
-      } catch (e) {
-        m.setTooltipContent(`<b>${s.name}</b><br>AQI: --`);
-      }
     }
 
     const json = await fetchPurpleAirBox();
@@ -399,6 +391,7 @@
 
     await loadCityAvg();
 
+    // default to a PurpleAir station, feel free to set to your QuantAQ SN if you prefer
     sel.value = "203577";
     handleDropdownChange("203577");
   }
