@@ -151,17 +151,17 @@
       <div id="details" style="text-align:center;">
         <div id="statName" style="font-weight:bold; font-size:0.9rem; margin-bottom:5px; color:#333;">--</div>
         <div id="statAQI" class="aqi-val" style="color:#ccc;">--</div>
-        <div style="font-size:0.75rem; color:#666; font-weight: bold; margin-top:5px;">CURRENT AQI</div>
+        <div style="font-size:0.75rem; color:#666; font-weight: bold; margin-top:5px;">CURRENT CE AQI</div>
       </div>
     </div>
 
     <div class="card">
       <label>Network Legend</label>
 
-      <div class="legend-item"><span class="dot" style="background-color:#00e400;"></span> Good (0-50)</div>
-      <div class="legend-item"><span class="dot" style="background-color:#ffff00;"></span> Moderate (51-100)</div>
-      <div class="legend-item"><span class="dot" style="background-color:#ff7e00;"></span> Sensitive (101-150)</div>
-      <div class="legend-item"><span class="dot" style="background-color:#ff0000;"></span> Unhealthy (151+)</div>
+      <div class="legend-item"><span class="dot" style="background-color:#00e400;"></span> Good (0 to 50)</div>
+      <div class="legend-item"><span class="dot" style="background-color:#ffff00;"></span> Moderate (51 to 100)</div>
+      <div class="legend-item"><span class="dot" style="background-color:#ff7e00;"></span> Sensitive (101 to 150)</div>
+      <div class="legend-item"><span class="dot" style="background-color:#ff0000;"></span> Unhealthy (151 plus)</div>
 
       <hr style="border:none;border-top:1px solid #ddd;margin:12px 0;">
 
@@ -191,16 +191,15 @@
     "218273": "EJAT.PG.1.218273"
   };
 
-  // All QuantAQ devices from your /quantaq_devices output
   const SPODS = [
     { sn: "MOD-00536", name: "QuantAQ MOD-00536 (Mosleys - Cheverly)", lat: 38.920551, lon: -76.91951 },
     { sn: "MOD-00537", name: "QuantAQ MOD-00537 (St. Matthews Church - Turner Station)", lat: 39.243000, lon: -76.512400 },
     { sn: "MOD-00733", name: "QuantAQ MOD-00733 (UMD Lab)", lat: 38.905700, lon: -76.911500 },
     { sn: "MOD-00745", name: "QuantAQ MOD-00745 (Thurmond Jones Residence - Beltsville)", lat: 38.905100, lon: -76.910000 },
-    { sn: "MOD-00746", name: "QuantAQ MOD-00746 (MDE#1103246 - North Laurel)", lat: 39.143200, lon: -76.846000 },
+    { sn: "MOD-00746", name: "QuantAQ MOD-00746 (MDE 1103246 - North Laurel)", lat: 39.143200, lon: -76.846000 },
     { sn: "MOD-00747", name: "QuantAQ MOD-00747 (Linwood Jackson - Turner Station)", lat: 39.233944, lon: -76.504501 },
     { sn: "MOD-00748", name: "QuantAQ MOD-00748 (Annapolis - Mt. Olive)", lat: 38.969685, lon: -76.542290 },
-    { sn: "MOD-00749", name: "QuantAQ MOD-00749 (HU-Beltsville)", lat: 39.055400, lon: -76.878800 },
+    { sn: "MOD-00749", name: "QuantAQ MOD-00749 (HU Beltsville)", lat: 39.055400, lon: -76.878800 },
     { sn: "MOD-00760", name: "QuantAQ MOD-00760 (Curtis Bay, MD)", lat: 39.055200, lon: -76.878600 },
     { sn: "MOD-00824", name: "QuantAQ MOD-00824 (CHECD centralized site - Baltimore)", lat: 39.224470, lon: -76.587008 }
   ];
@@ -222,19 +221,9 @@
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      scales: { x: { type: "time" }, y: { beginAtZero: true, title: { display: true, text: "AQI" } } }
+      scales: { x: { type: "time" }, y: { beginAtZero: true, title: { display: true, text: "Index" } } }
     }
   });
-
-  function pmToAQI(pm) {
-    if (pm === null || pm === undefined) return 0;
-    const v = Number(pm);
-    if (!Number.isFinite(v) || v < 0) return 0;
-    if (v <= 12) return Math.round(v * 4.16);
-    if (v <= 35.4) return Math.round(2.1 * (v - 12) + 51);
-    if (v <= 55.4) return Math.round(2.45 * (v - 35.4) + 101);
-    return Math.round(v + 100);
-  }
 
   function getAQIColor(aqi) {
     if (aqi <= 50) return "#00e400";
@@ -282,6 +271,131 @@
     return `${yr}-${mo}-${da}`;
   }
 
+  function safeNum(x) {
+    const v = Number(x);
+    return Number.isFinite(v) ? v : null;
+  }
+
+  function clamp(n, lo, hi) {
+    return Math.min(hi, Math.max(lo, n));
+  }
+
+  function aqiFromBreakpoints(C, table) {
+    if (C === null || C === undefined) return null;
+    const c = Number(C);
+    if (!Number.isFinite(c) || c < 0) return null;
+
+    for (const bp of table) {
+      if (c >= bp.cLow && c <= bp.cHigh) {
+        const I = ((bp.iHigh - bp.iLow) / (bp.cHigh - bp.cLow)) * (c - bp.cLow) + bp.iLow;
+        return Math.round(I);
+      }
+    }
+    return null;
+  }
+
+  const BP_PM25_24H = [
+    { cLow: 0.0,   cHigh: 12.0,   iLow: 0,   iHigh: 50 },
+    { cLow: 12.1,  cHigh: 35.4,   iLow: 51,  iHigh: 100 },
+    { cLow: 35.5,  cHigh: 55.4,   iLow: 101, iHigh: 150 },
+    { cLow: 55.5,  cHigh: 150.4,  iLow: 151, iHigh: 200 },
+    { cLow: 150.5, cHigh: 250.4,  iLow: 201, iHigh: 300 },
+    { cLow: 250.5, cHigh: 350.4,  iLow: 301, iHigh: 400 },
+    { cLow: 350.5, cHigh: 500.4,  iLow: 401, iHigh: 500 }
+  ];
+
+  const BP_PM10_24H = [
+    { cLow: 0,   cHigh: 54,  iLow: 0,   iHigh: 50 },
+    { cLow: 55,  cHigh: 154, iLow: 51,  iHigh: 100 },
+    { cLow: 155, cHigh: 254, iLow: 101, iHigh: 150 },
+    { cLow: 255, cHigh: 354, iLow: 151, iHigh: 200 },
+    { cLow: 355, cHigh: 424, iLow: 201, iHigh: 300 },
+    { cLow: 425, cHigh: 504, iLow: 301, iHigh: 400 },
+    { cLow: 505, cHigh: 604, iLow: 401, iHigh: 500 }
+  ];
+
+  const BP_O3_8H_PPM = [
+    { cLow: 0.000, cHigh: 0.054, iLow: 0,   iHigh: 50 },
+    { cLow: 0.055, cHigh: 0.070, iLow: 51,  iHigh: 100 },
+    { cLow: 0.071, cHigh: 0.085, iLow: 101, iHigh: 150 },
+    { cLow: 0.086, cHigh: 0.105, iLow: 151, iHigh: 200 },
+    { cLow: 0.106, cHigh: 0.200, iLow: 201, iHigh: 300 }
+  ];
+
+  const BP_NO2_1H_PPB = [
+    { cLow: 0,    cHigh: 53,   iLow: 0,   iHigh: 50 },
+    { cLow: 54,   cHigh: 100,  iLow: 51,  iHigh: 100 },
+    { cLow: 101,  cHigh: 360,  iLow: 101, iHigh: 150 },
+    { cLow: 361,  cHigh: 649,  iLow: 151, iHigh: 200 },
+    { cLow: 650,  cHigh: 1249, iLow: 201, iHigh: 300 },
+    { cLow: 1250, cHigh: 1649, iLow: 301, iHigh: 400 },
+    { cLow: 1650, cHigh: 2049, iLow: 401, iHigh: 500 }
+  ];
+
+  const BP_CO_8H_PPM = [
+    { cLow: 0.0,  cHigh: 4.4,  iLow: 0,   iHigh: 50 },
+    { cLow: 4.5,  cHigh: 9.4,  iLow: 51,  iHigh: 100 },
+    { cLow: 9.5,  cHigh: 12.4, iLow: 101, iHigh: 150 },
+    { cLow: 12.5, cHigh: 15.4, iLow: 151, iHigh: 200 },
+    { cLow: 15.5, cHigh: 30.4, iLow: 201, iHigh: 300 },
+    { cLow: 30.5, cHigh: 40.4, iLow: 301, iHigh: 400 },
+    { cLow: 40.5, cHigh: 50.4, iLow: 401, iHigh: 500 }
+  ];
+
+  function avg(arr) {
+    if (!arr || !arr.length) return null;
+    const nums = arr.filter(v => Number.isFinite(v));
+    if (!nums.length) return null;
+    return nums.reduce((a,b)=>a+b,0) / nums.length;
+  }
+
+  function rollingAverageMax(series, windowHours) {
+    const wMs = windowHours * 3600000;
+    let best = null;
+
+    for (let i = 0; i < series.length; i++) {
+      const tEnd = series[i].t;
+      const tStart = tEnd - wMs;
+      const vals = [];
+      for (let j = i; j >= 0; j--) {
+        if (series[j].t < tStart) break;
+        if (Number.isFinite(series[j].v)) vals.push(series[j].v);
+      }
+      const a = avg(vals);
+      if (a !== null) best = (best === null) ? a : Math.max(best, a);
+    }
+    return best;
+  }
+
+  function maxVal(series) {
+    const vals = series.map(p => p.v).filter(v => Number.isFinite(v));
+    if (!vals.length) return null;
+    return Math.max(...vals);
+  }
+
+  function ceAdderPercent(aqi) {
+    if (aqi >= 80 && aqi <= 99) return 0.01;
+    if (aqi >= 100 && aqi <= 119) return 0.02;
+    if (aqi >= 120) return 0.03;
+    return 0;
+  }
+
+  function computeCEAQIFromAQIs(aqis) {
+    const list = aqis.filter(v => Number.isFinite(v));
+    if (!list.length) return 0;
+
+    const base = Math.max(...list);
+
+    let adders = 0;
+    for (const aqi of list) {
+      if (aqi === base) continue;
+      const pct = ceAdderPercent(aqi);
+      if (pct > 0) adders += base * pct;
+    }
+
+    return Math.round(base + adders);
+  }
+
   async function fetchQuantAQLast24h(sn) {
     const now = new Date();
     const today = isoDateLocal(now);
@@ -301,65 +415,113 @@
         const tRaw = r.timestamp_local || r.timestamp || r.time || r.datetime;
         const t = Date.parse(tRaw);
 
-        const pm =
-          r.pm25 ??
-          r.pm2_5 ??
-          r.pm2_5_atm ??
-          r["pm2.5"] ??
-          r["pm2_5"] ??
-          r["PM2.5"] ??
-          null;
+        const pm25 = safeNum(r.pm25 ?? r.pm2_5 ?? r.pm2_5_atm ?? r["pm2.5"] ?? r["pm2_5"] ?? r["PM2.5"]);
+        const o3  = safeNum(r.o3 ?? r.O3 ?? r.ozone ?? r.ozone_ppb);
+        const no2 = safeNum(r.no2 ?? r.NO2 ?? r.nitrogen_dioxide ?? r.no2_ppb);
+        const co  = safeNum(r.co ?? r.CO ?? r.carbon_monoxide ?? r.co_ppm);
+        const pm10 = safeNum(r.pm10 ?? r.PM10);
 
-        return { t, pm };
+        return { t, pm25, o3, no2, co, pm10, raw: r };
       })
-      .filter(p => Number.isFinite(p.t) && p.t >= cutoff && p.pm !== null && p.pm !== undefined)
+      .filter(p => Number.isFinite(p.t) && p.t >= cutoff)
       .sort((x, y) => x.t - y.t);
   }
 
-  async function getLatestQuantAQAQI(sn) {
-    const series = await fetchQuantAQLast24h(sn);
-    if (!series.length) return null;
-    return pmToAQI(series[series.length - 1].pm);
+  function computeCEAQIForPurpleAir(historyRows) {
+    const pmSeries = historyRows
+      .map(r => safeNum(r[1]))
+      .filter(v => v !== null);
+
+    const pm24 = avg(pmSeries);
+    const aqiPm24 = aqiFromBreakpoints(pm24, BP_PM25_24H);
+    if (aqiPm24 === null) return 0;
+
+    return computeCEAQIFromAQIs([aqiPm24]);
+  }
+
+  function computeCEAQIForQuantAQ(series) {
+    const pm25Series = series.map(p => ({ t: p.t, v: p.pm25 })).filter(p => p.v !== null);
+    const o3Series   = series.map(p => ({ t: p.t, v: p.o3  })).filter(p => p.v !== null);
+    const no2Series  = series.map(p => ({ t: p.t, v: p.no2 })).filter(p => p.v !== null);
+    const coSeries   = series.map(p => ({ t: p.t, v: p.co  })).filter(p => p.v !== null);
+    const pm10Series = series.map(p => ({ t: p.t, v: p.pm10 })).filter(p => p.v !== null);
+
+    const pm25_24 = avg(pm25Series.map(p => p.v));
+    const aqi_pm25_24 = aqiFromBreakpoints(pm25_24, BP_PM25_24H);
+
+    const o3_8h_max_ppb = rollingAverageMax(o3Series, 8);
+    const o3_8h_max_ppm = (o3_8h_max_ppb === null) ? null : (o3_8h_max_ppb / 1000.0);
+    const aqi_o3_8h = aqiFromBreakpoints(o3_8h_max_ppm, BP_O3_8H_PPM);
+
+    const no2_1h_max_ppb = maxVal(no2Series);
+    const aqi_no2_1h = aqiFromBreakpoints(no2_1h_max_ppb, BP_NO2_1H_PPB);
+
+    const co_8h_max_ppm = rollingAverageMax(coSeries, 8);
+    const aqi_co_8h = aqiFromBreakpoints(co_8h_max_ppm, BP_CO_8H_PPM);
+
+    const pm10_24 = avg(pm10Series.map(p => p.v));
+    const aqi_pm10_24 = aqiFromBreakpoints(pm10_24, BP_PM10_24H);
+
+    const aqis = [aqi_pm25_24, aqi_o3_8h, aqi_no2_1h, aqi_co_8h, aqi_pm10_24].filter(v => v !== null);
+
+    if (!aqis.length) {
+      if (pm25Series.length) {
+        const lastPm = pm25Series[pm25Series.length - 1].v;
+        const fallback = aqiFromBreakpoints(lastPm, BP_PM25_24H);
+        return fallback === null ? 0 : fallback;
+      }
+      return 0;
+    }
+
+    return computeCEAQIFromAQIs(aqis);
+  }
+
+  function computeCEAQITimeSeriesForPlot_PurpleAir(historyRows) {
+    return (historyRows || [])
+      .sort((a,b)=>a[0]-b[0])
+      .map(r => ({ x: r[0]*1000, y: aqiFromBreakpoints(safeNum(r[1]), BP_PM25_24H) ?? 0 }));
+  }
+
+  function computeCEAQITimeSeriesForPlot_QuantAQ(series) {
+    return (series || [])
+      .map(p => ({ x: p.t, y: aqiFromBreakpoints(p.pm25, BP_PM25_24H) ?? 0 }));
+  }
+
+  function handleDropdownChange(id) {
+    if (!markerMap[id]) return;
+    map.flyTo(markerMap[id].getLatLng(), 15);
+    updateDisplay(id);
   }
 
   async function updateDisplay(id) {
     const start = Math.floor(Date.now() / 1000) - 86400;
 
-    // QuantAQ
     if (id.startsWith("MOD-")) {
       const meta = SPODS.find(s => s.sn === id);
       document.getElementById("statName").innerText = meta ? meta.name : id;
 
       const series = await fetchQuantAQLast24h(id);
-      const localData = series.map(p => ({ x: p.t, y: pmToAQI(p.pm) }));
 
-      chart.data.datasets[0].data = localData;
+      const ce = computeCEAQIForQuantAQ(series);
+      document.getElementById("statAQI").innerText = ce;
+      document.getElementById("statAQI").style.color = getAQIColor(ce);
+
+      if (markerMap[id]) markerMap[id].setIcon(makeSpodIcon(getAQIColor(ce)));
+
+      chart.data.datasets[0].data = computeCEAQITimeSeriesForPlot_QuantAQ(series);
       chart.update();
-
-      const aqi = localData.length ? localData[localData.length - 1].y : 0;
-      document.getElementById("statAQI").innerText = aqi;
-      document.getElementById("statAQI").style.color = getAQIColor(aqi);
-
-      // update triangle color to match AQI
-      if (markerMap[id]) markerMap[id].setIcon(makeSpodIcon(getAQIColor(aqi)));
-
       return;
     }
 
-    // PurpleAir
     const json = await fetchPurpleAirHistory(id, start);
     if (json && json.data) {
-      const localData = (json.data || [])
-        .sort((a, b) => a[0] - b[0])
-        .map(r => ({ x: r[0] * 1000, y: pmToAQI(r[1]) }));
-
-      chart.data.datasets[0].data = localData;
-      chart.update();
-
-      const aqi = localData.length ? localData[localData.length - 1].y : 0;
+      const ce = computeCEAQIForPurpleAir(json.data);
       document.getElementById("statName").innerText = SENSORS[id] || "Unknown Station";
-      document.getElementById("statAQI").innerText = aqi;
-      document.getElementById("statAQI").style.color = getAQIColor(aqi);
+      document.getElementById("statAQI").innerText = ce;
+      document.getElementById("statAQI").style.color = getAQIColor(ce);
+
+      chart.data.datasets[0].data = computeCEAQITimeSeriesForPlot_PurpleAir(json.data);
+      chart.update();
     }
   }
 
@@ -372,7 +534,8 @@
         json.data.forEach(r => {
           const t = Math.round(r[0] / 3600) * 3600000;
           if (!combined[t]) combined[t] = [];
-          combined[t].push(pmToAQI(r[1]));
+          const aqi = aqiFromBreakpoints(safeNum(r[1]), BP_PM25_24H);
+          if (aqi !== null) combined[t].push(aqi);
         });
       }
     }
@@ -380,18 +543,12 @@
     chart.data.datasets[1].data = Object.keys(combined)
       .map(t => {
         const arr = combined[t];
-        const avg = arr.reduce((a, b) => a + b, 0) / arr.length;
-        return { x: parseInt(t, 10), y: avg };
+        const avgVal = arr.reduce((a, b) => a + b, 0) / arr.length;
+        return { x: parseInt(t, 10), y: avgVal };
       })
       .sort((a, b) => a.x - b.x);
 
     chart.update();
-  }
-
-  function handleDropdownChange(id) {
-    if (!markerMap[id]) return;
-    map.flyTo(markerMap[id].getLatLng(), 15);
-    updateDisplay(id);
   }
 
   document.getElementById("locateBtn").addEventListener("click", async () => {
@@ -434,37 +591,35 @@
   async function init() {
     const sel = document.getElementById("devSel");
 
-    // Add QuantAQ triangles first (colored by AQI)
     for (const s of SPODS) {
-      let aqi = null;
+      let ce = 0;
       let color = "var(--orange)";
-
       try {
-        aqi = await getLatestQuantAQAQI(s.sn);
-        if (aqi !== null) color = getAQIColor(aqi);
+        const series = await fetchQuantAQLast24h(s.sn);
+        ce = computeCEAQIForQuantAQ(series);
+        color = getAQIColor(ce);
       } catch (e) {}
 
       const m = L.marker([s.lat, s.lon], { icon: makeSpodIcon(color) }).addTo(map);
-
       markerMap[s.sn] = m;
       sel.add(new Option(s.name, s.sn));
 
-      const tipAQI = (aqi === null) ? "--" : aqi;
-      m.bindTooltip(`<b>${s.name}</b><br>AQI: ${tipAQI}`);
+      m.bindTooltip(`<b>${s.name}</b><br>CE AQI: ${ce}`);
       m.on("click", () => { sel.value = s.sn; handleDropdownChange(s.sn); });
     }
 
-    // Add PurpleAir circles (colored by AQI)
     const json = await fetchPurpleAirBox();
     if (json && json.data) {
       json.data.forEach(r => {
         const id = String(r[0]);
         if (!SENSORS[id]) return;
 
-        const aqi = pmToAQI(r[3]);
+        const pmNow = safeNum(r[3]);
+        const aqiNow = aqiFromBreakpoints(pmNow, BP_PM25_24H) ?? 0;
+
         const m = L.circleMarker([r[1], r[2]], {
           radius: 11,
-          fillColor: getAQIColor(aqi),
+          fillColor: getAQIColor(aqiNow),
           color: "#000",
           weight: 2,
           fillOpacity: 0.9
@@ -473,7 +628,7 @@
         markerMap[id] = m;
         sel.add(new Option(SENSORS[id], id));
 
-        m.bindTooltip(`<b>${SENSORS[id]}</b><br>AQI: ${aqi}`);
+        m.bindTooltip(`<b>${SENSORS[id]}</b><br>PM AQI now: ${aqiNow}<br>Select station for CE AQI`);
         m.on("click", () => { sel.value = id; handleDropdownChange(id); });
       });
     }
