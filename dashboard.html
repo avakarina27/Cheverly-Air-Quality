@@ -145,11 +145,7 @@
     "218273": "EJAT.PG.1.218273"
   };
 
-  // Mapping PurpleAir IDs to C-12 Serials from your spreadsheet
-  const C12_MAPPING = {
-    "203577": "D14781", // Carlyle St
-    "LEE_PLACE_ID": "D14645" // Add Lee Place PA ID if you have it
-  };
+  const C12_MAPPING = { "203577": "D14781" };
 
   const SPODS = [
     { sn: "MOD-PM-001616", name: "EJAT.SPOD.CV.1616", lat: 38.9221, lon: -76.9215 },
@@ -191,25 +187,22 @@
     return "#ff0000";
   }
 
-  // --- DATA FETCHERS ---
-
   async function fetchPurpleAir(endpoint) {
     const url = `${endpoint}${endpoint.includes('?') ? '&' : '?'}api_key=${PURPLE_AIR_KEY}`;
     try {
-      const response = await fetch(`${PROXY}${encodeURIComponent(url)}`);
-      const data = await response.json();
+      const resp = await fetch(`${PROXY}${encodeURIComponent(url)}`);
+      const data = await resp.json();
       return JSON.parse(data.contents);
     } catch (e) { return null; }
   }
 
   async function fetchQuantAQ(sn) {
+    if(!QUANTAQ_APIKEY) return null;
     const url = `https://api.quant-aq.com/device-api/v1/devices/${sn}/data/?limit=1`;
     try {
       const auth = btoa(QUANTAQ_APIKEY + ':');
-      const response = await fetch(`${PROXY}${encodeURIComponent(url)}`, {
-        headers: { 'Authorization': 'Basic ' + auth }
-      });
-      const wrapper = await response.json();
+      const resp = await fetch(`${PROXY}${encodeURIComponent(url)}`, { headers: { 'Authorization': 'Basic ' + auth } });
+      const wrapper = await resp.json();
       const data = JSON.parse(wrapper.contents);
       return data.data[0];
     } catch (e) { return null; }
@@ -218,120 +211,91 @@
   async function fetchC12(serial) {
     const url = `https://grovestreams.com/api/comp/${serial}/stream/BC/last_value?api_key=${C12_API_KEY}`;
     try {
-      const response = await fetch(`${PROXY}${encodeURIComponent(url)}`);
-      const wrapper = await response.json();
-      return parseFloat(wrapper.contents) * 0.8; // BC to DPM conversion
+      const resp = await fetch(`${PROXY}${encodeURIComponent(url)}`);
+      const wrapper = await resp.json();
+      return parseFloat(wrapper.contents) * 0.8;
     } catch (e) { return null; }
   }
-
-  // --- UI UPDATER ---
 
   async function updateDisplay(id) {
     const nameBox = document.getElementById('statName');
     const aqiBox = document.getElementById('statAQI');
     const unitBox = document.getElementById('unitLabel');
 
-    // Reset UI
     aqiBox.style.color = "#ccc";
     unitBox.innerText = "CURRENT AQI";
 
-    // 1. Check if it's a Quant-AQ SPOD
     if (id.startsWith("MOD")) {
-      nameBox.innerText = "Fetching SPOD...";
+      nameBox.innerText = "Loading SPOD...";
       const data = await fetchQuantAQ(id);
       if (data) {
         const aqi = pmToAQI(data.pm25);
         nameBox.innerText = id;
         aqiBox.innerText = aqi;
-        aqiBox.style.color = var(--orange);
+        aqiBox.style.color = "#f59e0b";
         chart.data.datasets[0].label = "SPOD PM2.5";
         chart.data.datasets[0].data = [{x: new Date(data.timestamp), y: aqi}];
         chart.update();
-      }
+      } else { nameBox.innerText = id + " (Offline)"; aqiBox.innerText = "--"; }
       return;
     }
 
-    // 2. Check if it's a C-12 Supersite
     if (C12_MAPPING[id]) {
-      nameBox.innerText = "Fetching Diesel Data...";
       const dpm = await fetchC12(C12_MAPPING[id]);
       if (dpm !== null) {
-        nameBox.innerText = SENSORS[id];
         aqiBox.innerText = dpm.toFixed(2);
-        aqiBox.style.color = "var(--diesel-purple)";
+        aqiBox.style.color = "#8e44ad";
         unitBox.innerText = "DPM (µg/m³)";
       }
     }
 
-    // 3. Always pull PurpleAir History for the chart
     const start = Math.floor(Date.now()/1000)-86400;
     const json = await fetchPurpleAir(`https://api.purpleair.com/v1/sensors/${id}/history?fields=pm2.5_atm&average=60&start_timestamp=${start}`);
-    
     if (json && json.data) {
       const localData = (json.data || []).sort((a,b)=>a[0]-b[0]).map(r => ({ x: r[0]*1000, y: pmToAQI(r[1]) }));
       chart.data.datasets[0].label = "PurpleAir PM2.5";
       chart.data.datasets[0].data = localData;
       chart.update();
-
-      // If we aren't using the C-12 display, use PurpleAir for the big number
       if (!C12_MAPPING[id]) {
         const aqi = localData.length > 0 ? localData[localData.length-1].y : 0;
         nameBox.innerText = SENSORS[id] || "Station";
         aqiBox.innerText = aqi;
         aqiBox.style.color = getAQIColor(aqi);
-      }
+      } else { nameBox.innerText = SENSORS[id]; }
     }
-  }
-
-  async function loadCityAvg() {
-    let combined = {};
-    for (const id of CITY_AVG_SENSORS) {
-      const start = Math.floor(Date.now()/1000)-86400;
-      const json = await fetchPurpleAir(`https://api.purpleair.com/v1/sensors/${id}/history?fields=pm2.5_atm&average=60&start_timestamp=${start}`);
-      if (json && json.data) {
-        json.data.forEach(r => {
-          const t = Math.round(r[0]/3600)*3600000;
-          if(!combined[t]) combined[t] = [];
-          combined[t].push(pmToAQI(r[1]));
-        });
-      }
-    }
-    chart.data.datasets[1].data = Object.keys(combined).map(t => ({ x: parseInt(t), y: combined[t].reduce((a,b)=>a+b,0)/combined[t].length })).sort((a,b)=>a.x-b.x);
-    chart.update();
   }
 
   function handleDropdownChange(id) { if(markerMap[id]) { map.flyTo(markerMap[id].getLatLng(), 15); updateDisplay(id); } }
 
-  // --- ADDRESS SEARCH ---
   document.getElementById('locateBtn').addEventListener('click', async () => {
     const query = document.getElementById('addrInput').value;
     if (!query) return;
     const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ", Cheverly, MD")}`;
     try {
-      const response = await fetch(url);
-      const results = await response.json();
-      if (results.length > 0) {
-        const lat = results[0].lat; const lon = results[0].lon;
+      const resp = await fetch(url);
+      const res = await resp.json();
+      if (res.length > 0) {
+        const lat = res[0].lat; const lon = res[0].lon;
         if (userMarker) map.removeLayer(userMarker);
         userMarker = L.marker([lat, lon]).addTo(map).bindPopup("Your Location").openPopup();
         map.flyTo([lat, lon], 15);
-        let nearestId = null; let minDist = Infinity;
-        Object.keys(markerMap).forEach(id => {
-          const dist = L.latLng(lat, lon).distanceTo(markerMap[id].getLatLng());
-          if (dist < minDist) { minDist = dist; nearestId = id; }
+        let near = null; let min = Infinity;
+        Object.keys(markerMap).forEach(k => {
+          let d = L.latLng(lat, lon).distanceTo(markerMap[k].getLatLng());
+          if (d < min) { min = d; near = k; }
         });
-        if (nearestId) { document.getElementById('devSel').value = nearestId; handleDropdownChange(nearestId); }
+        if (near) { document.getElementById('devSel').value = near; updateDisplay(near); }
       }
-    } catch (e) { console.error(e); }
+    } catch (e) {}
   });
 
   async function init() {
     const sel = document.getElementById('devSel');
     SPODS.forEach(s => {
-      const m = L.marker([s.lat, s.lon], {icon: L.divIcon({ className: 'spod-tri', html: `<div style="width:0;height:0;border-left:12px solid transparent;border-right:12px solid transparent;border-bottom:22px solid var(--orange);filter:drop-shadow(0 0 2px #000);"></div>`, iconSize: [24, 24], iconAnchor: [12, 22] })}).addTo(map).bindTooltip(`<b>${s.name}</b>`);
+      const m = L.marker([s.lat, s.lon], {icon: L.divIcon({ className: 'spod-tri', html: `<div style="width:0;height:0;border-left:12px solid transparent;border-right:12px solid transparent;border-bottom:22px solid #f59e0b;filter:drop-shadow(0 0 2px #000);"></div>`, iconSize: [24, 24], iconAnchor: [12, 22] })}).addTo(map).bindTooltip(`<b>${s.name}</b>`);
       markerMap[s.sn] = m;
       sel.add(new Option(s.name, s.sn));
-      m.on('click', () => { sel.value = s.sn; handleDropdownChange(s.sn); });
+      m.on('click', () => { sel.value = s.sn; updateDisplay(s.sn); });
     });
 
     const json = await fetchPurpleAir("https://api.purpleair.com/v1/sensors?nwlng=-77.15&nwlat=39.05&selng=-76.75&selat=38.75&fields=sensor_index,latitude,longitude,pm2.5_atm");
@@ -343,12 +307,11 @@
           const m = L.circleMarker([r[1], r[2]], { radius: 11, fillColor: getAQIColor(aqi), color: "#000", weight: 2, fillOpacity: 0.9 }).addTo(map);
           markerMap[id] = m;
           m.bindTooltip(`<b>${SENSORS[id]}</b><br>AQI: ${aqi}`);
-          m.on('click', () => { sel.value = id; handleDropdownChange(id); });
+          m.on('click', () => { sel.value = id; updateDisplay(id); });
           sel.add(new Option(SENSORS[id], id));
         }
       });
     }
-    loadCityAvg();
     updateDisplay("203577"); 
   }
   init();
