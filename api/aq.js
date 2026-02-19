@@ -4,6 +4,7 @@ export default async function handler(req, res) {
 
     const PURPLEAIR_KEY = process.env.PURPLEAIR_API_KEY;
     const QUANTAQ_KEY = process.env.QUANTAQ_API_KEY;
+    const GROVE_KEY = process.env.GROVESTREAMS_API_KEY;
 
     if (!action) return res.status(400).json({ error: "missing_action" });
 
@@ -15,7 +16,9 @@ export default async function handler(req, res) {
       return { ok: r.ok, status: r.status, data };
     };
 
-    // PurpleAir can work either via header or query param depending on endpoint/account
+    // ------------------------
+    // PurpleAir
+    // ------------------------
     const purpleairFetch = async (baseUrl) => {
       // Attempt 1: header auth
       let out = await fetchJson(baseUrl, { headers: { "X-API-Key": PURPLEAIR_KEY } });
@@ -27,9 +30,6 @@ export default async function handler(req, res) {
       return await fetchJson(url2);
     };
 
-    // ------------------------
-    // PurpleAir: map marker box query
-    // ------------------------
     if (action === "purpleair_box") {
       if (!PURPLEAIR_KEY) return res.status(500).json({ error: "missing_PURPLEAIR_API_KEY" });
 
@@ -51,9 +51,6 @@ export default async function handler(req, res) {
       return res.status(200).json(out.data);
     }
 
-    // ------------------------
-    // PurpleAir: history for a station
-    // ------------------------
     if (action === "purpleair_history") {
       if (!PURPLEAIR_KEY) return res.status(500).json({ error: "missing_PURPLEAIR_API_KEY" });
 
@@ -79,29 +76,27 @@ export default async function handler(req, res) {
     }
 
     // ------------------------
-    // QuantAQ helpers
+    // QuantAQ
     // ------------------------
     const quantAuthHeaders = () => {
       const auth = Buffer.from(`${QUANTAQ_KEY}:`).toString("base64");
       return {
-        "Accept": "application/json",
-        "Authorization": `Basic ${auth}`
+        Accept: "application/json",
+        Authorization: `Basic ${auth}`
       };
     };
 
-    const normSn = (s) => String(s || "")
-      .toUpperCase()
-      .replace(/[^A-Z0-9]/g, ""); // remove dashes/spaces/underscores
+    const normSn = (s) =>
+      String(s || "")
+        .toUpperCase()
+        .replace(/[^A-Z0-9]/g, "");
 
     const getQuantDevices = async () => {
       const headers = quantAuthHeaders();
-      // We request a larger page size to reduce pagination headaches.
-      // If you have more than 200 devices, we can paginate later.
       const url = "https://api.quant-aq.com/v1/devices?per_page=200&page=1";
       return await fetchJson(url, { headers });
     };
 
-    // Optional debugging endpoint: list devices you actually have access to
     if (action === "quantaq_devices") {
       if (!QUANTAQ_KEY) return res.status(500).json({ error: "missing_QUANTAQ_API_KEY" });
       const out = await getQuantDevices();
@@ -114,9 +109,6 @@ export default async function handler(req, res) {
       return await fetchJson(url, { headers });
     };
 
-    // ------------------------
-    // QuantAQ: data-by-date with auto-serial-resolution
-    // ------------------------
     if (action === "quantaq_by_date") {
       if (!QUANTAQ_KEY) return res.status(500).json({ error: "missing_QUANTAQ_API_KEY" });
 
@@ -128,11 +120,10 @@ export default async function handler(req, res) {
       let out = await quantDataByDate(snInput, date);
       if (out.ok) return res.status(200).json(out.data);
 
-      // 2) If it's a 404, try to resolve sn by listing devices and matching normalized serials
+      // 2) If it's a 404, try to resolve serial by listing devices
       if (out.status === 404) {
         const devs = await getQuantDevices();
 
-        // If listing devices fails, return what we know
         if (!devs.ok) {
           return res.status(devs.status).json({
             error: "quantaq_devices_list_failed",
@@ -144,14 +135,12 @@ export default async function handler(req, res) {
         const list = Array.isArray(devs.data?.data) ? devs.data.data : [];
         const target = normSn(snInput);
 
-        // Look for exact normalized match
-        let match = list.find(d => normSn(d?.sn) === target);
+        let match = list.find((d) => normSn(d?.sn) === target);
 
-        // If no match, try a looser match: sometimes leading zeros differ (001616 vs 1616)
         if (!match) {
           const stripZeros = (x) => normSn(x).replace(/0+/g, "0").replace(/0([1-9])/g, "$1");
           const targetLoose = stripZeros(snInput);
-          match = list.find(d => stripZeros(d?.sn) === targetLoose);
+          match = list.find((d) => stripZeros(d?.sn) === targetLoose);
         }
 
         if (match?.sn) {
@@ -170,24 +159,82 @@ export default async function handler(req, res) {
           });
         }
 
-        // No match at all: return a few serials so you can update SPODS correctly
-        const sample = list.slice(0, 15).map(d => d?.sn).filter(Boolean);
+        const sample = list.slice(0, 15).map((d) => d?.sn).filter(Boolean);
 
         return res.status(404).json({
           error: "quantaq_sn_not_found_for_key",
           provided_sn: snInput,
-          hint: "Your QuantAQ key does not see a device with that serial. Use one of the returned sns in your SPODS list.",
+          hint: "QuantAQ key does not see that serial. Update your SPODS list using one of these sns.",
           sample_sns: sample,
           total_visible_devices: list.length
         });
       }
 
-      // Any non-404 errors just return directly
       return res.status(out.status).json({
         error: "quantaq_failed",
         status: out.status,
         details: out.data
       });
+    }
+
+    // ------------------------
+    // GroveStreams (C12 cloud)
+    // ------------------------
+    // Simple feed API endpoints are /api/comp/{compId}/... and require api_key
+    // last_value returns last sample for each stream and includes streamId if retStreamId is set :contentReference[oaicite:1]{index=1}
+    if (action === "grove_last") {
+      if (!GROVE_KEY) return res.status(500).json({ error: "missing_GROVESTREAMS_API_KEY" });
+
+      const compId = req.query.compId;
+      if (!compId) return res.status(400).json({ error: "missing_compId" });
+
+      const url =
+        `https://grovestreams.com/api/comp/${encodeURIComponent(compId)}/last_value` +
+        `?retStreamId&api_key=${encodeURIComponent(GROVE_KEY)}`;
+
+      const out = await fetchJson(url);
+
+      if (!out.ok) {
+        return res.status(out.status).json({
+          error: "grove_last_failed",
+          status: out.status,
+          url,
+          details: out.data
+        });
+      }
+
+      return res.status(200).json(out.data);
+    }
+
+    // Optional for later graphing one stream
+    if (action === "grove_stream_feed") {
+      if (!GROVE_KEY) return res.status(500).json({ error: "missing_GROVESTREAMS_API_KEY" });
+
+      const compId = req.query.compId;
+      const streamId = req.query.streamId;
+      const sd = req.query.sd; // ms epoch inclusive
+      const ed = req.query.ed; // ms epoch exclusive
+
+      if (!compId || !streamId) return res.status(400).json({ error: "missing_compId_or_streamId" });
+
+      let url = `https://grovestreams.com/api/comp/${encodeURIComponent(compId)}/stream/${encodeURIComponent(streamId)}/feed` +
+                `?api_key=${encodeURIComponent(GROVE_KEY)}`;
+
+      if (sd) url += `&sd=${encodeURIComponent(sd)}`;
+      if (ed) url += `&ed=${encodeURIComponent(ed)}`;
+
+      const out = await fetchJson(url);
+
+      if (!out.ok) {
+        return res.status(out.status).json({
+          error: "grove_stream_feed_failed",
+          status: out.status,
+          url,
+          details: out.data
+        });
+      }
+
+      return res.status(200).json(out.data);
     }
 
     return res.status(404).json({ error: "unknown_action", action });
