@@ -11,7 +11,7 @@
 
     <style>
         :root { --navy: #1a305e; --purple: #6a4f93; --orange: #ff7e00; }
-        body { margin: 0; font-family: system-ui, -apple-system, sans-serif; display: flex; flex-direction: column; height: 100vh; background: #fdfdfd; }
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; height: 100vh; background: #fdfdfd; }
         header { background: var(--navy); color: white; padding: 15px 25px; display: flex; justify-content: space-between; align-items: center; border-bottom: 4px solid var(--orange); }
         #layout { display: flex; flex: 1; overflow: hidden; }
         #sidebar { width: 400px; min-width: 400px; background: #f4f6f8; border-right: 1px solid #ddd; padding: 20px; overflow-y: auto; }
@@ -23,16 +23,14 @@
         .site-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; margin-bottom: 5px; }
         .c12-badge { background: var(--navy); color: white; }
         .pa-badge { background: var(--purple); color: white; }
-        h3 { margin: 0 0 10px 0; font-size: 0.8rem; color: #666; text-transform: uppercase; letter-spacing: 1px; }
         select { width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #ccc; font-size: 1rem; }
-        .adder-line { font-size: 0.85rem; color: #444; border-left: 4px solid #4477ce; padding: 6px 10px; background: #f0f7ff; margin-top: 10px; }
     </style>
 </head>
 <body>
 
 <header>
-    <div><strong>EJAT Cheverly</strong> | 2026 Monitoring Network</div>
-    <div id="connection-status" style="font-size: 0.8rem; opacity: 0.8;">Cloud Sync: Active</div>
+    <div><strong>EJAT Cheverly</strong> | Cumulative Exposure Dashboard</div>
+    <div style="font-size: 0.8rem; opacity: 0.8;">Cloud Sync: Active</div>
 </header>
 
 <div id="layout">
@@ -62,26 +60,41 @@
 </div>
 
 <script>
-/** 1. DATABASE CONFIGURATION **/
-const API_KEY = "40685f12-d3e5-316e-a274-e0a628c20c97"; // GroveStreams Key
-
+/** 1. COMPLETE STATION DATABASE **/
 const STATIONS = [
     // --- C-12 / MET ONE (GROVESTREAMS) ---
-    { id: "D14781", name: "C12: Sector A (D14781)", lat: 38.92054,  lng: -76.919716, type: "C12", gsUid: "8381ec0e-6815-3066-8a89-ea93e13f6a57" },
-    { id: "D14645", name: "C12: NW Boundary A (D14645)", lat: 38.991268, lng: -76.943237, type: "C12", gsUid: "8381ec0e-6815-3066-8a89-ea93e13f6a57" }, // Replace with real UID
-    { id: "D17615", name: "C12: SE Border (D17615)", lat: 38.908325, lng: -76.899002, type: "C12", gsUid: "8381ec0e-6815-3066-8a89-ea93e13f6a57" }, 
-    { id: "E10588", name: "C12: NW Boundary B (E10588)", lat: 38.991806, lng: -76.943130, type: "C12", gsUid: "8381ec0e-6815-3066-8a89-ea93e13f6a57" },
-    { id: "D14646", name: "C12: Standalone NW (D14646)", lat: 38.989586, lng: -76.940407, type: "C12", gsUid: "8381ec0e-6815-3066-8a89-ea93e13f6a57" },
+    { id: "D14781", name: "C12: Sector A", lat: 38.92054, lng: -76.919716, type: "C12", gsUid: "8381ec0e-6815-3066-8a89-ea93e13f6a57" },
+    { id: "D14645", name: "C12: NW Boundary A", lat: 38.991268, lng: -76.943237, type: "C12", gsUid: "UID_HERE" },
+    { id: "D17615", name: "C12: SE Border", lat: 38.908325, lng: -76.899002, type: "C12", gsUid: "UID_HERE" },
+    { id: "E10588", name: "C12: NW Boundary B", lat: 38.991806, lng: -76.943130, type: "C12", gsUid: "UID_HERE" },
+    { id: "D14646", name: "C12: Standalone NW", lat: 38.989586, lng: -76.940407, type: "C12", gsUid: "UID_HERE" },
 
-    // --- PURPLEAIR / QUANTAQ DATABASE ---
-    { id: "203577", name: "Supersite (203577)", lat: 38.9221, lng: -76.9150, type: "PurpleAir" },
-    { id: "52823",  name: "Station 52823", lat: 38.9250, lng: -76.9100, type: "PurpleAir" },
-    { id: "54239",  name: "Station 54239", lat: 38.9280, lng: -76.9180, type: "PurpleAir" },
-    { id: "57811",  name: "Station 57811", lat: 38.9310, lng: -76.9250, type: "PurpleAir" },
-    { id: "218273", name: "Station 218273", lat: 38.9150, lng: -76.9300, type: "PurpleAir" }
+    // --- PURPLEAIR & QUANTAQ DATABASE ---
+    { id: "203577", name: "EJAT.CV.2.203577 (Supersite)", lat: 38.9221, lng: -76.9150, type: "PurpleAir" },
+    { id: "52823",  name: "EJAT.CV.6.52823", lat: 38.9250, lng: -76.9100, type: "PurpleAir" },
+    { id: "53677",  name: "EJAT.CV.1.53677", lat: 38.9300, lng: -76.9200, type: "PurpleAir" },
+    { id: "54239",  name: "EJAT.CV.6.54239", lat: 38.9280, lng: -76.9180, type: "PurpleAir" },
+    { id: "54293",  name: "EJAT.CV.2.54293", lat: 38.9240, lng: -76.9160, type: "PurpleAir" },
+    { id: "57777",  name: "EJAT.CV.1.57777", lat: 38.9295, lng: -76.9205, type: "PurpleAir" },
+    { id: "57783",  name: "EJAT.CV.6.57783", lat: 38.9260, lng: -76.9110, type: "PurpleAir" },
+    { id: "57811",  name: "EJAT.CV.4.57811", lat: 38.9310, lng: -76.9250, type: "PurpleAir" },
+    { id: "57841",  name: "EJAT.CV.3.57841", lat: 38.9350, lng: -76.9300, type: "PurpleAir" },
+    { id: "57955",  name: "EJAT.FH.1.57955", lat: 38.9400, lng: -76.9350, type: "PurpleAir" },
+    { id: "160037", name: "EJAT.PG.1.160037", lat: 38.9100, lng: -76.9000, type: "PurpleAir" },
+    { id: "175563", name: "EJAT.PG.1.175563", lat: 38.9150, lng: -76.9050, type: "PurpleAir" },
+    { id: "178169", name: "EJAT.PG.1.178169", lat: 38.9180, lng: -76.9120, type: "PurpleAir" },
+    { id: "181253", name: "EJAT.CH.1.181253", lat: 38.9200, lng: -76.9140, type: "PurpleAir" },
+    { id: "184191", name: "EJAT.PG.1.184191", lat: 38.9220, lng: -76.9170, type: "PurpleAir" },
+    { id: "185085", name: "EJAT.FH.1.185085", lat: 38.9240, lng: -76.9190, type: "PurpleAir" },
+    { id: "197937", name: "EJAT.PG.1.197937", lat: 38.9260, lng: -76.9210, type: "PurpleAir" },
+    { id: "211993", name: "EJAT.CV.3.211993", lat: 38.9280, lng: -76.9230, type: "PurpleAir" },
+    { id: "218227", name: "EJAT.PG.1.218227", lat: 38.9120, lng: -76.9280, type: "PurpleAir" },
+    { id: "218237", name: "EJAT.PG.1.218237", lat: 38.9140, lng: -76.9290, type: "PurpleAir" },
+    { id: "218273", name: "EJAT.PG.1.218273", lat: 38.9160, lng: -76.9310, type: "PurpleAir" },
+    { id: "284362", name: "EJAT.PG.1.284362", lat: 38.9180, lng: -76.9330, type: "PurpleAir" }
 ];
 
-/** 2. MAP INITIALIZATION **/
+/** 2. MAP & MARKERS **/
 const map = L.map('map').setView([38.945, -76.92], 12);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
@@ -92,12 +105,10 @@ STATIONS.forEach(s => {
     
     let marker;
     if (s.type === "C12") {
-        // Black Rectangles for Diesel PM sensors
         marker = L.rectangle([[s.lat - 0.0008, s.lng - 0.0008], [s.lat + 0.0008, s.lng + 0.0008]], {
             color: "#1a305e", weight: 2, fillOpacity: 0.9
         });
     } else {
-        // Purple Circles for standard PM2.5
         marker = L.circleMarker([s.lat, s.lng], {
             radius: 8, color: "#6a4f93", weight: 2, fillOpacity: 0.7
         });
@@ -105,53 +116,44 @@ STATIONS.forEach(s => {
 
     marker.addTo(map).bindPopup(`
         <b>${s.name}</b><br>
-        <button onclick="document.getElementById('stationSelect').value='${s.id}'; updateDashboard('${s.id}')">Analyze</button>
+        <button onclick="document.getElementById('stationSelect').value='${s.id}'; updateDashboard('${s.id}')">Analyze Station</button>
     `);
 });
 
-/** 3. DATA FETCH & AQI CALCULATION **/
+/** 3. DASHBOARD LOGIC **/
 async function updateDashboard(stationId) {
     const s = STATIONS.find(x => x.id === stationId);
-    const badge = document.getElementById("siteTypeBadge");
-    badge.innerText = s.type;
-    badge.className = "site-badge " + (s.type === "C12" ? "c12-badge" : "pa-badge");
+    document.getElementById("siteTypeBadge").innerText = s.type;
+    document.getElementById("siteTypeBadge").className = "site-badge " + (s.type === "C12" ? "c12-badge" : "pa-badge");
 
-    let pm25 = 12.0; // Default Mock
-    let bc = 450;    // Default Mock (ng/m3)
+    // Calculation Constants
+    const pm25_standard = 9.0; // EPA 2026 Annual Standard
+    const dpm_benchmark = 33;  // ng/m3 benchmark
 
-    // REAL FETCH LOGIC (Example for GroveStreams)
-    if (s.type === "C12") {
-        try {
-            const res = await fetch(`https://grovestreams.com/api/comp/${s.gsUid}/last_value?api_key=${API_KEY}`);
-            const data = await res.json();
-            bc = data.find(stream => stream.id === 'BC')?.val || 450;
-        } catch (e) { console.warn("Using historical averages for C12."); }
-    }
+    // Placeholder data (Bridge to real APIs here)
+    let pm25 = 11.2;
+    let bc = 420;
 
-    // Cumulative EJAT Logic (2026 Protocol)
-    const pmAQI = Math.round((pm25 / 9.0) * 100);  // EPA 2026 Standard
-    const dpmAQI = Math.round(((bc * 0.8) / 33) * 100); // Diesel PM Benchmark
+    // PM2.5 AQI and Diesel PM Impact
+    const pmAQI = Math.round((pm25 / pm25_standard) * 100);
+    const dpmAQI = Math.round(((bc * 0.8) / dpm_benchmark) * 100);
     
-    const baseScore = Math.max(pmAQI, dpmAQI);
-    let totalAQI = baseScore;
-    
-    // The "Adder" logic: 1% if secondary pollutant is high
-    if (Math.min(pmAQI, dpmAQI) > 80) totalAQI += (baseScore * 0.01);
+    let totalAQI = Math.max(pmAQI, dpmAQI);
+    if (Math.min(pmAQI, dpmAQI) > 80) totalAQI += (totalAQI * 0.01); // Adder Logic
 
-    // Update Display
+    // UI Updates
     document.getElementById("mainAQI").innerText = Math.round(totalAQI);
     document.getElementById("mainAQI").style.color = totalAQI <= 50 ? "#00e400" : totalAQI <= 100 ? "#e5d600" : "#ff7e00";
     document.getElementById("aqiCategory").innerText = totalAQI <= 50 ? "Good" : totalAQI <= 100 ? "Moderate" : "Unhealthy (SG)";
     
     document.getElementById("breakdownList").innerHTML = `
-        <strong>Primary Pollutant:</strong> ${pmAQI > dpmAQI ? 'PM2.5' : 'Diesel PM'}<br>
-        <strong>Diesel PM Score:</strong> ${dpmAQI}<br>
-        <strong>PM2.5 Score:</strong> ${pmAQI}<br>
-        <div class="adder-line">Cumulative impact calculated based on co-pollutant concentrations.</div>
+        <strong>Primary Risk:</strong> ${pmAQI > dpmAQI ? 'PM2.5' : 'Diesel PM'}<br>
+        <strong>DPM Score:</strong> ${dpmAQI}<br>
+        <strong>PM2.5 Score:</strong> ${pmAQI}
     `;
 }
 
-// Auto-load first station
+// Default Start
 updateDashboard(STATIONS[0].id);
 </script>
 </body>
