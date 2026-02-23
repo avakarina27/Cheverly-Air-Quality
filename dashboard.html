@@ -42,42 +42,25 @@
     }
 
     .card {
-      background: white;
-      padding: 15px;
-      border-radius: 8px;
-      border: 1px solid #ddd;
-      margin-bottom: 12px;
+      background: white; padding: 15px; border-radius: 8px;
+      border: 1px solid #ddd; margin-bottom: 12px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
 
     label {
-      font-size: 0.7rem;
-      font-weight: bold;
-      color: #666;
-      text-transform: uppercase;
-      margin-bottom: 5px;
-      display: block;
+      font-size: 0.7rem; font-weight: bold; color: #666;
+      text-transform: uppercase; margin-bottom: 5px; display: block;
     }
 
     input, select {
-      width: 100%;
-      padding: 10px;
-      margin-top: 5px;
-      border-radius: 4px;
-      border: 1px solid #ccc;
-      box-sizing: border-box;
+      width: 100%; padding: 10px; margin-top: 5px;
+      border-radius: 4px; border: 1px solid #ccc; box-sizing: border-box;
     }
 
     button {
-      width: 100%;
-      padding: 12px;
-      margin-top: 8px;
-      border-radius: 4px;
-      border: none;
-      background: var(--search-blue);
-      color: white;
-      font-weight: bold;
-      cursor: pointer;
+      width: 100%; padding: 12px; margin-top: 8px; border-radius: 4px;
+      border: none; background: var(--search-blue); color: white;
+      font-weight: bold; cursor: pointer;
     }
 
     #main-content { flex: 1; display: flex; flex-direction: column; height: 100%; }
@@ -85,40 +68,25 @@
     #chart-box { height: 55% !important; width: 100% !important; padding: 15px; box-sizing: border-box; background: white; }
 
     .aqi-val {
-      font-size: 72px !important;
-      font-weight: 900 !important;
-      display: block;
-      text-align: center;
-      line-height: 1.1;
+      font-size: 72px !important; font-weight: 900 !important;
+      display: block; text-align: center; line-height: 1.1;
       text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
     }
 
     .legend-item {
-      display: flex;
-      align-items: center;
-      margin-bottom: 8px;
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: #333;
+      display: flex; align-items: center; margin-bottom: 8px;
+      font-size: 0.85rem; font-weight: 600; color: #333;
     }
 
     .dot {
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      margin-right: 12px;
-      border: 2px solid #000 !important;
-      display: inline-block;
+      width: 18px; height: 18px; border-radius: 50%;
+      margin-right: 12px; border: 2px solid #000 !important; display: inline-block;
     }
 
     .tri {
-      width: 0;
-      height: 0;
-      border-left: 10px solid transparent;
-      border-right: 10px solid transparent;
-      border-bottom: 18px solid var(--orange);
-      margin-right: 12px;
-      filter: drop-shadow(0px 0px 1px #000);
+      width: 0; height: 0; border-left: 10px solid transparent;
+      border-right: 10px solid transparent; border-bottom: 18px solid var(--orange);
+      margin-right: 12px; filter: drop-shadow(0px 0px 1px #000);
     }
   </style>
 </head>
@@ -159,13 +127,13 @@
 
     <div class="card">
       <label>Network Legend</label>
-      <div class="legend-item"><span class="dot" style="background-color:#00e400;"></span> Good (0 to 50)</div>
-      <div class="legend-item"><span class="dot" style="background-color:#ffff00;"></span> Moderate (51 to 100)</div>
-      <div class="legend-item"><span class="dot" style="background-color:#ff7e00;"></span> Sensitive (101 to 150)</div>
-      <div class="legend-item"><span class="dot" style="background-color:#ff0000;"></span> Unhealthy (151 plus)</div>
+      <div class="legend-item"><span class="dot" style="background-color:#00e400;"></span> Good (0-50)</div>
+      <div class="legend-item"><span class="dot" style="background-color:#ffff00;"></span> Moderate (51-100)</div>
+      <div class="legend-item"><span class="dot" style="background-color:#ff7e00;"></span> Sensitive (101-150)</div>
+      <div class="legend-item"><span class="dot" style="background-color:#ff0000;"></span> Unhealthy (151+)</div>
       <hr style="border:none;border-top:1px solid #ddd;margin:12px 0;">
       <div class="legend-item"><span class="dot" style="background-color:#999;"></span> PurpleAir (circle)</div>
-      <div class="legend-item"><span class="tri" style="border-bottom-color:#999;"></span> Industrial / QuantAQ (triangle)</div>
+      <div class="legend-item"><span class="tri" style="border-bottom-color:#999;"></span> Industrial / C12 / QuantAQ (triangle)</div>
     </div>
   </aside>
 
@@ -178,6 +146,7 @@
 <script>
   const API_PROXY = "/api/aq";
 
+  // PurpleAir IDs
   const SENSORS = {
     "284362": "EJAT.PG.1.284362", "52823": "EJAT.CV.6.52823", "53677": "EJAT.CV.1.53677",
     "54239": "EJAT.CV.6.54239", "54293": "EJAT.CV.2.54293", "57777": "EJAT.CV.1.57777",
@@ -190,6 +159,7 @@
     "218273": "EJAT.PG.1.218273"
   };
 
+  // QuantAQ SPODS
   const SPODS = [
     { sn: "MOD-00536", name: "QuantAQ MOD-00536 (Mosleys)", lat: 38.920551, lon: -76.91951 },
     { sn: "MOD-00537", name: "QuantAQ MOD-00537 (St. Matthews)", lat: 39.243000, lon: -76.512400 },
@@ -203,6 +173,7 @@
     { sn: "MOD-00824", name: "QuantAQ MOD-00824 (Baltimore)", lat: 39.224470, lon: -76.587008 }
   ];
 
+  // GroveStreams C12s
   const C12_STATIONS = [
     { id: "D14781", name: "C12: Sector A", lat: 38.92054, lon: -76.919716 },
     { id: "D14645", name: "C12: NW Boundary A", lat: 38.991268, lon: -76.943237 },
@@ -224,8 +195,7 @@
       { label: "City Average", data: [], borderColor: "#ff4444", borderDash: [5,5], pointRadius: 0, fill: false }
     ]},
     options: {
-      responsive: true,
-      maintainAspectRatio: false,
+      responsive: true, maintainAspectRatio: false,
       scales: { x: { type: "time" }, y: { beginAtZero: true, title: { display: true, text: "AQI" } } }
     }
   });
@@ -270,12 +240,15 @@
   async function updateDisplay(id) {
     let currentAQI = 0, ce24 = 0, history = [], name = "";
 
-    // C12 Logic
+    // C12 / GroveStreams Logic
     if (id.startsWith("D") || id.startsWith("E")) {
-      const json = await proxyGet({ action: "grove_history", compId: id });
       name = markerMeta[id].name;
-      if (json?.data?.series?.[0]) {
-        const samples = json.data.series[0].samples;
+      const json = await proxyGet({ action: "grove_history", compId: id });
+      
+      // Handle typical GroveStreams data nesting
+      const stream = json?.data?.series?.[0] || json?.series?.[0];
+      if (stream?.samples) {
+        const samples = stream.samples;
         currentAQI = aqiFromPM(samples[samples.length-1].v);
         ce24 = aqiFromPM(avg(samples.map(s => s.v)));
         history = samples.map(s => ({ x: s.t, y: aqiFromPM(s.v) }));
@@ -283,17 +256,17 @@
     } 
     // QuantAQ Logic
     else if (id.startsWith("MOD-")) {
-      const series = await fetchQuantAQLast24h(id);
       name = markerMeta[id].name;
+      const series = await fetchQuantAQLast24h(id);
       currentAQI = series.length ? aqiFromPM(series[series.length-1].pm25) : 0;
       ce24 = aqiFromPM(avg(series.map(s => s.pm25)));
       history = series.map(s => ({ x: s.t, y: aqiFromPM(s.pm25) }));
     }
     // PurpleAir Logic
     else {
+      name = SENSORS[id] || "Unknown";
       const start = Math.floor(Date.now()/1000) - 86400;
       const json = await proxyGet({ action: "purpleair_history", id, start });
-      name = SENSORS[id] || "Unknown";
       if (json?.data) {
         currentAQI = aqiFromPM(json.data[json.data.length-1][1]);
         ce24 = aqiFromPM(avg(json.data.map(r => r[1])));
@@ -307,28 +280,34 @@
     
     markerMeta[id].lastCurrent = currentAQI;
     markerMeta[id].lastCE = ce24;
-    setMarkerStyle(id, id.includes("MOD-") || id.startsWith("D") || id.startsWith("E") ? "quantaq" : "purpleair", ce24);
+    
+    // Determine icon type for style update
+    const isTri = id.includes("MOD-") || id.startsWith("D") || id.startsWith("E");
+    setMarkerStyle(id, isTri ? "quantaq" : "purpleair", ce24);
     setTooltip(id);
   }
 
-  // Simplified fetch for QuantAQ
   async function fetchQuantAQLast24h(sn) {
     const today = new Date().toISOString().split('T')[0];
     const res = await proxyGet({ action: "quantaq_by_date", sn, date: today });
-    return (res?.data || []).map(r => ({ t: Date.parse(r.timestamp_local), pm25: safeNum(r.pm25) })).filter(p => p.pm25 !== null);
+    return (res?.data || []).map(r => ({ 
+      t: Date.parse(r.timestamp_local || r.timestamp), 
+      pm25: safeNum(r.pm25) 
+    })).filter(p => p.pm25 !== null);
   }
 
   function setLeftPanel(name, cur, ce) {
     document.getElementById("statName").innerText = name;
-    document.getElementById("statAQI").innerText = cur;
+    document.getElementById("statAQI").innerText = cur || "--";
     document.getElementById("statAQI").style.color = getAQIColor(cur);
-    document.getElementById("statCE").innerText = ce;
+    document.getElementById("statCE").innerText = ce || "--";
     document.getElementById("statCE").style.color = getAQIColor(ce);
   }
 
   function setMarkerStyle(id, type, ce) {
     const color = getAQIColor(ce);
     const m = markerMap[id];
+    if (!m) return;
     if (type === "quantaq") m.setIcon(makeSpodIcon(color));
     else m.setStyle({ fillColor: color, color: "#000", weight: 2, fillOpacity: 0.9 });
   }
@@ -339,14 +318,16 @@
   }
 
   function handleDropdownChange(id) {
-    map.flyTo(markerMap[id].getLatLng(), 15);
-    updateDisplay(id);
+    if (markerMap[id]) {
+      map.flyTo(markerMap[id].getLatLng(), 15);
+      updateDisplay(id);
+    }
   }
 
   async function init() {
     const sel = document.getElementById("devSel");
 
-    // 1. Add C12
+    // 1. Initialize C12 Stations
     C12_STATIONS.forEach(s => {
       const m = L.marker([s.lat, s.lon], { icon: makeSpodIcon("#999") }).addTo(map);
       markerMap[s.id] = m;
@@ -355,7 +336,7 @@
       m.on("click", () => { sel.value = s.id; handleDropdownChange(s.id); });
     });
 
-    // 2. Add QuantAQ
+    // 2. Initialize QuantAQ
     SPODS.forEach(s => {
       const m = L.marker([s.lat, s.lon], { icon: makeSpodIcon("#999") }).addTo(map);
       markerMap[s.sn] = m;
@@ -364,10 +345,10 @@
       m.on("click", () => { sel.value = s.sn; handleDropdownChange(s.sn); });
     });
 
-    // 3. Add PurpleAir
-    const json = await proxyGet({ action: "purpleair_box" });
-    if (json?.data) {
-      json.data.forEach(r => {
+    // 3. Initialize PurpleAir
+    const paBox = await proxyGet({ action: "purpleair_box" });
+    if (paBox?.data) {
+      paBox.data.forEach(r => {
         const id = String(r[0]);
         if (SENSORS[id]) {
           const m = L.circleMarker([r[1], r[2]], { radius: 11, fillColor: "#999", color: "#000", weight: 2, fillOpacity: 0.9 }).addTo(map);
@@ -379,6 +360,7 @@
       });
     }
 
+    // Default view
     sel.value = "203577";
     handleDropdownChange("203577");
   }
