@@ -158,13 +158,17 @@
   ];
 
   let markerMap = {}, markerMeta = {};
-  const map = L.map("map").setView([38.922, -76.915], 12);
+  const map = L.map("map").setView([38.922, -76.915], 13);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 
   const chart = new Chart(document.getElementById("airChart").getContext("2d"), {
     type: "line",
-    data: { datasets: [{ label: "AQI", data: [], borderColor: "#4477ce", fill: true, backgroundColor: "rgba(68, 119, 206, 0.1)" }] },
-    options: { responsive: true, maintainAspectRatio: false, scales: { x: { type: "time" }, y: { beginAtZero: true } } }
+    data: { datasets: [{ label: "AQI", data: [], borderColor: "#4477ce", tension: 0.1, fill: true, backgroundColor: "rgba(68, 119, 206, 0.1)" }] },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: { x: { type: "time" }, y: { beginAtZero: true, title: { display: true, text: "AQI" } } }
+    }
   });
 
   function getAQIColor(aqi) {
@@ -176,9 +180,14 @@
 
   function computeAQI(pm) {
     if (pm === null || pm < 0) return 0;
-    const table = [{cl:0,ch:12,il:0,ih:50},{cl:12.1,ch:35.4,il:51,ih:100},{cl:35.5,ch:55.4,il:101,ih:150},{cl:55.5,ch:150.4,il:151,ih:200}];
-    const b = table.find(r => pm <= r.ch) || table[3];
-    return Math.round(((b.ih-b.il)/(b.ch-b.cl))*(pm-b.cl)+b.il);
+    const table = [
+      { cl: 0, ch: 12, il: 0, ih: 50 },
+      { cl: 12.1, ch: 35.4, il: 51, ih: 100 },
+      { cl: 35.5, ch: 55.4, il: 101, ih: 150 },
+      { cl: 55.5, ch: 150.4, il: 151, ih: 200 }
+    ];
+    const b = table.find(x => pm <= x.ch) || table[3];
+    return Math.round(((b.ih - b.il) / (b.ch - b.cl)) * (pm - b.cl) + b.il);
   }
 
   function makeSpodIcon(color) {
@@ -204,33 +213,40 @@
 
   async function updateDisplay(id) {
     const meta = markerMeta[id];
-    let aqi = 0;
+    let latestAQI = 0;
+    let chartData = [];
 
     if (meta.groveId) {
-      const data = await proxyGet({ action: "grove_last", compId: meta.groveId });
-      if (data && data.lastValue) {
-        aqi = computeAQI(data.lastValue);
+      // Fetch GroveStreams (C12) data
+      const json = await proxyGet({ action: "grove_history", compId: meta.groveId });
+      if (json && json.data && json.data.series && json.data.series[0]) {
+        const series = json.data.series[0].samples;
+        latestAQI = computeAQI(series[series.length - 1].v);
+        chartData = series.map(s => ({ x: s.t, y: computeAQI(s.v) }));
       }
     } else {
+      // Fetch PurpleAir data
       const start = Math.floor(Date.now() / 1000) - 86400;
       const json = await proxyGet({ action: "purpleair_history", id: id, start: start });
       if (json && json.data) {
-        aqi = computeAQI(json.data[json.data.length - 1][1]);
-        chart.data.datasets[0].data = json.data.map(r => ({ x: r[0]*1000, y: computeAQI(r[1]) }));
-        chart.update();
+        latestAQI = computeAQI(json.data[json.data.length - 1][1]);
+        chartData = json.data.map(r => ({ x: r[0] * 1000, y: computeAQI(r[1]) }));
       }
     }
 
     document.getElementById("statName").innerText = meta.name;
-    document.getElementById("statAQI").innerText = aqi;
-    document.getElementById("statAQI").style.color = getAQIColor(aqi);
+    document.getElementById("statAQI").innerText = latestAQI;
+    document.getElementById("statAQI").style.color = getAQIColor(latestAQI);
+    
+    chart.data.datasets[0].data = chartData;
+    chart.update();
   }
 
   async function init() {
     const sel = document.getElementById("devSel");
     sel.innerHTML = "";
 
-    // 1. Add SPODS & C12
+    // 1. Add C12 and QuantAQ
     SPODS.forEach(s => {
       const m = L.marker([s.lat, s.lon], { icon: makeSpodIcon("#999") }).addTo(map);
       markerMap[s.sn] = m; 
@@ -245,7 +261,7 @@
       json.data.forEach(r => {
         const id = String(r[0]);
         if (SENSORS[id]) {
-          const aqi = computeAQI(r[4] || r[3]); // Try field 4 then 3
+          const aqi = computeAQI(r[4]);
           const m = L.circleMarker([r[1], r[2]], { radius: 10, fillColor: getAQIColor(aqi), color: "#000", weight: 2, fillOpacity: 0.9 }).addTo(map);
           markerMap[id] = m; 
           markerMeta[id] = { name: SENSORS[id] };
