@@ -4,52 +4,156 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>EJAT Air Quality Network</title>
+
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+
   <style>
-    :root { --brand-navy: #1a305e; --search-blue: #4477ce; --orange: #f59e0b; }
-    html, body { margin: 0; padding: 0; height: 100%; width: 100%; font-family: "Segoe UI", sans-serif; overflow: hidden; background: #fdfdfd; }
-    .topbar { background: var(--brand-navy); color: white; padding: 0 25px; display: flex; justify-content: space-between; align-items: center; height: 60px; z-index: 2000; }
+    :root {
+      --brand-navy: #1a305e;
+      --search-blue: #4477ce;
+      --orange: #f59e0b;
+    }
+
+    html, body {
+      margin: 0; padding: 0;
+      height: 100%; width: 100%;
+      font-family: "Segoe UI", Tahoma, sans-serif;
+      overflow: hidden; background: #fdfdfd;
+    }
+
+    .topbar {
+      background: var(--brand-navy); color: white;
+      padding: 0 25px; display: flex; justify-content: space-between;
+      align-items: center; height: 60px; box-sizing: border-box; z-index: 2000;
+    }
     .brand { font-size: 1.2rem; font-weight: bold; }
     .nav a { color: white; text-decoration: none; margin-left: 20px; font-size: 0.9rem; opacity: 0.8; }
+    .nav a:hover { opacity: 1; text-decoration: underline; }
+
     #layout { display: flex; height: calc(100vh - 60px); width: 100vw; }
-    #sidebar { width: 380px; min-width: 380px; background: #f4f6f8; border-right: 1px solid #ddd; padding: 15px; overflow-y: auto; box-sizing: border-box; }
-    .card { background: white; padding: 15px; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-    label { font-size: 0.7rem; font-weight: bold; color: #666; text-transform: uppercase; margin-bottom: 5px; display: block; }
-    input, select { width: 100%; padding: 10px; margin-top: 5px; border-radius: 4px; border: 1px solid #ccc; box-sizing: border-box; }
-    button { width: 100%; padding: 12px; margin-top: 8px; border-radius: 4px; border: none; background: var(--search-blue); color: white; font-weight: bold; cursor: pointer; }
+
+    #sidebar {
+      width: 380px; min-width: 380px;
+      background: #f4f6f8; border-right: 1px solid #ddd;
+      padding: 15px; overflow-y: auto; box-sizing: border-box;
+    }
+
+    .card {
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    label {
+      font-size: 0.7rem; font-weight: bold; color: #666;
+      text-transform: uppercase; margin-bottom: 5px; display: block;
+    }
+
+    input, select {
+      width: 100%; padding: 10px; margin-top: 5px;
+      border-radius: 4px; border: 1px solid #ccc; box-sizing: border-box;
+    }
+
+    button {
+      width: 100%; padding: 12px; margin-top: 8px;
+      border-radius: 4px; border: none; background: var(--search-blue);
+      color: white; font-weight: bold; cursor: pointer;
+    }
+
     #main-content { flex: 1; display: flex; flex-direction: column; height: 100%; }
     #map { height: 45%; width: 100%; border-bottom: 1px solid #ddd; z-index: 1; }
     #chart-box { height: 55%; width: 100%; padding: 15px; box-sizing: border-box; background: white; }
-    .aqi-val { font-size: 72px; font-weight: 900; display: block; text-align: center; line-height: 1.1; text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; }
-    .legend-item { display: flex; align-items: center; margin-bottom: 8px; font-size: 0.85rem; font-weight: 600; }
+
+    .aqi-val {
+      font-size: 72px; font-weight: 900; display: block;
+      text-align: center; line-height: 1.1;
+      text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+    }
+
+    .legend-item { display: flex; align-items: center; margin-bottom: 8px; font-size: 0.85rem; font-weight: 600; color: #333; }
     .dot { width: 18px; height: 18px; border-radius: 50%; margin-right: 12px; border: 2px solid #000; display: inline-block; }
-    .tri { width: 0; height: 0; border-left: 10px solid transparent; border-right: 10px solid transparent; border-bottom: 18px solid var(--orange); margin-right: 12px; filter: drop-shadow(0px 0px 1px #000); }
+    .tri {
+      width: 0; height: 0; border-left: 10px solid transparent; border-right: 10px solid transparent;
+      border-bottom: 18px solid var(--orange); margin-right: 12px; filter: drop-shadow(0px 0px 1px #000);
+    }
   </style>
 </head>
+
 <body>
-<header class="topbar"><div class="brand">Cheverly Air Quality</div><nav class="nav"><a href="index.html">Home</a><a href="dashboard.html" style="font-weight:bold;">Dashboard</a><a href="writeup.html">Insights</a></nav></header>
+<header class="topbar">
+  <div class="brand">Cheverly Air Quality</div>
+  <nav class="nav">
+    <a href="index.html">Home</a>
+    <a href="dashboard.html" style="font-weight:bold; opacity:1;">Dashboard</a>
+    <a href="writeup.html">Insights</a>
+  </nav>
+</header>
+
 <div id="layout">
   <aside id="sidebar">
-    <div class="card"><label>Location Search</label><input type="text" id="addrInput" placeholder="Enter Address"><button id="locateBtn">Find Nearest</button></div>
-    <div class="card"><label>Station Index</label><select id="devSel" onchange="handleDropdownChange(this.value)"></select></div>
-    <div class="card" style="min-height: 170px;"><label>Live Reading</label><div id="details"><div id="statName" style="font-weight:bold;">--</div><div id="statAQI" class="aqi-val" style="color:#ccc;">--</div><div style="font-size:0.75rem; color:#666; font-weight:bold;">CURRENT AQI</div></div></div>
     <div class="card">
-      <label>Legend</label>
-      <div class="legend-item"><span class="dot" style="background-color:#00e400;"></span> Good</div>
-      <div class="legend-item"><span class="dot" style="background-color:#ffff00;"></span> Moderate</div>
-      <div class="legend-item"><span class="dot" style="background-color:#ff7e00;"></span> Sensitive</div>
-      <div class="legend-item"><span class="dot" style="background-color:#ff0000;"></span> Unhealthy</div>
+      <label>Location Search</label>
+      <input type="text" id="addrInput" placeholder="Enter Address">
+      <button id="locateBtn">Find Nearest Station</button>
+    </div>
+
+    <div class="card">
+      <label>Station Index</label>
+      <select id="devSel" onchange="handleDropdownChange(this.value)"></select>
+    </div>
+
+    <div class="card" style="min-height: 170px;">
+      <label>Live Station Reading</label>
+      <div id="details" style="text-align:center;">
+        <div id="statName" style="font-weight:bold; font-size:0.9rem; margin-bottom:5px; color:#333;">--</div>
+        <div id="statAQI" class="aqi-val" style="color:#ccc;">--</div>
+        <div style="font-size:0.75rem; color:#666; font-weight: bold; margin-top:5px;">CURRENT AQI</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <label>Network Legend</label>
+      <div class="legend-item"><span class="dot" style="background-color:#00e400;"></span> Good (0-50)</div>
+      <div class="legend-item"><span class="dot" style="background-color:#ffff00;"></span> Moderate (51-100)</div>
+      <div class="legend-item"><span class="dot" style="background-color:#ff7e00;"></span> Sensitive (101-150)</div>
+      <div class="legend-item"><span class="dot" style="background-color:#ff0000;"></span> Unhealthy (151+)</div>
+      <hr style="border:none;border-top:1px solid #ddd;margin:12px 0;">
+      <div class="legend-item"><span class="dot" style="background-color:#999;"></span> PurpleAir (Circle)</div>
+      <div class="legend-item"><span class="tri" style="border-bottom-color:#999;"></span> C12 / QuantAQ (Triangle)</div>
     </div>
   </aside>
-  <div id="main-content"><div id="map"></div><div id="chart-box"><canvas id="airChart"></canvas></div></div>
+
+  <div id="main-content">
+    <div id="map"></div>
+    <div id="chart-box"><canvas id="airChart"></canvas></div>
+  </div>
 </div>
+
 <script>
   const API_PROXY = "/api/aq";
-  const SENSORS = { "284362": "EJAT.PG.1.284362", "52823": "EJAT.CV.6.52823", "53677": "EJAT.CV.1.53677", "54239": "EJAT.CV.6.54239", "54293": "EJAT.CV.2.54293", "57777": "EJAT.CV.1.57777", "57783": "EJAT.CV.6.57783", "57811": "EJAT.CV.4.57811", "57841": "EJAT.CV.3.57841", "57955": "EJAT.FH.1.57955", "160037": "EJAT.PG.1.160037", "175563": "EJAT.PG.1.175563", "178169": "EJAT.PG.1.178169", "181253": "EJAT.CH.1.181253", "184191": "EJAT.PG.1.184191", "185085": "EJAT.FH.1.185085", "197937": "EJAT.PG.1.197937", "203577": "EJAT.CV.2.203577 (Supersite)", "203597": "EJAT.FH.1.203597", "203601": "EJAT.CV.1.203601", "207729": "EJAT.CV.1.207729", "211993": "EJAT.CV.3.211993", "218227": "EJAT.PG.1.218227", "218237": "EJAT.PG.1.218237", "218273": "EJAT.PG.1.218273" };
-  const SPODS = [{ sn: "C12-1", name: "EJAT.C12.1", lat: 38.915, lon: -76.908 }, { sn: "MOD-00536", name: "QuantAQ MOD-00536", lat: 38.9205, lon: -76.9195 }];
+
+  const SENSORS = {
+    "284362": "EJAT.PG.1.284362", "52823": "EJAT.CV.6.52823", "53677": "EJAT.CV.1.53677",
+    "54239": "EJAT.CV.6.54239", "54293": "EJAT.CV.2.54293", "57777": "EJAT.CV.1.57777",
+    "57783": "EJAT.CV.6.57783", "57811": "EJAT.CV.4.57811", "57841": "EJAT.CV.3.57841",
+    "57955": "EJAT.FH.1.57955", "160037": "EJAT.PG.1.160037", "175563": "EJAT.PG.1.175563",
+    "178169": "EJAT.PG.1.178169", "181253": "EJAT.CH.1.181253", "184191": "EJAT.PG.1.184191",
+    "185085": "EJAT.FH.1.185085", "197937": "EJAT.PG.1.197937", "203577": "EJAT.CV.2.203577 (Supersite)",
+    "203597": "EJAT.FH.1.203597", "203601": "EJAT.CV.1.203601", "207729": "EJAT.CV.1.207729",
+    "211993": "EJAT.CV.3.211993", "218227": "EJAT.PG.1.218227", "218237": "EJAT.PG.1.218237",
+    "218273": "EJAT.PG.1.218273"
+  };
+
+  const SPODS = [
+    { sn: "C12-1", name: "EJAT.C12.1 (Industrial)", lat: 38.915, lon: -76.908 },
+    { sn: "MOD-00536", name: "QuantAQ MOD-00536", lat: 38.92055, lon: -76.91951 }
+  ];
 
   let markerMap = {}, markerMeta = {};
   const map = L.map("map").setView([38.922, -76.915], 13);
@@ -57,34 +161,55 @@
 
   const chart = new Chart(document.getElementById("airChart").getContext("2d"), {
     type: "line",
-    data: { datasets: [{ label: "AQI", data: [], borderColor: "#4477ce", fill: true, backgroundColor: "rgba(68, 119, 206, 0.1)" }] },
-    options: { responsive: true, maintainAspectRatio: false, scales: { x: { type: "time" }, y: { beginAtZero: true } } }
+    data: { datasets: [{ label: "Local Station", data: [], borderColor: "#4477ce", tension: 0.1, fill: true, backgroundColor: "rgba(68, 119, 206, 0.1)" }] },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: { x: { type: "time" }, y: { beginAtZero: true, title: { display: true, text: "AQI" } } }
+    }
   });
+
+  function getAQIColor(aqi) {
+    if (aqi <= 50) return "#00e400";
+    if (aqi <= 100) return "#ffff00";
+    if (aqi <= 150) return "#ff7e00";
+    return "#ff0000";
+  }
+
+  function computeAQI(pm) {
+    if (pm === null || pm < 0) return 0;
+    const table = [
+      { cL: 0, cH: 12, iL: 0, iH: 50 },
+      { cL: 12.1, cH: 35.4, iL: 51, iH: 100 },
+      { cL: 35.5, cH: 55.4, iL: 101, iH: 150 },
+      { cL: 55.5, cH: 150.4, iL: 151, iH: 200 }
+    ];
+    const bp = table.find(x => pm <= x.cH) || table[3];
+    return Math.round(((bp.iH - bp.iL) / (bp.cH - bp.cL)) * (pm - bp.cL) + bp.iL);
+  }
 
   async function proxyGet(params) {
     try {
       const url = `${API_PROXY}?${new URLSearchParams(params).toString()}`;
       const res = await fetch(url);
-      if (!res.ok) throw new Error("API Offline");
+      if (!res.ok) return null;
       return await res.json();
-    } catch (e) { console.error("Fetch error:", e); return null; }
+    } catch (e) { return null; }
   }
 
-  function getAQIColor(aqi) { if (aqi <= 50) return "#00e400"; if (aqi <= 100) return "#ffff00"; if (aqi <= 150) return "#ff7e00"; return "#ff0000"; }
-  function computeAQI(pm) {
-    if (!pm || pm < 0) return 0;
-    const b = [{c:0,ch:12,i:0,ih:50},{c:12.1,ch:35.4,i:51,ih:100},{c:35.5,ch:55.4,i:101,ih:150},{c:55.5,ch:150.4,i:151,ih:200}];
-    const p = b.find(x => pm <= x.ch) || b[3];
-    return Math.round(((p.ih - p.i) / (p.ch - p.c)) * (pm - p.c) + p.i);
+  function handleDropdownChange(id) {
+    if (markerMap[id]) {
+      map.flyTo(markerMap[id].getLatLng(), 15);
+      updateDisplay(id);
+    }
   }
-
-  function handleDropdownChange(id) { if(markerMap[id]) { map.flyTo(markerMap[id].getLatLng(), 15); updateDisplay(id); } }
 
   async function updateDisplay(id) {
     const start = Math.floor(Date.now() / 1000) - 86400;
     const json = await proxyGet({ action: "purpleair_history", id: id, start: start });
     if (json && json.data) {
-      const aqi = computeAQI(json.data[json.data.length-1][1]);
+      const latestPM = json.data[json.data.length - 1][1];
+      const aqi = computeAQI(latestPM);
       document.getElementById("statName").innerText = markerMeta[id].name;
       document.getElementById("statAQI").innerText = aqi;
       document.getElementById("statAQI").style.color = getAQIColor(aqi);
@@ -95,24 +220,26 @@
 
   async function init() {
     const sel = document.getElementById("devSel");
-    sel.innerHTML = ""; // Clear it first
+    sel.innerHTML = '<option>Loading Stations...</option>';
 
-    // 1. Add SPODS
+    // 1. Static Pins
     SPODS.forEach(s => {
       const m = L.marker([s.lat, s.lon]).addTo(map);
       markerMap[s.sn] = m; markerMeta[s.sn] = { name: s.name };
-      sel.add(new Option(s.name, s.sn));
       m.on("click", () => { sel.value = s.sn; handleDropdownChange(s.sn); });
     });
 
-    // 2. Fetch & Add PurpleAir
+    // 2. Dynamic PurpleAir Pins
     const json = await proxyGet({ action: "purpleair_box" });
     if (json && json.data) {
+      sel.innerHTML = "";
+      SPODS.forEach(s => sel.add(new Option(s.name, s.sn)));
+      
       json.data.forEach(r => {
         const id = String(r[0]);
         if (SENSORS[id]) {
           const aqi = computeAQI(r[4]);
-          const m = L.circleMarker([r[1], r[2]], { radius: 10, fillColor: getAQIColor(aqi), fillOpacity: 0.8, color: "#000" }).addTo(map);
+          const m = L.circleMarker([r[1], r[2]], { radius: 10, fillColor: getAQIColor(aqi), color: "#000", weight: 2, fillOpacity: 0.9 }).addTo(map);
           markerMap[id] = m; markerMeta[id] = { name: SENSORS[id] };
           sel.add(new Option(SENSORS[id], id));
           m.on("click", () => { sel.value = id; handleDropdownChange(id); });
@@ -120,9 +247,11 @@
       });
     }
 
-    // 3. Default Selection
-    if (markerMap["203577"]) { sel.value = "203577"; handleDropdownChange("203577"); }
+    // 3. Set default to Supersite
+    const def = "203577";
+    if (markerMap[def]) { sel.value = def; handleDropdownChange(def); }
   }
+
   init();
 </script>
 </body>
