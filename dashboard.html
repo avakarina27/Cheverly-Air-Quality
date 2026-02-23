@@ -11,7 +11,7 @@
 
   <style>
     :root { --brand-navy: #1a305e; --search-blue: #4477ce; }
-    html, body { margin: 0; padding: 0; height: 100%; width: 100%; font-family: sans-serif; overflow: hidden; }
+    html, body { margin: 0; padding: 0; height: 100%; width: 100%; font-family: sans-serif; overflow: hidden; background: #fdfdfd; }
     .topbar { background: var(--brand-navy); color: white; padding: 0 25px; display: flex; justify-content: space-between; align-items: center; height: 60px; z-index: 2000; }
     .nav a { color: white; text-decoration: none; margin-left: 20px; font-size: 0.9rem; }
     #layout { display: flex; height: calc(100vh - 60px); width: 100vw; }
@@ -21,7 +21,6 @@
     #main-content { flex: 1; display: flex; flex-direction: column; height: 100%; }
     #map { height: 45%; width: 100%; border-bottom: 1px solid #ddd; }
     #chart-box { height: 55%; width: 100%; padding: 15px; box-sizing: border-box; }
-    .tri { width: 0; height: 0; border-left: 10px solid transparent; border-right: 10px solid transparent; border-bottom: 18px solid #999; display: inline-block; margin-right: 10px; }
   </style>
 </head>
 <body>
@@ -37,7 +36,7 @@
     <div class="card" style="text-align:center;">
       <div id="statName" style="font-weight:bold; margin-bottom:10px;">--</div>
       <div id="statAQI" class="aqi-val" style="color:#ccc;">--</div>
-      <div style="font-size:0.8rem; font-weight:bold;">CURRENT AQI</div>
+      <div style="font-size:0.8rem; font-weight:bold; color:#666;">CURRENT AQI</div>
     </div>
   </aside>
   <div id="main-content">
@@ -50,18 +49,13 @@
   const API_PROXY = "/api/aq";
   const SENSORS = { "284362": "EJAT.PG.1.284362", "52823": "EJAT.CV.6.52823", "53677": "EJAT.CV.1.53677", "54239": "EJAT.CV.6.54239", "54293": "EJAT.CV.2.54293", "57777": "EJAT.CV.1.57777", "57783": "EJAT.CV.6.57783", "57811": "EJAT.CV.4.57811", "57841": "EJAT.CV.3.57841", "57955": "EJAT.FH.1.57955", "160037": "EJAT.PG.1.160037", "175563": "EJAT.PG.1.175563", "178169": "EJAT.PG.1.178169", "181253": "EJAT.CH.1.181253", "184191": "EJAT.PG.1.184191", "185085": "EJAT.FH.1.185085", "197937": "EJAT.PG.1.197937", "203577": "EJAT.CV.2.203577", "203597": "EJAT.FH.1.203597", "203601": "EJAT.CV.1.203601", "207729": "EJAT.CV.1.207729", "211993": "EJAT.CV.3.211993", "218227": "EJAT.PG.1.218227", "218237": "EJAT.PG.1.218237", "218273": "EJAT.PG.1.218273" };
   
-  const SPECIAL_STATIONS = [
-    { id: "C12-1", name: "EJAT.C12.1 (Industrial)", lat: 38.915, lon: -76.908, groveId: "EJAT.C12.1" },
-    { id: "MOD-00536", name: "QuantAQ MOD-00536", lat: 38.920, lon: -76.919, quantaqId: "MOD-00536" }
-  ];
-
   let markerMap = {}, markerMeta = {};
   const map = L.map("map").setView([38.922, -76.915], 13);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 
   const chart = new Chart(document.getElementById("airChart").getContext("2d"), {
     type: "line",
-    data: { datasets: [{ label: "AQI", data: [], borderColor: "#4477ce", fill: true, backgroundColor: "rgba(68, 119, 206, 0.1)" }] },
+    data: { datasets: [{ label: "AQI", data: [], borderColor: "#4477ce", tension: 0.1, fill: true, backgroundColor: "rgba(68, 119, 206, 0.1)" }] },
     options: { responsive: true, maintainAspectRatio: false, scales: { x: { type: "time" } } }
   });
 
@@ -84,65 +78,41 @@
     if (!meta) return;
     map.flyTo(markerMap[id].getLatLng(), 15);
     
-    let aqi = 0;
-    let history = [];
-
-    if (meta.groveId) {
-      const res = await fetch(`${API_PROXY}?action=grove_history&compId=${meta.groveId}`);
-      const json = await res.json();
-      if (json?.data?.series?.[0]) {
-        const samples = json.data.series[0].samples;
-        aqi = computeAQI(samples[samples.length-1].v);
-        history = samples.map(s => ({ x: s.t, y: computeAQI(s.v) }));
-      }
-    } else {
-      const start = Math.floor(Date.now()/1000)-86400;
-      const res = await fetch(`${API_PROXY}?action=purpleair_history&id=${id}&start=${start}`);
-      const json = await res.json();
-      if (json?.data) {
-        aqi = computeAQI(json.data[json.data.length-1][1]);
-        history = json.data.map(r => ({ x: r[0]*1000, y: computeAQI(r[1]) }));
-      }
-    }
-
-    document.getElementById("statName").innerText = meta.name;
-    document.getElementById("statAQI").innerText = aqi;
-    document.getElementById("statAQI").style.color = getAQIColor(aqi);
-    chart.data.datasets[0].data = history;
-    chart.update();
+    const start = Math.floor(Date.now()/1000)-86400;
+    try {
+        const res = await fetch(`${API_PROXY}?action=purpleair_history&id=${id}&start=${start}`);
+        const json = await res.json();
+        if (json?.data) {
+            const aqi = computeAQI(json.data[json.data.length-1][1]);
+            document.getElementById("statName").innerText = meta.name;
+            document.getElementById("statAQI").innerText = aqi;
+            document.getElementById("statAQI").style.color = getAQIColor(aqi);
+            chart.data.datasets[0].data = json.data.map(r => ({ x: r[0]*1000, y: computeAQI(r[1]) }));
+            chart.update();
+        }
+    } catch (e) { console.error("Fetch error", e); }
   }
 
   async function init() {
-    const sel = document.getElementById("devSel");
-
-    // Add C12/QuantAQ
-    SPECIAL_STATIONS.forEach(s => {
-      const m = L.marker([s.lat, s.lon], { icon: L.divIcon({ className: 'tri-icon', html: `<div class="tri" style="border-bottom-color:#999"></div>` }) }).addTo(map);
-      markerMap[s.id] = m;
-      markerMeta[s.id] = s;
-      sel.add(new Option(s.name, s.id));
-      m.on("click", () => { sel.value = s.id; handleDropdownChange(s.id); });
-    });
-
-    // Add PurpleAir
-    const res = await fetch(`${API_PROXY}?action=purpleair_box`);
-    const json = await res.json();
-    if (json?.data) {
-      json.data.forEach(r => {
-        const id = String(r[0]);
-        if (SENSORS[id]) {
-          const aqi = computeAQI(r[4] || r[3]);
-          const m = L.circleMarker([r[1], r[2]], { radius: 10, fillColor: getAQIColor(aqi), color: "#000", weight: 2, fillOpacity: 0.9 }).addTo(map);
-          markerMap[id] = m;
-          markerMeta[id] = { name: SENSORS[id] };
-          sel.add(new Option(SENSORS[id], id));
-          m.on("click", () => { sel.value = id; handleDropdownChange(id); });
+    try {
+        const res = await fetch(`${API_PROXY}?action=purpleair_box`);
+        const json = await res.json();
+        const sel = document.getElementById("devSel");
+        if (json?.data) {
+          json.data.forEach(r => {
+            const id = String(r[0]);
+            if (SENSORS[id]) {
+              const aqi = computeAQI(r[4] || r[3]);
+              const m = L.circleMarker([r[1], r[2]], { radius: 10, fillColor: getAQIColor(aqi), color: "#000", weight: 2, fillOpacity: 0.9 }).addTo(map);
+              markerMap[id] = m;
+              markerMeta[id] = { name: SENSORS[id] };
+              sel.add(new Option(SENSORS[id], id));
+              m.on("click", () => { sel.value = id; handleDropdownChange(id); });
+            }
+          });
         }
-      });
-    }
-    
-    sel.value = "203577";
-    handleDropdownChange("203577");
+        if (markerMap["203577"]) { sel.value = "203577"; handleDropdownChange("203577"); }
+    } catch (e) { console.error("Init error", e); }
   }
 
   init();
