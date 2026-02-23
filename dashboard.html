@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EJAT Cheverly | Cumulative AQI Dashboard</title>
+    <title>EJAT Cheverly | Cumulative AQI (CE-AQI) Dashboard</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -11,141 +11,191 @@
 
     <style>
         :root { --brand-navy: #1a305e; --search-blue: #4477ce; }
-        body { margin: 0; font-family: sans-serif; display: flex; flex-direction: column; height: 100vh; }
-        header { background: var(--brand-navy); color: white; padding: 15px 25px; display: flex; justify-content: space-between; align-items: center; }
+        body { margin: 0; font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; display: flex; flex-direction: column; height: 100vh; background: #fdfdfd; }
+        header { background: var(--brand-navy); color: white; padding: 15px 25px; display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #ff7e00; }
         #layout { display: flex; flex: 1; overflow: hidden; }
-        #sidebar { width: 380px; background: #f4f6f8; border-right: 1px solid #ddd; padding: 20px; overflow-y: auto; }
-        #main { flex: 1; display: flex; flex-direction: column; }
-        #map { height: 45%; border-bottom: 1px solid #ddd; }
-        #chart-box { flex: 1; padding: 20px; }
-        .card { background: white; padding: 15px; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        .aqi-val { font-size: 84px; font-weight: 900; display: block; text-align: center; line-height: 1; text-shadow: 2px 2px 0 #000; }
-        .adder-line { font-size: 0.85rem; color: #555; border-left: 3px solid var(--search-blue); padding-left: 8px; margin: 5px 0; }
+        #sidebar { width: 380px; min-width: 380px; background: #f4f6f8; border-right: 1px solid #ddd; padding: 20px; overflow-y: auto; box-sizing: border-box; }
+        #main-content { flex: 1; display: flex; flex-direction: column; }
+        #map { height: 45%; border-bottom: 1px solid #ccc; }
+        #chart-box { flex: 1; padding: 20px; background: white; }
+        .card { background: white; padding: 20px; border-radius: 10px; border: 1px solid #ddd; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .aqi-val { font-size: 84px; font-weight: 900; display: block; text-align: center; line-height: 1; text-shadow: 2px 2px 0px rgba(0,0,0,0.1); transition: color 0.3s; }
+        .adder-line { font-size: 0.85rem; color: #444; border-left: 4px solid var(--search-blue); padding-left: 10px; margin: 8px 0; background: #f0f7ff; padding-top: 5px; padding-bottom: 5px; border-radius: 0 5px 5px 0; }
+        h3 { margin-top: 0; color: var(--brand-navy); font-size: 1rem; text-transform: uppercase; letter-spacing: 1px; }
+        select { width: 100%; padding: 12px; border-radius: 5px; border: 1px solid #ccc; font-size: 1rem; }
+        .badge { display: inline-block; padding: 3px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: bold; background: #eee; margin-bottom: 10px; }
     </style>
 </head>
 <body>
 
 <header>
-    <div><strong>EJAT Cheverly</strong> | Jan 2026 Protocol</div>
-    <div id="clock" style="font-size: 0.9rem;"></div>
+    <div><strong>EJAT Cheverly</strong> | CE-AQI Network</div>
+    <div id="status-clock" style="font-size: 0.85rem; opacity: 0.9;">System Active: Feb 2026</div>
 </header>
 
 <div id="layout">
     <aside id="sidebar">
         <div class="card">
-            <label style="font-size: 0.75rem; font-weight: bold; color: #666;">MONITOR SELECTION</label>
-            <select id="stationSelect" style="width: 100%; padding: 10px; margin-top: 5px;" onchange="updateDashboard(this.value)"></select>
+            <h3>Monitor Location</h3>
+            <select id="stationSelect" onchange="updateDashboard(this.value)"></select>
         </div>
 
         <div class="card" style="text-align: center;">
-            <label style="font-size: 0.75rem; font-weight: bold; color: #666;">24-HOUR CE-AQI</label>
+            <div id="siteTypeBadge" class="badge">--</div>
+            <h3>24-HR Cumulative Index (CE-AQI)</h3>
             <div id="mainAQI" class="aqi-val" style="color: #ccc;">--</div>
-            <div id="aqiCategory" style="font-weight: bold; margin-top: 10px;">--</div>
+            <div id="aqiCategory" style="font-weight: bold; margin-top: 15px; font-size: 1.1rem;">--</div>
         </div>
 
         <div class="card">
-            <label style="font-size: 0.75rem; font-weight: bold; color: #666;">CE-AQI ADDER BREAKDOWN</label>
-            <div id="breakdownList" style="margin-top: 10px;">Select a station to see data...</div>
+            <h3>Health Risk Breakdown</h3>
+            <div id="breakdownList" style="margin-top: 10px;">Select a station on the map or list...</div>
         </div>
     </aside>
 
-    <div id="main">
+    <div id="main-content">
         <div id="map"></div>
-        <div id="chart-box"><canvas id="aqiChart"></canvas></div>
+        <div id="chart-box">
+            <canvas id="aqiChart"></canvas>
+        </div>
     </div>
 </div>
 
 <script>
-// --- 1. SENSOR MAPPING & C-12 CONFIGURATION ---
-const SENSORS = {
-    "PA_203577": { name: "Cheverly Supersite (PurpleAir)", type: "PA", lat: 38.922, lon: -76.915 },
-    "C12_181253": { name: "Station 181253 (Black Carbon)", type: "C12", lat: 38.925, lon: -76.912 },
-    "C12_181254": { name: "Station 181254 (Black Carbon)", type: "C12", lat: 38.918, lon: -76.910 }
-};
+// --- 1. SENSOR DATABASE (Including your new C-12 IDs) ---
+const STATIONS = [
+    { id: "D14781", name: "C12: Cheverly Sector", lat: 38.92054,  lng: -76.919716, type: "C12" },
+    { id: "D14645", name: "C12: NW Boundary A", lat: 38.991268, lng: -76.943237, type: "C12" },
+    { id: "D17615", name: "C12: SE Border",     lat: 38.908325, lng: -76.899002, type: "C12" },
+    { id: "E10588", name: "C12: NW Boundary B", lat: 38.991806, lng: -76.943130, type: "C12" },
+    { id: "D14646", name: "C12: Standalone NW", lat: 38.989586, lng: -76.940407, type: "C12" },
+    { id: "PA_203577", name: "Cheverly Supersite", lat: 38.922, lon: -76.915, type: "SUPERSITE" }
+];
 
-// --- 2. THE CE-AQI CORE ENGINE (PER 2026 PROTOCOL) ---
+// --- 2. 2026 EPA BREAKPOINTS (PM2.5 Good @ 9.0) ---
+const BP_PM25 = [
+    { cLo: 0, cHi: 9.0, iLo: 0, iHi: 50 },     // NEW 2026 STANDARD
+    { cLo: 9.1, cHi: 35.4, iLo: 51, iHi: 100 },
+    { cLo: 35.5, cHi: 55.4, iLo: 101, iHi: 150 },
+    { cLo: 55.5, cHi: 125.4, iLo: 151, iHi: 200 }
+];
 
-function getPollutantAQIs(data) {
-    let results = {};
-    
-    // PM2.5 (24-hr avg) - Using 2026 9.0 µg/m³ Good Standard
-    if (data.pm25) results["PM2.5"] = calculateAQI(data.pm25, [0, 9.0, 35.4, 55.4]);
-    
-    // Ozone (8-hr max)
-    if (data.o3) results["Ozone"] = calculateAQI(data.o3, [0, 54, 70, 85]);
+// --- 3. THE CE-AQI MATH ENGINE ---
 
-    // C-12 Diesel PM Calculation (80% Multiplier per Packet)
-    if (data.bc) {
-        const estimatedDPM = data.bc * 0.80;
-        results["Diesel PM"] = Math.round((estimatedDPM / 33) * 100); // 33 ng/m³ benchmark
-    }
-    
-    return results;
+function calculateAQI(conc, breakpoints) {
+    const bp = breakpoints.find(b => conc >= b.cLo && conc <= b.cHi);
+    if (!bp) return conc > 500 ? 500 : 0;
+    return Math.round(((bp.iHi - bp.iLo) / (bp.cHi - bp.cLo)) * (conc - bp.cLo) + bp.iLo);
 }
 
-function computeFinalCE(aqiMap) {
-    const vals = Object.entries(aqiMap);
-    if (!vals.length) return { score: 0, adders: [] };
+function processSiteData(raw) {
+    let aqis = {};
+    
+    // PM2.5 (24hr)
+    if (raw.pm25) aqis["PM2.5"] = calculateAQI(raw.pm25, BP_PM25);
+    
+    // Ozone (8hr)
+    if (raw.o3) aqis["Ozone"] = calculateAQI(raw.o3, [{cLo:0, cHi:54, iLo:0, iHi:50}, {cLo:55, cHi:70, iLo:51, iHi:100}]);
 
-    // Find Base Value
-    let base = { name: "", score: 0 };
-    vals.forEach(([name, score]) => {
-        if (score > base.score) base = { name, score };
+    // Diesel PM (Black Carbon * 80% / 33ng benchmark)
+    if (raw.bc) {
+        const dpm = raw.bc * 0.80; // Multiplier from protocol
+        aqis["Diesel PM"] = Math.round((dpm / 33) * 100);
+    }
+
+    return aqis;
+}
+
+function calculateFinalCE(aqiMap) {
+    const entries = Object.entries(aqiMap);
+    if (!entries.length) return { score: 0, adders: [] };
+
+    // Find Base Value (Highest Individual Pollutant)
+    let base = { name: "", val: 0 };
+    entries.forEach(([name, val]) => {
+        if (val > base.val) base = { name, val };
     });
 
-    // Calculate Adders (1%, 2%, 3% rules)
-    let totalAdders = 0;
-    let adderDetails = [];
-    
-    vals.forEach(([name, score]) => {
+    // Apply Cumulative Adders (1%, 2%, 3% rules)
+    let sumAdders = 0;
+    let adderNotes = [];
+
+    entries.forEach(([name, val]) => {
         if (name === base.name) return;
         
         let pct = 0;
-        if (score >= 120) pct = 0.03;
-        else if (score >= 100) pct = 0.02;
-        else if (score >= 80) pct = 0.01;
+        if (val >= 120) pct = 0.03;
+        else if (val >= 100) pct = 0.02;
+        else if (val >= 80) pct = 0.01;
 
         if (pct > 0) {
-            let pts = base.score * pct;
-            totalAdders += pts;
-            adderDetails.push(`${name} (+${pts.toFixed(1)} pts)`);
+            let points = base.val * pct;
+            sumAdders += points;
+            adderNotes.push(`${name} (+${points.toFixed(1)} pts based on ${pct*100}% cumulative risk)`);
         }
     });
 
     return {
-        score: Math.round(base.score + totalAdders),
-        base: base,
-        adders: adderDetails
+        total: Math.round(base.val + sumAdders),
+        baseName: base.name,
+        baseVal: base.val,
+        adders: adderNotes
     };
 }
 
-// --- 3. UI & MAP INITIALIZATION ---
-const map = L.map('map').setView([38.922, -76.915], 14);
+// --- 4. UI & MAP HANDLING ---
+
+const map = L.map('map').setView([38.922, -76.915], 13);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-function updateDashboard(sid) {
-    const mockData = { pm25: 14.5, o3: 45, bc: 420 }; 
-    const aqis = getPollutantAQIs(mockData);
-    const ce = computeFinalCE(aqis);
+function getAQIColor(val) {
+    if (val <= 50) return "#00e400";
+    if (val <= 100) return "#ffff00";
+    if (val <= 150) return "#ff7e00";
+    if (val <= 200) return "#ff0000";
+    return "#8f3f97";
+}
 
-    // Update UI
-    const color = ce.score <= 50 ? "#00e400" : ce.score <= 100 ? "#ffff00" : "#ff7e00";
-    document.getElementById("mainAQI").innerText = ce.score;
-    document.getElementById("mainAQI").style.color = color;
+function updateDashboard(stationId) {
+    const station = STATIONS.find(s => s.id === stationId);
     
-    let html = `<strong>Base:</strong> ${ce.base.name} (${ce.base.score})<br>`;
-    ce.adders.forEach(a => html += `<div class="adder-line">${a}</div>`);
+    // Mock Data - In production, fetch current readings from your API here
+    const mockRaw = { 
+        pm25: station.type === "C12" ? 8.5 : 14.2, 
+        bc: station.type === "C12" ? 520 : 110,
+        o3: 42 
+    };
+
+    const aqis = processSiteData(mockRaw);
+    const ce = calculateFinalCE(aqis);
+
+    // Update Sidebar
+    const mainEl = document.getElementById("mainAQI");
+    mainEl.innerText = ce.total;
+    mainEl.style.color = getAQIColor(ce.total);
+    
+    document.getElementById("siteTypeBadge").innerText = station.type;
+    document.getElementById("aqiCategory").innerText = ce.total <= 50 ? "Good" : ce.total <= 100 ? "Moderate" : "Unhealthy for Sensitive Groups";
+    
+    let html = `<div style="margin-bottom:10px;"><b>Primary Pollutant:</b> ${ce.baseName} (${ce.baseVal})</div>`;
+    if (ce.adders.length > 0) {
+        ce.adders.forEach(note => html += `<div class="adder-line">${note}</div>`);
+    } else {
+        html += `<div style="color:#888; font-style:italic; font-size:0.8rem;">No secondary pollutants triggered cumulative adders.</div>`;
+    }
     document.getElementById("breakdownList").innerHTML = html;
 }
 
-// Populate Dropdown
+// Initial Population
 const sel = document.getElementById("stationSelect");
-Object.entries(SENSORS).forEach(([id, info]) => {
-    sel.add(new Option(info.name, id));
+STATIONS.forEach(s => {
+    sel.add(new Option(s.name, s.id));
+    L.marker([s.lat, s.lng || s.lon]).addTo(map)
+     .bindPopup(`<b>${s.name}</b><br><button onclick="document.getElementById('stationSelect').value='${s.id}'; updateDashboard('${s.id}')">View Data</button>`);
 });
 
-// Start-up
-updateDashboard(Object.keys(SENSORS)[0]);
+updateDashboard(STATIONS[0].id);
+
 </script>
 </body>
 </html>
