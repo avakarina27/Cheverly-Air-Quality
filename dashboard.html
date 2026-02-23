@@ -12,16 +12,16 @@
 
   <style>
     :root {
-      --brand-navy: #1a305e !important;
-      --search-blue: #4477ce !important;
-      --orange: #f59e0b !important;
+      --brand-navy: #1a305e;
+      --search-blue: #4477ce;
+      --orange: #f59e0b;
     }
 
     html, body {
-      margin: 0 !important; padding: 0 !important;
-      height: 100% !important; width: 100% !important;
-      font-family: "Segoe UI", Tahoma, sans-serif !important;
-      overflow: hidden !important; background: #fdfdfd !important;
+      margin: 0; padding: 0;
+      height: 100%; width: 100%;
+      font-family: "Segoe UI", Tahoma, sans-serif;
+      overflow: hidden; background: #fdfdfd;
     }
 
     .topbar {
@@ -36,88 +36,57 @@
     #layout { display: flex; height: calc(100vh - 60px); width: 100vw; }
 
     #sidebar {
-      width: 380px !important; min-width: 380px !important;
+      width: 380px; min-width: 380px;
       background: #f4f6f8; border-right: 1px solid #ddd;
       padding: 15px; overflow-y: auto; box-sizing: border-box;
     }
 
     .card {
-      background: white;
-      padding: 15px;
-      border-radius: 8px;
-      border: 1px solid #ddd;
-      margin-bottom: 12px;
+      background: white; padding: 15px; border-radius: 8px;
+      border: 1px solid #ddd; margin-bottom: 12px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
 
     label {
-      font-size: 0.7rem;
-      font-weight: bold;
-      color: #666;
-      text-transform: uppercase;
-      margin-bottom: 5px;
-      display: block;
+      font-size: 0.7rem; font-weight: bold; color: #666;
+      text-transform: uppercase; margin-bottom: 5px; display: block;
     }
 
     input, select {
-      width: 100%;
-      padding: 10px;
-      margin-top: 5px;
-      border-radius: 4px;
-      border: 1px solid #ccc;
-      box-sizing: border-box;
+      width: 100%; padding: 10px; margin-top: 5px;
+      border-radius: 4px; border: 1px solid #ccc; box-sizing: border-box;
     }
 
     button {
-      width: 100%;
-      padding: 12px;
-      margin-top: 8px;
-      border-radius: 4px;
-      border: none;
-      background: var(--search-blue);
-      color: white;
-      font-weight: bold;
-      cursor: pointer;
+      width: 100%; padding: 12px; margin-top: 8px;
+      border-radius: 4px; border: none; background: var(--search-blue);
+      color: white; font-weight: bold; cursor: pointer;
     }
 
     #main-content { flex: 1; display: flex; flex-direction: column; height: 100%; }
-    #map { height: 45% !important; width: 100% !important; border-bottom: 1px solid #ddd; z-index: 1; }
-    #chart-box { height: 55% !important; width: 100% !important; padding: 15px; box-sizing: border-box; background: white; }
+    #map { height: 45%; width: 100%; border-bottom: 1px solid #ddd; z-index: 1; }
+    #chart-box { height: 55%; width: 100%; padding: 15px; box-sizing: border-box; background: white; }
 
     .aqi-val {
-      font-size: 72px !important;
-      font-weight: 900 !important;
-      display: block;
-      text-align: center;
-      line-height: 1.1;
+      font-size: 72px; font-weight: 900; display: block;
+      text-align: center; line-height: 1.1;
       text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
     }
 
     .legend-item {
-      display: flex;
-      align-items: center;
-      margin-bottom: 8px;
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: #333;
+      display: flex; align-items: center; margin-bottom: 8px;
+      font-size: 0.85rem; font-weight: 600; color: #333;
     }
 
     .dot {
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      margin-right: 12px;
-      border: 2px solid #000 !important;
-      display: inline-block;
+      width: 18px; height: 18px; border-radius: 50%;
+      margin-right: 12px; border: 2px solid #000; display: inline-block;
     }
 
     .tri {
-      width: 0;
-      height: 0;
-      border-left: 10px solid transparent;
-      border-right: 10px solid transparent;
-      border-bottom: 18px solid var(--orange);
-      margin-right: 12px;
+      width: 0; height: 0;
+      border-left: 10px solid transparent; border-right: 10px solid transparent;
+      border-bottom: 18px solid #999; margin-right: 12px;
       filter: drop-shadow(0px 0px 1px #000);
     }
   </style>
@@ -159,13 +128,13 @@
 
     <div class="card">
       <label>Network Legend</label>
-      <div class="legend-item"><span class="dot" style="background-color:#00e400;"></span> Good (0 to 50)</div>
-      <div class="legend-item"><span class="dot" style="background-color:#ffff00;"></span> Moderate (51 to 100)</div>
-      <div class="legend-item"><span class="dot" style="background-color:#ff7e00;"></span> Sensitive (101 to 150)</div>
+      <div class="legend-item"><span class="dot" style="background-color:#00e400;"></span> Good (0-50)</div>
+      <div class="legend-item"><span class="dot" style="background-color:#ffff00;"></span> Moderate (51-100)</div>
+      <div class="legend-item"><span class="dot" style="background-color:#ff7e00;"></span> Sensitive (101-150)</div>
       <div class="legend-item"><span class="dot" style="background-color:#ff0000;"></span> Unhealthy (151+)</div>
       <hr style="border:none;border-top:1px solid #ddd;margin:12px 0;">
-      <div class="legend-item"><span class="dot" style="background-color:#999;"></span> PurpleAir (circle)</div>
-      <div class="legend-item"><span class="tri" style="border-bottom-color:#999;"></span> C12 / QuantAQ (triangle)</div>
+      <div class="legend-item"><span class="dot" style="background-color:#999;"></span> PurpleAir (Circle)</div>
+      <div class="legend-item"><div class="tri" style="border-bottom-color:#999;"></div> C12 / QuantAQ (Triangle)</div>
     </div>
   </aside>
 
@@ -191,44 +160,23 @@
   };
 
   const SPODS = [
-    // --- C12 Aeroqual Stations ---
-    { sn: "C12-1", name: "EJAT.C12.1 (Industrial Corridor)", lat: 38.915, lon: -76.908 },
+    { sn: "C12-1", name: "EJAT.C12.1 (Industrial)", lat: 38.915, lon: -76.908 },
     { sn: "C12-2", name: "EJAT.C12.2 (Town Park)", lat: 38.924, lon: -76.915 },
     { sn: "C12-3", name: "EJAT.C12.3 (Route 50)", lat: 38.918, lon: -76.902 },
-    { sn: "C12-4", name: "EJAT.C12.4 (Cheverly East)", lat: 38.928, lon: -76.895 },
-    { sn: "C12-5", name: "EJAT.C12.5 (Tuxedo Road)", lat: 38.911, lon: -76.921 },
-    // --- Existing QuantAQ ---
-    { sn: "MOD-00536", name: "QuantAQ MOD-00536 (Mosleys - Cheverly)", lat: 38.920551, lon: -76.91951 },
-    { sn: "MOD-00537", name: "QuantAQ MOD-00537 (Turner Station)", lat: 39.2430, lon: -76.5124 },
-    { sn: "MOD-00733", name: "QuantAQ MOD-00733 (UMD Lab)", lat: 38.9057, lon: -76.9115 },
-    { sn: "MOD-00745", name: "QuantAQ MOD-00745 (Beltsville)", lat: 38.9051, lon: -76.9100 },
-    { sn: "MOD-00746", name: "QuantAQ MOD-00746 (North Laurel)", lat: 39.1432, lon: -76.8460 },
-    { sn: "MOD-00747", name: "QuantAQ MOD-00747 (Turner Station)", lat: 39.2339, lon: -76.5045 },
-    { sn: "MOD-00748", name: "QuantAQ MOD-00748 (Annapolis)", lat: 38.9696, lon: -76.5422 },
-    { sn: "MOD-00749", name: "QuantAQ MOD-00749 (HU Beltsville)", lat: 39.0554, lon: -76.8788 },
-    { sn: "MOD-00760", name: "QuantAQ MOD-00760 (Curtis Bay, MD)", lat: 39.0552, lon: -76.8786 },
-    { sn: "MOD-00824", name: "QuantAQ MOD-00824 (Baltimore)", lat: 39.2244, lon: -76.5870 }
+    { sn: "C12-4", name: "EJAT.C12.4 (East)", lat: 38.928, lon: -76.895 },
+    { sn: "C12-5", name: "EJAT.C12.5 (Tuxedo Rd)", lat: 38.911, lon: -76.921 },
+    { sn: "MOD-00536", name: "QuantAQ MOD-00536", lat: 38.9205, lon: -76.9195 }
   ];
 
-  const CITY_AVG_SENSORS = [14633, 75995, 12595];
   let markerMap = {};
   let markerMeta = {};
-  let userMarker = null;
-
   const map = L.map("map").setView([38.922, -76.915], 13);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 
   const chart = new Chart(document.getElementById("airChart").getContext("2d"), {
     type: "line",
-    data: { datasets: [
-      { label: "Local Station", data: [], borderColor: "#4477ce", tension: 0.1, fill: true, backgroundColor: "rgba(68, 119, 206, 0.1)" },
-      { label: "City Average", data: [], borderColor: "#ff4444", borderDash: [5,5], pointRadius: 0, fill: false }
-    ]},
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: { x: { type: "time" }, y: { beginAtZero: true, title: { display: true, text: "AQI" } } }
-    }
+    data: { datasets: [{ label: "Station AQI", data: [], borderColor: "#4477ce", fill: true, backgroundColor: "rgba(68, 119, 206, 0.1)" }] },
+    options: { responsive: true, maintainAspectRatio: false, scales: { x: { type: "time" }, y: { beginAtZero: true } } }
   });
 
   function getAQIColor(aqi) {
@@ -242,41 +190,43 @@
     return L.divIcon({
       className: "spod-tri",
       html: `<div style="width:0;height:0;border-left:12px solid transparent;border-right:12px solid transparent;border-bottom:22px solid ${color};filter:drop-shadow(0 0 2px #000);"></div>`,
-      iconSize: [24, 24],
-      iconAnchor: [12, 22]
+      iconSize: [24, 24], iconAnchor: [12, 22]
     });
   }
 
-  async function proxyGet(params) {
-    const url = API_PROXY + "?" + new URLSearchParams(params).toString();
-    const res = await fetch(url);
-    if (!res.ok) return null;
-    return await res.json();
-  }
-
-  async function fetchPurpleAirHistory(sensorId, start) {
-    return await proxyGet({ action: "purpleair_history", id: String(sensorId), start: String(start) });
-  }
-
-  function safeNum(x) {
-    const v = Number(x);
-    return Number.isFinite(v) ? v : null;
-  }
-
   function computeCurrentAQI_FromPM(pm25) {
+    if (pm25 === null || pm25 < 0) return 0;
     const table = [
       { cLow: 0.0, cHigh: 12.0, iLow: 0, iHigh: 50 },
       { cLow: 12.1, cHigh: 35.4, iLow: 51, iHigh: 100 },
       { cLow: 35.5, cHigh: 55.4, iLow: 101, iHigh: 150 },
       { cLow: 55.5, cHigh: 150.4, iLow: 151, iHigh: 200 }
     ];
-    if (pm25 === null || pm25 < 0) return 0;
     for (const bp of table) {
       if (pm25 >= bp.cLow && pm25 <= bp.cHigh) {
         return Math.round(((bp.iHigh - bp.iLow) / (bp.cHigh - bp.cLow)) * (pm25 - bp.cLow) + bp.iLow);
       }
     }
-    return 201; 
+    return 201;
+  }
+
+  async function updateDisplay(id) {
+    const start = Math.floor(Date.now() / 1000) - 86400;
+    const res = await fetch(`${API_PROXY}?action=purpleair_history&id=${id}&start=${start}`);
+    const json = await res.json();
+    if (json && json.data) {
+      const rows = json.data.sort((a,b)=>a[0]-b[0]);
+      const latestAQI = computeCurrentAQI_FromPM(rows[rows.length-1][1]);
+      
+      document.getElementById("statName").innerText = markerMeta[id].name;
+      document.getElementById("statAQI").innerText = latestAQI;
+      document.getElementById("statAQI").style.color = getAQIColor(latestAQI);
+      document.getElementById("statCE").innerText = latestAQI;
+      document.getElementById("statCE").style.color = getAQIColor(latestAQI);
+
+      chart.data.datasets[0].data = rows.map(r => ({ x: r[0]*1000, y: computeCurrentAQI_FromPM(r[1]) }));
+      chart.update();
+    }
   }
 
   function handleDropdownChange(id) {
@@ -285,57 +235,39 @@
     updateDisplay(id);
   }
 
-  async function updateDisplay(id) {
-    const start = Math.floor(Date.now() / 1000) - 86400;
-    const name = markerMeta[id]?.name || id;
-
-    // Use placeholder data if it's a C12 for now, or real proxy if available
-    const json = await fetchPurpleAirHistory(id, start);
-    if (json && json.data) {
-      const rows = json.data.sort((a,b)=>a[0]-b[0]);
-      const latestPm = safeNum(rows[rows.length-1][1]);
-      const curAQI = computeCurrentAQI_FromPM(latestPm);
-      
-      document.getElementById("statName").innerText = name;
-      document.getElementById("statAQI").innerText = curAQI;
-      document.getElementById("statAQI").style.color = getAQIColor(curAQI);
-      document.getElementById("statCE").innerText = curAQI; // Simplified for display
-      document.getElementById("statCE").style.color = getAQIColor(curAQI);
-
-      chart.data.datasets[0].data = rows.map(r => ({ x: r[0]*1000, y: computeCurrentAQI_FromPM(safeNum(r[1])) }));
-      chart.update();
-    }
-  }
-
   async function init() {
     const sel = document.getElementById("devSel");
+    const res = await fetch(`${API_PROXY}?action=purpleair_box`);
+    const json = await res.json();
 
-    // Add C12s and QuantAQs (Triangles)
+    // 1. Plot C12s/QuantAQs (Triangles) - Defaulting to Moderate color for visual
     for (const s of SPODS) {
-      const m = L.marker([s.lat, s.lon], { icon: makeSpodIcon("#999") }).addTo(map);
+      const m = L.marker([s.lat, s.lon], { icon: makeSpodIcon("#ffff00") }).addTo(map);
       markerMap[s.sn] = m;
       markerMeta[s.sn] = { name: s.name };
       sel.add(new Option(s.name, s.sn));
       m.on("click", () => { sel.value = s.sn; handleDropdownChange(s.sn); });
     }
 
-    // Add PurpleAirs (Circles)
-    const json = await proxyGet({ action: "purpleair_box" });
+    // 2. Plot PurpleAirs (Circles) with Dynamic Colors
     if (json && json.data) {
       for (const r of json.data) {
         const id = String(r[0]);
         if (!SENSORS[id]) continue;
-        const name = SENSORS[id];
-        const m = L.circleMarker([r[1], r[2]], { radius: 11, fillColor: "#999", color: "#000", weight: 2, fillOpacity: 0.9 }).addTo(map);
+        const aqi = computeCurrentAQI_FromPM(r[4]);
+        const color = getAQIColor(aqi);
+
+        const m = L.circleMarker([r[1], r[2]], { 
+          radius: 11, fillColor: color, color: "#000", weight: 2, fillOpacity: 0.9 
+        }).addTo(map);
+
         markerMap[id] = m;
-        markerMeta[id] = { name: name };
-        sel.add(new Option(name, id));
+        markerMeta[id] = { name: SENSORS[id] };
+        sel.add(new Option(SENSORS[id], id));
         m.on("click", () => { sel.value = id; handleDropdownChange(id); });
       }
     }
-
-    sel.value = "203577";
-    handleDropdownChange("203577");
+    sel.value = "203577"; handleDropdownChange("203577");
   }
 
   init();
