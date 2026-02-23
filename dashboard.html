@@ -191,13 +191,11 @@
   };
 
   const SPODS = [
-    // --- C12 Aeroqual Stations ---
     { sn: "C12-1", name: "EJAT.C12.1 (Industrial Corridor)", lat: 38.915, lon: -76.908 },
     { sn: "C12-2", name: "EJAT.C12.2 (Town Park)", lat: 38.924, lon: -76.915 },
     { sn: "C12-3", name: "EJAT.C12.3 (Route 50)", lat: 38.918, lon: -76.902 },
     { sn: "C12-4", name: "EJAT.C12.4 (Cheverly East)", lat: 38.928, lon: -76.895 },
     { sn: "C12-5", name: "EJAT.C12.5 (Tuxedo Road)", lat: 38.911, lon: -76.921 },
-    // --- Existing QuantAQ ---
     { sn: "MOD-00536", name: "QuantAQ MOD-00536 (Mosleys - Cheverly)", lat: 38.920551, lon: -76.91951 },
     { sn: "MOD-00537", name: "QuantAQ MOD-00537 (Turner Station)", lat: 39.2430, lon: -76.5124 },
     { sn: "MOD-00733", name: "QuantAQ MOD-00733 (UMD Lab)", lat: 38.9057, lon: -76.9115 },
@@ -210,10 +208,8 @@
     { sn: "MOD-00824", name: "QuantAQ MOD-00824 (Baltimore)", lat: 39.2244, lon: -76.5870 }
   ];
 
-  const CITY_AVG_SENSORS = [14633, 75995, 12595];
   let markerMap = {};
   let markerMeta = {};
-  let userMarker = null;
 
   const map = L.map("map").setView([38.922, -76.915], 13);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
@@ -289,7 +285,6 @@
     const start = Math.floor(Date.now() / 1000) - 86400;
     const name = markerMeta[id]?.name || id;
 
-    // Use placeholder data if it's a C12 for now, or real proxy if available
     const json = await fetchPurpleAirHistory(id, start);
     if (json && json.data) {
       const rows = json.data.sort((a,b)=>a[0]-b[0]);
@@ -298,12 +293,20 @@
       
       document.getElementById("statName").innerText = name;
       document.getElementById("statAQI").innerText = curAQI;
-      document.getElementById("statAQI").style.color = getAQIColor(curAQI);
-      document.getElementById("statCE").innerText = curAQI; // Simplified for display
-      document.getElementById("statCE").style.color = getAQIColor(curAQI);
+      const color = getAQIColor(curAQI);
+      document.getElementById("statAQI").style.color = color;
+      document.getElementById("statCE").innerText = curAQI; 
+      document.getElementById("statCE").style.color = color;
 
       chart.data.datasets[0].data = rows.map(r => ({ x: r[0]*1000, y: computeCurrentAQI_FromPM(safeNum(r[1])) }));
       chart.update();
+
+      // Ensure pin color updates when station is selected
+      if (markerMap[id].setStyle) {
+        markerMap[id].setStyle({ fillColor: color });
+      } else if (markerMap[id].setIcon) {
+        markerMap[id].setIcon(makeSpodIcon(color));
+      }
     }
   }
 
@@ -319,14 +322,15 @@
       m.on("click", () => { sel.value = s.sn; handleDropdownChange(s.sn); });
     }
 
-    // Add PurpleAirs (Circles)
+    // Add PurpleAirs (Circles) and get data for colors
     const json = await proxyGet({ action: "purpleair_box" });
     if (json && json.data) {
       for (const r of json.data) {
         const id = String(r[0]);
         if (!SENSORS[id]) continue;
         const name = SENSORS[id];
-        const m = L.circleMarker([r[1], r[2]], { radius: 11, fillColor: "#999", color: "#000", weight: 2, fillOpacity: 0.9 }).addTo(map);
+        const aqi = computeCurrentAQI_FromPM(safeNum(r[4]));
+        const m = L.circleMarker([r[1], r[2]], { radius: 11, fillColor: getAQIColor(aqi), color: "#000", weight: 2, fillOpacity: 0.9 }).addTo(map);
         markerMap[id] = m;
         markerMeta[id] = { name: name };
         sel.add(new Option(name, id));
