@@ -41,7 +41,7 @@
       <div style="text-align:center; font-size:0.75rem; color:#666; font-weight:bold;">CURRENT AQI</div>
       <hr style="margin:15px 0; border:0; border-top:1px solid #eee;">
       <div id="statCE" class="aqi-val" style="color:#ccc; font-size:40px;">--</div>
-      <div style="text-align:center; font-size:0.75rem; color:#666; font-weight:bold;">24HR AVG AQI</div>
+      <div style="text-align:center; font-size:0.75rem; color:#666; font-weight:bold;">RECENT AVG AQI</div>
     </div>
   </aside>
   <div id="main-content">
@@ -78,7 +78,7 @@
 
   const chart = new Chart(document.getElementById("airChart").getContext("2d"), {
     type: "line",
-    data: { datasets: [{ label: "AQI History", data: [], borderColor: "#4477ce", tension: 0.1, fill: true, backgroundColor: "rgba(68, 119, 206, 0.1)" }] },
+    data: { datasets: [{ label: "AQI Level", data: [], borderColor: "#4477ce", tension: 0.1, fill: true, backgroundColor: "rgba(68, 119, 206, 0.1)" }] },
     options: { responsive: true, maintainAspectRatio: false, scales: { x: { type: "time" } } }
   });
 
@@ -124,9 +124,12 @@
         history = sorted.map(s => ({ x: s.time, y: aqiFromPM(getVal(s)) }));
       }
     } else {
-      const start = Math.floor(Date.now()/1000)-86400;
+      // Look back 7 days (604800 seconds) to ensure we find at least one point
+      const start = Math.floor(Date.now()/1000) - 604800;
       const json = await proxyGet({ action: "purpleair_history", id, start });
-      // THE FIX: Check if data actually exists before reading index [1]
+      
+      console.log(`Data for ${id}:`, json); // Debugging: check your console!
+
       if (json && json.data && json.data.length > 0) {
         const rows = json.data.sort((a,b)=>a[0]-b[0]);
         currentAQI = aqiFromPM(rows[rows.length-1][1]);
@@ -150,6 +153,8 @@
 
   async function init() {
     const sel = document.getElementById("devSel");
+    
+    // 1. Setup Triangle Stations
     TRI_STATIONS.forEach(s => {
       const m = L.marker([s.lat, s.lon], { icon: makeTriIcon("#999") }).addTo(map);
       markerMap[s.id] = m; markerMeta[s.id] = { name: s.name, type: s.type };
@@ -166,6 +171,7 @@
       });
     });
 
+    // 2. Setup PurpleAir Stations
     const paBox = await proxyGet({ action: "purpleair_box" });
     if(paBox?.data) {
       paBox.data.forEach(r => {
@@ -176,7 +182,10 @@
           sel.add(new Option(PA_SENSORS[id], id));
           m.on("click", () => { sel.value = id; updateDisplay(id); });
           m.bindTooltip(`<b>${PA_SENSORS[id]}</b>`);
-          proxyGet({ action: "purpleair_history", id, start: Math.floor(Date.now()/1000)-86400 }).then(hist => {
+          
+          // Request a week of data for map coloring
+          const startMap = Math.floor(Date.now()/1000) - 604800;
+          proxyGet({ action: "purpleair_history", id, start: startMap }).then(hist => {
              if(hist && hist.data && hist.data.length > 0) {
                 const ceAQI = aqiFromPM(hist.data.reduce((a,b)=>a+b[1],0)/hist.data.length);
                 m.setStyle({ fillColor: getAQIColor(ceAQI) });
