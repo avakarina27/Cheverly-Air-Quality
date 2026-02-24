@@ -25,20 +25,19 @@ export default async function handler(req, res) {
       return await fetchJson(url2);
     };
 
-    // --- QUANTAQ ACTION (ADDED THIS) ---
+    // --- QUANTAQ HISTORY (FIXED URL) ---
     if (action === "quantaq_history") {
       const compId = req.query.compId;
       if (!compId) return res.status(400).json({ error: "missing_compId" });
 
-      // QuantAQ uses Basic Auth (Key is the username, password is empty)
       const auth = Buffer.from(`${QUANTAQ_KEY}:`).toString('base64');
-      const url = `https://api.quantaq.com/device-api/v1/devices/${encodeURIComponent(compId)}/data-raw/?limit=100`;
+      // Updated domain to api.quant-aq.com
+      const url = `https://api.quant-aq.com/device-api/v1/devices/${encodeURIComponent(compId)}/data-raw/?limit=100`;
       
       const out = await fetchJson(url, {
         headers: { "Authorization": `Basic ${auth}` }
       });
 
-      // Format QuantAQ data to match what your dashboard.html expects
       if (out.ok && out.data && out.data.data) {
         const formatted = out.data.data.map(entry => ({
           time: new Date(entry.timestamp).getTime(),
@@ -46,48 +45,31 @@ export default async function handler(req, res) {
         }));
         return res.status(200).json(formatted);
       }
-      return res.status(out.status).json({ error: "quantaq_failed", details: out.data });
+      return res.status(out.status || 500).json({ error: "quantaq_failed", details: out.data });
     }
 
     // --- GROVE HISTORY ---
     if (action === "grove_history") {
       const compId = req.query.compId;
-      if (!compId) return res.status(400).json({ error: "missing_compId" });
       const url = `https://grovestreams.com/api/comp/${encodeURIComponent(compId)}/feed?api_key=${encodeURIComponent(GROVE_KEY)}`;
       const out = await fetchJson(url);
-      
-      // Map GroveStreams [[time, val]] to {time, data} for dashboard.html
       if (out.ok && out.data && out.data.data) {
-          const formatted = out.data.data.map(point => ({
-              time: point[0],
-              data: point[1]
-          }));
+          const formatted = out.data.data.map(point => ({ time: point[0], data: point[1] }));
           return res.status(200).json(formatted);
       }
       return res.status(out.status).json(out.data);
     }
 
     if (action === "purpleair_box") {
-      if (!PURPLEAIR_KEY) return res.status(500).json({ error: "missing_PURPLEAIR_API_KEY" });
       const url = "https://api.purpleair.com/v1/sensors?nwlng=-77.15&nwlat=39.05&selng=-76.75&selat=38.75&fields=sensor_index,latitude,longitude,pm2.5_atm";
       const out = await purpleairFetch(url);
-      if (!out.ok) return res.status(out.status).json({ error: "purpleair_box_failed", details: out.data });
-      return res.status(200).json(out.data);
+      return res.status(out.status).json(out.data);
     }
 
     if (action === "purpleair_history") {
       const id = req.query.id, start = req.query.start;
-      if (!id || !start) return res.status(400).json({ error: "missing_id_or_start" });
       const url = `https://api.purpleair.com/v1/sensors/${encodeURIComponent(id)}/history?fields=pm2.5_atm&average=60&start_timestamp=${encodeURIComponent(start)}`;
       const out = await purpleairFetch(url);
-      if (!out.ok) return res.status(out.status).json({ error: "purpleair_history_failed", details: out.data });
-      return res.status(200).json(out.data);
-    }
-
-    if (action === "grove_last") {
-      const compId = req.query.compId;
-      const url = `https://grovestreams.com/api/comp/${encodeURIComponent(compId)}/last_value?retStreamId&api_key=${encodeURIComponent(GROVE_KEY)}`;
-      const out = await fetchJson(url);
       return res.status(out.status).json(out.data);
     }
 
