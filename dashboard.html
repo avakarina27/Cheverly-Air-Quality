@@ -85,7 +85,7 @@
 
   function aqiFromPM(pm) {
     if (!Number.isFinite(pm) || pm < 0) return 0;
-    const table = [{cl:0,ch:12,il:0,ih:50},{cl:12.1,ch:35.4,il:51,ih:100},{cl:35.5,ch:55.4,il:101,ih:150},{cl:55.5,ch:150.4,il:151,ih:200}];
+    const table = [{cl:0,ch:12.0,il:0,ih:50},{cl:12.1,ch:35.4,il:51,ih:100},{cl:35.5,ch:55.4,il:101,ih:150},{cl:55.5,ch:150.4,il:151,ih:200}];
     const b = table.find(r => pm <= r.ch) || table[table.length-1];
     return Math.round(((b.ih-b.il)/(b.ch-b.cl))*(pm-b.cl)+b.il);
   }
@@ -113,12 +113,15 @@
       const action = (meta.type === "quantaq") ? "quantaq_history" : "grove_history";
       const json = await proxyGet({ action: action, compId: id });
       if (Array.isArray(json) && json.length > 0) {
-        const samples = [...json].reverse();
-        const latestVal = samples[samples.length-1].pm25 || samples[samples.length-1].data || 0;
+        // Sort data chronologically to ensure latest is at the end
+        const sorted = [...json].sort((a,b) => a.time - b.time);
+        const latest = sorted[sorted.length-1];
+        const latestVal = (latest.pm25 !== undefined) ? latest.pm25 : latest.data;
+        
         currentAQI = aqiFromPM(latestVal);
-        const avgPM = samples.reduce((a, b) => a + (b.pm25 || b.data || 0), 0) / samples.length;
+        const avgPM = sorted.reduce((a, b) => a + ((b.pm25 !== undefined) ? b.pm25 : b.data || 0), 0) / sorted.length;
         ce24 = aqiFromPM(avgPM);
-        history = samples.map(s => ({ x: s.time, y: aqiFromPM(s.pm25 || s.data || 0) }));
+        history = sorted.map(s => ({ x: s.time, y: aqiFromPM((s.pm25 !== undefined) ? s.pm25 : s.data || 0) }));
       }
     } else {
       const start = Math.floor(Date.now()/1000)-86400;
@@ -139,7 +142,12 @@
     chart.update();
   }
 
-  function handleDropdownChange(id) { map.flyTo(markerMap[id].getLatLng(), 13); updateDisplay(id); }
+  function handleDropdownChange(id) { 
+    if(markerMap[id]) {
+        map.flyTo(markerMap[id].getLatLng(), 13); 
+        updateDisplay(id); 
+    }
+  }
 
   async function init() {
     const sel = document.getElementById("devSel");
@@ -148,13 +156,14 @@
       const m = L.marker([s.lat, s.lon], { icon: makeTriIcon("#999") }).addTo(map);
       markerMap[s.id] = m; markerMeta[s.id] = { name: s.name, type: s.type };
       sel.add(new Option(s.name, s.id));
-      m.on("click", () => { sel.value = s.id; handleDropdownChange(s.id); });
+      m.on("click", () => { sel.value = s.id; updateDisplay(s.id); });
       m.bindTooltip(`<b>${s.name}</b>`);
       
       const action = (s.type === "quantaq") ? "quantaq_history" : "grove_history";
       proxyGet({ action: action, compId: s.id }).then(json => {
         if(json && json.length > 0) {
-          const ceAQI = aqiFromPM(json.reduce((a,b)=>a+(b.pm25 || b.data || 0),0)/json.length);
+          const avgPM = json.reduce((a,b)=>a+((b.pm25 !== undefined) ? b.pm25 : b.data || 0),0)/json.length;
+          const ceAQI = aqiFromPM(avgPM);
           m.setIcon(makeTriIcon(getAQIColor(ceAQI)));
         }
       });
@@ -168,7 +177,7 @@
           const m = L.circleMarker([r[1], r[2]], { radius: 10, fillColor: "#999", color: "#000", weight: 2, fillOpacity: 0.8 }).addTo(map);
           markerMap[id] = m; markerMeta[id] = { name: PA_SENSORS[id], type: "purpleair" };
           sel.add(new Option(PA_SENSORS[id], id));
-          m.on("click", () => { sel.value = id; handleDropdownChange(id); });
+          m.on("click", () => { sel.value = id; updateDisplay(id); });
           m.bindTooltip(`<b>${PA_SENSORS[id]}</b>`);
           proxyGet({ action: "purpleair_history", id, start: Math.floor(Date.now()/1000)-86400 }).then(hist => {
              if(hist?.data) {
@@ -179,7 +188,8 @@
         }
       }
     }
-    sel.value = "203577"; handleDropdownChange("203577");
+    // Load default
+    sel.value = "203577"; updateDisplay("203577");
   }
   init();
 </script>
