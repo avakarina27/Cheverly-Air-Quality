@@ -21,43 +21,40 @@ export default async function handler(req, res) {
       }
     };
 
-    // --- 1. QUANTAQ (Fixed Path) ---
+    // --- 1. QUANTAQ HISTORY ---
     if (action === "quantaq_history") {
       const sn = req.query.compId;
       const auth = Buffer.from(`${QUANTAQ_KEY}:`).toString('base64');
       const url = `https://api.quant-aq.com/v1/devices/${encodeURIComponent(sn)}/data/?limit=100&raw=true`;
       const out = await fetchJson(url, { headers: { "Authorization": `Basic ${auth}` } });
       if (out.ok && out.data && out.data.data) {
-        return res.status(200).json(out.data.data.map(e => ({
-          time: new Date(e.timestamp).getTime(),
-          pm25: Number(e.pm25 || e.pm2_5 || e.opcn3_pm25 || e.pm25_env || 0)
-        })));
+        return res.status(200).json(out.data.data.map(e => {
+          const val = Number(e.pm25 || e.pm2_5 || e.opcn3_pm25 || e.pm25_env || 0);
+          return {
+            time: new Date(e.timestamp).getTime(),
+            pm25: val, // For QuantAQ style
+            data: val  // For Grove style (Double coverage)
+          };
+        }));
       }
       return res.status(out.status || 500).json({ error: "quantaq_failed", details: out.data });
     }
 
-    // --- 2. GROVE HISTORY (Reverted to the Working URL) ---
+    // --- 2. GROVE HISTORY ---
     if (action === "grove_history") {
       const compId = req.query.compId;
-      // Reverting to the URL you confirmed worked for C12s
       const url = `https://grovestreams.com/api/comp/${encodeURIComponent(compId)}/feed?api_key=${encodeURIComponent(GROVE_KEY)}&limit=100`;
       const out = await fetchJson(url);
       
       if (out.ok && out.data && out.data.data) {
-          const formatted = out.data.data.map(point => {
-              // point[0] = Time
-              // point[1] = PM2.5
-              let val = point[1];
-              
-              // Ensure we actually have a number and it's not null/undefined
-              const parsedVal = (val !== null && val !== undefined) ? parseFloat(val) : 0;
-
+          return res.status(200).json(out.data.data.map(point => {
+              const val = point[1] !== null ? parseFloat(point[1]) : 0;
               return {
                   time: point[0],
-                  data: isNaN(parsedVal) ? 0 : parsedVal // Dashboard looks for .data
+                  pm25: val, // Add this!
+                  data: val  // Keep this!
               };
-          });
-          return res.status(200).json(formatted);
+          }));
       }
       return res.status(out.status || 500).json({ error: "grove_failed", details: out.data });
     }
