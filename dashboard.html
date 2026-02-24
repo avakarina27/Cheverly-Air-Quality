@@ -10,52 +10,41 @@
   <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
 
   <style>
-    :root { --brand-navy: #1a305e; --search-blue: #4477ce; --orange: #f59e0b; }
-    html, body { margin: 0; padding: 0; height: 100%; width: 100%; font-family: "Segoe UI", Tahoma, sans-serif; overflow: hidden; background: #fdfdfd; }
-    .topbar { background: var(--brand-navy); color: white; padding: 0 25px; display: flex; justify-content: space-between; align-items: center; height: 60px; box-sizing: border-box; z-index: 2000; }
-    .brand { font-size: 1.2rem; font-weight: bold; }
+    :root { --brand-navy: #1a305e; --search-blue: #4477ce; }
+    html, body { margin: 0; padding: 0; height: 100%; width: 100%; font-family: "Segoe UI", sans-serif; overflow: hidden; background: #fdfdfd; }
+    .topbar { background: var(--brand-navy); color: white; padding: 0 25px; display: flex; justify-content: space-between; align-items: center; height: 60px; z-index: 2000; }
     #layout { display: flex; height: calc(100vh - 60px); width: 100vw; }
     #sidebar { width: 380px; min-width: 380px; background: #f4f6f8; border-right: 1px solid #ddd; padding: 15px; overflow-y: auto; box-sizing: border-box; }
-    .card { background: white; padding: 15px; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-    #main-content { flex: 1; display: flex; flex-direction: column; height: 100%; }
-    #map { height: 45%; width: 100%; border-bottom: 1px solid #ddd; z-index: 1; }
-    #chart-box { height: 55%; width: 100%; padding: 15px; box-sizing: border-box; background: white; }
+    .card { background: white; padding: 15px; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 12px; }
+    #main-content { flex: 1; display: flex; flex-direction: column; }
+    #map { height: 45%; width: 100%; border-bottom: 1px solid #ddd; }
+    #chart-box { height: 55%; width: 100%; padding: 15px; box-sizing: border-box; }
     .aqi-val { font-size: 64px; font-weight: 900; display: block; text-align: center; line-height: 1.1; text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; }
-    input, select { width: 100%; padding: 10px; margin-top: 5px; border-radius: 4px; border: 1px solid #ccc; box-sizing: border-box; }
+    input, select { width: 100%; padding: 10px; margin-top: 5px; border-radius: 4px; border: 1px solid #ccc; }
     button { width: 100%; padding: 12px; margin-top: 8px; border-radius: 4px; border: none; background: var(--search-blue); color: white; font-weight: bold; cursor: pointer; }
-    label { font-size: 0.7rem; font-weight: bold; color: #666; text-transform: uppercase; margin-bottom: 5px; display: block; }
-    .legend-item { display: flex; align-items: center; margin-bottom: 8px; font-size: 0.85rem; font-weight: 600; }
-    .dot { width: 18px; height: 18px; border-radius: 50%; margin-right: 12px; border: 2px solid #000; display: inline-block; }
+    label { font-size: 0.7rem; font-weight: bold; color: #666; text-transform: uppercase; }
   </style>
 </head>
 
 <body>
-<header class="topbar">
-  <div class="brand">Cheverly Air Quality Network</div>
-</header>
+<header class="topbar"><div style="font-size:1.2rem; font-weight:bold;">Cheverly Air Quality Network</div></header>
 
 <div id="layout">
   <aside id="sidebar">
-    <div class="card">
-      <label>Location Search</label>
-      <input type="text" id="addrInput" placeholder="Enter Address">
-      <button id="locateBtn">Find Nearest Station</button>
-    </div>
     <div class="card">
       <label>Station Index</label>
       <select id="devSel" onchange="handleDropdownChange(this.value)"></select>
     </div>
     <div class="card">
       <label>Live Reading</label>
-      <div id="statName" style="font-weight:bold; text-align:center; font-size:0.9rem; margin-bottom:5px;">--</div>
+      <div id="statName" style="font-weight:bold; text-align:center; margin-bottom:5px;">--</div>
       <div id="statAQI" class="aqi-val" style="color:#ccc;">--</div>
-      <div style="text-align:center; font-size:0.75rem; color:#666; font-weight: bold;">CURRENT AQI</div>
+      <div style="text-align:center; font-size:0.75rem; color:#666; font-weight:bold;">CURRENT AQI</div>
       <hr style="margin:15px 0; border:0; border-top:1px solid #eee;">
-      <div id="statCE" class="aqi-val" style="color: #ccc; font-size: 40px;">--</div>
-      <div style="text-align:center; font-size:0.75rem; color:#666; font-weight: bold;">24HR AVG AQI</div>
+      <div id="statCE" class="aqi-val" style="color:#ccc; font-size:40px;">--</div>
+      <div style="text-align:center; font-size:0.75rem; color:#666; font-weight:bold;">24HR AVG AQI</div>
     </div>
   </aside>
-
   <div id="main-content">
     <div id="map"></div>
     <div id="chart-box"><canvas id="airChart"></canvas></div>
@@ -64,11 +53,19 @@
 
 <script>
   const API_PROXY = "/api/aq";
-  const SENSORS = { "284362": "EJAT.PG.1.284362", "52823": "EJAT.CV.6.52823", "53677": "EJAT.CV.1.53677", "54239": "EJAT.CV.6.54239", "54293": "EJAT.CV.2.54293", "57777": "EJAT.CV.1.57777", "57783": "EJAT.CV.6.57783", "57811": "EJAT.CV.4.57811", "57841": "EJAT.CV.3.57841", "57955": "EJAT.FH.1.57955", "160037": "EJAT.PG.1.160037", "175563": "EJAT.PG.1.175563", "178169": "EJAT.PG.1.178169", "181253": "EJAT.CH.1.181253", "184191": "EJAT.PG.1.184191", "185085": "EJAT.FH.1.185085", "197937": "EJAT.PG.1.197937", "203577": "EJAT.CV.2.203577 (Supersite)", "203597": "EJAT.FH.1.203597", "203601": "EJAT.CV.1.203601", "207729": "EJAT.CV.1.207729", "211993": "EJAT.CV.3.211993", "218227": "EJAT.PG.1.218227", "218237": "EJAT.PG.1.218237", "218273": "EJAT.PG.1.218273" };
+  const PA_SENSORS = { "284362": "EJAT.PG.1.284362", "52823": "EJAT.CV.6.52823", "53677": "EJAT.CV.1.53677", "54239": "EJAT.CV.6.54239", "54293": "EJAT.CV.2.54293", "57777": "EJAT.CV.1.57777", "57783": "EJAT.CV.6.57783", "57811": "EJAT.CV.4.57811", "57841": "EJAT.CV.3.57841", "57955": "EJAT.FH.1.57955", "160037": "EJAT.PG.1.160037", "175563": "EJAT.PG.1.175563", "178169": "EJAT.PG.1.178169", "181253": "EJAT.CH.1.181253", "184191": "EJAT.PG.1.184191", "185085": "EJAT.FH.1.185085", "197937": "EJAT.PG.1.197937", "203577": "EJAT.CV.2.203577 (Supersite)", "203597": "EJAT.FH.1.203597", "203601": "EJAT.CV.1.203601", "207729": "EJAT.CV.1.207729", "211993": "EJAT.CV.3.211993", "218227": "EJAT.PG.1.218227", "218237": "EJAT.PG.1.218237", "218273": "EJAT.PG.1.218273" };
   
   const TRI_STATIONS = [
     { id: "MOD-00536", name: "QuantAQ: Mosleys", lat: 38.920551, lon: -76.91951, type: "quantaq" },
-    { id: "MOD-00537", name: "QuantAQ: St. Matthews", lat: 39.243, lon: -76.5124, type: "quantaq" },
+    { id: "MOD-00537", name: "QuantAQ: St. Matthews Church", lat: 39.243000, lon: -76.512400, type: "quantaq" },
+    { id: "MOD-00733", name: "QuantAQ: UMD Lab", lat: 38.905700, lon: -76.911500, type: "quantaq" },
+    { id: "MOD-00745", name: "QuantAQ: Thurmond Jones Res", lat: 38.905100, lon: -76.910000, type: "quantaq" },
+    { id: "MOD-00746", name: "QuantAQ: N Laurel", lat: 39.143200, lon: -76.846000, type: "quantaq" },
+    { id: "MOD-00747", name: "QuantAQ: Linwood Jackson", lat: 39.233944, lon: -76.504501, type: "quantaq" },
+    { id: "MOD-00748", name: "QuantAQ: Annapolis Mt Olive", lat: 38.969685, lon: -76.542290, type: "quantaq" },
+    { id: "MOD-00749", name: "QuantAQ: HU Beltsville", lat: 39.055400, lon: -76.878800, type: "quantaq" },
+    { id: "MOD-00760", name: "QuantAQ: Curtis Bay", lat: 39.055200, lon: -76.878600, type: "quantaq" },
+    { id: "MOD-00824", name: "QuantAQ: CHECD Baltimore", lat: 39.224470, lon: -76.587008, type: "quantaq" },
     { id: "D14781", name: "C12: Sector A", lat: 38.92054, lon: -76.919716, type: "c12" },
     { id: "D14645", name: "C12: NW Boundary A", lat: 38.991268, lon: -76.943237, type: "c12" },
     { id: "D17615", name: "C12: SE Border", lat: 38.908325, lon: -76.899002, type: "c12" },
@@ -76,14 +73,14 @@
     { id: "D14646", name: "C12: Standalone NW", lat: 38.989586, lon: -76.940407, type: "c12" }
   ];
 
-  let markerMap = {}, markerMeta = {}, userMarker = null;
-  const map = L.map("map").setView([38.922, -76.915], 11);
+  let markerMap = {}, markerMeta = {};
+  const map = L.map("map").setView([38.922, -76.915], 10);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 
   const chart = new Chart(document.getElementById("airChart").getContext("2d"), {
     type: "line",
     data: { datasets: [{ label: "Selected Station", data: [], borderColor: "#4477ce", tension: 0.1, fill: true, backgroundColor: "rgba(68, 119, 206, 0.1)" }] },
-    options: { responsive: true, maintainAspectRatio: false, scales: { x: { type: "time" }, y: { beginAtZero: true } } }
+    options: { responsive: true, maintainAspectRatio: false, scales: { x: { type: "time" } } }
   });
 
   function aqiFromPM(pm) {
@@ -94,10 +91,8 @@
   }
 
   function getAQIColor(aqi) {
-    if (aqi <= 50) return "#00e400";
-    if (aqi <= 100) return "#ffff00";
-    if (aqi <= 150) return "#ff7e00";
-    return "#ff0000";
+    if (aqi <= 50) return "#00e400"; if (aqi <= 100) return "#ffff00";
+    if (aqi <= 150) return "#ff7e00"; return "#ff0000";
   }
 
   function makeTriIcon(color) {
@@ -105,8 +100,7 @@
   }
 
   async function proxyGet(params) {
-    const url = API_PROXY + "?" + new URLSearchParams(params).toString();
-    const res = await fetch(url);
+    const res = await fetch(API_PROXY + "?" + new URLSearchParams(params).toString());
     return res.ok ? await res.json() : null;
   }
 
@@ -116,16 +110,15 @@
     name = meta.name;
 
     if (meta.type === "quantaq" || meta.type === "c12") {
-      // Use "quantaq_history" specifically for QuantAQs to ensure proxy routing
       const action = (meta.type === "quantaq") ? "quantaq_history" : "grove_history";
       const json = await proxyGet({ action: action, compId: id });
       if (Array.isArray(json) && json.length > 0) {
         const samples = [...json].reverse();
-        const latestVal = samples[samples.length-1].pm25 || samples[samples.length-1].data;
+        const latestVal = samples[samples.length-1].pm25 || samples[samples.length-1].data || 0;
         currentAQI = aqiFromPM(latestVal);
-        const avgPM = samples.reduce((a, b) => a + (b.pm25 || b.data), 0) / samples.length;
+        const avgPM = samples.reduce((a, b) => a + (b.pm25 || b.data || 0), 0) / samples.length;
         ce24 = aqiFromPM(avgPM);
-        history = samples.map(s => ({ x: s.time, y: aqiFromPM(s.pm25 || s.data) }));
+        history = samples.map(s => ({ x: s.time, y: aqiFromPM(s.pm25 || s.data || 0) }));
       }
     } else {
       const start = Math.floor(Date.now()/1000)-86400;
@@ -137,7 +130,6 @@
         history = rows.map(r => ({ x: r[0]*1000, y: aqiFromPM(r[1]) }));
       }
     }
-
     document.getElementById("statName").innerText = name;
     document.getElementById("statAQI").innerText = currentAQI;
     document.getElementById("statAQI").style.color = getAQIColor(currentAQI);
@@ -147,51 +139,41 @@
     chart.update();
   }
 
-  function handleDropdownChange(id) { map.flyTo(markerMap[id].getLatLng(), 15); updateDisplay(id); }
+  function handleDropdownChange(id) { map.flyTo(markerMap[id].getLatLng(), 13); updateDisplay(id); }
 
   async function init() {
     const sel = document.getElementById("devSel");
-    
-    // Process Triangles (QuantAQ + C12)
+    // Triangles
     for(const s of TRI_STATIONS) {
       const m = L.marker([s.lat, s.lon], { icon: makeTriIcon("#999") }).addTo(map);
-      markerMap[s.id] = m; 
-      markerMeta[s.id] = { name: s.name, type: s.type };
+      markerMap[s.id] = m; markerMeta[s.id] = { name: s.name, type: s.type };
       sel.add(new Option(s.name, s.id));
       m.on("click", () => { sel.value = s.id; handleDropdownChange(s.id); });
-      m.bindTooltip(`<b>${s.name}</b><br>Loading...`);
-
-      // Initial Fetch for hover and color
+      m.bindTooltip(`<b>${s.name}</b>`);
+      
       const action = (s.type === "quantaq") ? "quantaq_history" : "grove_history";
       proxyGet({ action: action, compId: s.id }).then(json => {
         if(json && json.length > 0) {
-          const lastAQI = aqiFromPM(json[0].pm25 || json[0].data);
-          const ceAQI = aqiFromPM(json.reduce((a,b)=>a+(b.pm25 || b.data),0)/json.length);
+          const ceAQI = aqiFromPM(json.reduce((a,b)=>a+(b.pm25 || b.data || 0),0)/json.length);
           m.setIcon(makeTriIcon(getAQIColor(ceAQI)));
-          m.setTooltipContent(`<b>${s.name}</b><br>Live AQI: ${lastAQI}<br>24h Avg: ${ceAQI}`);
         }
       });
     }
-
-    // Process Circles (PurpleAir)
+    // Circles
     const paBox = await proxyGet({ action: "purpleair_box" });
     if(paBox?.data) {
       for(const r of paBox.data) {
         const id = String(r[0]);
-        if(SENSORS[id]) {
+        if(PA_SENSORS[id]) {
           const m = L.circleMarker([r[1], r[2]], { radius: 10, fillColor: "#999", color: "#000", weight: 2, fillOpacity: 0.8 }).addTo(map);
-          markerMap[id] = m; markerMeta[id] = { name: SENSORS[id], type: "purpleair" };
-          sel.add(new Option(SENSORS[id], id));
+          markerMap[id] = m; markerMeta[id] = { name: PA_SENSORS[id], type: "purpleair" };
+          sel.add(new Option(PA_SENSORS[id], id));
           m.on("click", () => { sel.value = id; handleDropdownChange(id); });
-          m.bindTooltip(`<b>${SENSORS[id]}</b><br>Loading...`);
-
+          m.bindTooltip(`<b>${PA_SENSORS[id]}</b>`);
           proxyGet({ action: "purpleair_history", id, start: Math.floor(Date.now()/1000)-86400 }).then(hist => {
              if(hist?.data) {
-                const rows = hist.data;
-                const lastAQI = aqiFromPM(rows[rows.length-1][1]);
-                const ceAQI = aqiFromPM(rows.reduce((a,b)=>a+b[1],0)/rows.length);
+                const ceAQI = aqiFromPM(hist.data.reduce((a,b)=>a+b[1],0)/hist.data.length);
                 m.setStyle({ fillColor: getAQIColor(ceAQI) });
-                m.setTooltipContent(`<b>${SENSORS[id]}</b><br>Live AQI: ${lastAQI}<br>24h Avg: ${ceAQI}`);
              }
           });
         }
