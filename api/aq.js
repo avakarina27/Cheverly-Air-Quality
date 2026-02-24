@@ -9,7 +9,6 @@ export default async function handler(req, res) {
 
     if (!action) return res.status(400).json({ error: "missing_action" });
 
-    // Helper to handle fetch and parsing
     const fetchJson = async (url, options = {}) => {
       try {
         const r = await fetch(url, options);
@@ -22,7 +21,6 @@ export default async function handler(req, res) {
       }
     };
 
-    // Helper for PurpleAir specific auth logic
     const purpleairFetch = async (baseUrl) => {
       let out = await fetchJson(baseUrl, { headers: { "X-API-Key": PURPLEAIR_KEY } });
       if (out.ok) return out;
@@ -31,14 +29,15 @@ export default async function handler(req, res) {
       return await fetchJson(url2);
     };
 
-    // --- 1. QUANTAQ HISTORY ---
+    // --- 1. QUANTAQ HISTORY (Fixed Path) ---
     if (action === "quantaq_history") {
-      const compId = req.query.compId;
-      if (!compId) return res.status(400).json({ error: "missing_compId" });
+      const sn = req.query.compId; // In QuantAQ, compId is the Serial Number (e.g. MOD-00536)
+      if (!sn) return res.status(400).json({ error: "missing_sn" });
 
       const auth = Buffer.from(`${QUANTAQ_KEY}:`).toString('base64');
-      // Fixed: Using the correct hyphenated domain to resolve DNS issues
-      const url = `https://api.quant-aq.com/device-api/v1/devices/${encodeURIComponent(compId)}/data-raw/?limit=100`;
+      
+      // Fixed Endpoint: /v1/devices/<sn>/data/ with raw=true
+      const url = `https://api.quant-aq.com/v1/devices/${encodeURIComponent(sn)}/data/?limit=100&raw=true`;
       
       const out = await fetchJson(url, {
         headers: { "Authorization": `Basic ${auth}` }
@@ -47,23 +46,25 @@ export default async function handler(req, res) {
       if (out.ok && out.data && out.data.data) {
         const formatted = out.data.data.map(entry => ({
           time: new Date(entry.timestamp).getTime(),
-          pm25: entry.pm25 || entry.pm2_5 || entry.opcn3_pm25 || 0
+          // Check all possible PM2.5 field names QuantAQ uses
+          pm25: entry.pm25 || entry.pm2_5 || entry.opcn3_pm25 || entry.pm25_env || 0
         }));
         return res.status(200).json(formatted);
       }
-      return res.status(out.status).json({ error: "quantaq_failed", details: out.data });
+      
+      return res.status(out.status || 500).json({ 
+        error: "quantaq_failed", 
+        detail: out.data 
+      });
     }
 
     // --- 2. GROVE HISTORY (C12s) ---
     if (action === "grove_history") {
       const compId = req.query.compId;
       if (!compId) return res.status(400).json({ error: "missing_compId" });
-      
       const url = `https://grovestreams.com/api/comp/${encodeURIComponent(compId)}/feed?api_key=${encodeURIComponent(GROVE_KEY)}`;
       const out = await fetchJson(url);
-      
       if (out.ok && out.data && out.data.data) {
-          // dashboard.html looks for .data property for C12s
           const formatted = out.data.data.map(point => ({
               time: point[0],
               data: point[1]
@@ -75,21 +76,17 @@ export default async function handler(req, res) {
 
     // --- 3. PURPLEAIR BOX ---
     if (action === "purpleair_box") {
-      if (!PURPLEAIR_KEY) return res.status(500).json({ error: "missing_PURPLEAIR_API_KEY" });
       const url = "https://api.purpleair.com/v1/sensors?nwlng=-77.15&nwlat=39.05&selng=-76.75&selat=38.75&fields=sensor_index,latitude,longitude,pm2.5_atm";
       const out = await purpleairFetch(url);
-      if (!out.ok) return res.status(out.status).json({ error: "purpleair_box_failed", details: out.data });
-      return res.status(200).json(out.data);
+      return res.status(out.status).json(out.data);
     }
 
     // --- 4. PURPLEAIR HISTORY ---
     if (action === "purpleair_history") {
       const id = req.query.id, start = req.query.start;
-      if (!id || !start) return res.status(400).json({ error: "missing_id_or_start" });
       const url = `https://api.purpleair.com/v1/sensors/${encodeURIComponent(id)}/history?fields=pm2.5_atm&average=60&start_timestamp=${encodeURIComponent(start)}`;
       const out = await purpleairFetch(url);
-      if (!out.ok) return res.status(out.status).json({ error: "purpleair_history_failed", details: out.data });
-      return res.status(200).json(out.data);
+      return res.status(out.status).json(out.data);
     }
 
     // --- 5. GROVE LAST VALUE ---
