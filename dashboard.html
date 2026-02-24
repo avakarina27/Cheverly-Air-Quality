@@ -1,373 +1,231 @@
 <!DOCTYPE html>
-
 <html lang="en">
-
 <head>
-
   <meta charset="UTF-8" />
-
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-
   <title>EJAT Air Quality Network</title>
-
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
   <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
 
-
-
   <style>
-
     :root { --brand-navy: #1a305e; --search-blue: #4477ce; }
-
     html, body { margin: 0; padding: 0; height: 100%; width: 100%; font-family: "Segoe UI", sans-serif; overflow: hidden; background: #fdfdfd; }
-
     .topbar { background: var(--brand-navy); color: white; padding: 0 25px; display: flex; justify-content: space-between; align-items: center; height: 60px; z-index: 2000; }
-
     #layout { display: flex; height: calc(100vh - 60px); width: 100vw; }
-
     #sidebar { width: 380px; min-width: 380px; background: #f4f6f8; border-right: 1px solid #ddd; padding: 15px; overflow-y: auto; box-sizing: border-box; }
-
     .card { background: white; padding: 15px; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 12px; }
-
     #main-content { flex: 1; display: flex; flex-direction: column; }
-
     #map { height: 45%; width: 100%; border-bottom: 1px solid #ddd; }
-
     #chart-box { height: 55%; width: 100%; padding: 15px; box-sizing: border-box; }
-
     .aqi-val { font-size: 64px; font-weight: 900; display: block; text-align: center; line-height: 1.1; text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; }
-
-    input, select { width: 100%; padding: 10px; margin-top: 5px; border-radius: 4px; border: 1px solid #ccc; }
-
-    button { width: 100%; padding: 12px; margin-top: 8px; border-radius: 4px; border: none; background: var(--search-blue); color: white; font-weight: bold; cursor: pointer; }
-
+    input, select { width: 100%; padding: 10px; margin-top: 5px; border-radius: 4px; border: 1px solid #ccc; box-sizing: border-box; }
     label { font-size: 0.7rem; font-weight: bold; color: #666; text-transform: uppercase; }
-
+    
+    /* Legend Styles */
+    .legend-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: 10px; font-size: 0.7rem; font-weight: bold; }
+    .lg-item { padding: 4px; border-radius: 3px; text-align: center; color: black; }
   </style>
-
 </head>
 
-
-
 <body>
-
-<header class="topbar"><div style="font-size:1.2rem; font-weight:bold;">Cheverly Air Quality Network</div></header>
-
-
+<header class="topbar">
+  <div style="font-size:1.2rem; font-weight:bold;">Cheverly Air Quality Network</div>
+  <div style="font-size:0.9rem;">Network Avg: <span id="netAvg">--</span> AQI</div>
+</header>
 
 <div id="layout">
-
   <aside id="sidebar">
-
     <div class="card">
-
-      <label>Station Index</label>
-
-      <select id="devSel" onchange="handleDropdownChange(this.value)"></select>
-
+      <label>Search Stations</label>
+      <input type="text" id="stationSearch" placeholder="Type station name..." oninput="filterStations()">
+      <select id="devSel" onchange="handleDropdownChange(this.value)" style="margin-top:10px;"></select>
     </div>
 
     <div class="card">
-
-      <label>Live Reading</label>
-
-      <div id="statName" style="font-weight:bold; text-align:center; margin-bottom:5px;">--</div>
-
+      <label>Selected Station</label>
+      <div id="statName" style="font-weight:bold; text-align:center; margin:10px 0;">--</div>
       <div id="statAQI" class="aqi-val" style="color:#ccc;">--</div>
-
       <div style="text-align:center; font-size:0.75rem; color:#666; font-weight:bold;">CURRENT AQI</div>
-
       <hr style="margin:15px 0; border:0; border-top:1px solid #eee;">
-
       <div id="statCE" class="aqi-val" style="color:#ccc; font-size:40px;">--</div>
-
       <div style="text-align:center; font-size:0.75rem; color:#666; font-weight:bold;">24HR AVG AQI</div>
-
     </div>
 
+    <div class="card">
+      <label>AQI Legend</label>
+      <div class="legend-grid">
+        <div class="lg-item" style="background:#00e400;">0-50 Good</div>
+        <div class="lg-item" style="background:#ffff00;">51-100 Mod</div>
+        <div class="lg-item" style="background:#ff7e00;">101-150 Unhealthy+</div>
+        <div class="lg-item" style="background:#ff0000; color:white;">151+ Danger</div>
+      </div>
+    </div>
   </aside>
 
   <div id="main-content">
-
     <div id="map"></div>
-
     <div id="chart-box"><canvas id="airChart"></canvas></div>
-
   </div>
-
 </div>
 
-
-
 <script>
-
   const API_PROXY = "/api/aq";
-
   const PA_SENSORS = { "284362": "EJAT.PG.1.284362", "52823": "EJAT.CV.6.52823", "53677": "EJAT.CV.1.53677", "54239": "EJAT.CV.6.54239", "54293": "EJAT.CV.2.54293", "57777": "EJAT.CV.1.57777", "57783": "EJAT.CV.6.57783", "57811": "EJAT.CV.4.57811", "57841": "EJAT.CV.3.57841", "57955": "EJAT.FH.1.57955", "160037": "EJAT.PG.1.160037", "175563": "EJAT.PG.1.175563", "178169": "EJAT.PG.1.178169", "181253": "EJAT.CH.1.181253", "184191": "EJAT.PG.1.184191", "185085": "EJAT.FH.1.185085", "197937": "EJAT.PG.1.197937", "203577": "EJAT.CV.2.203577 (Supersite)", "203597": "EJAT.FH.1.203597", "203601": "EJAT.CV.1.203601", "207729": "EJAT.CV.1.207729", "211993": "EJAT.CV.3.211993", "218227": "EJAT.PG.1.218227", "218237": "EJAT.PG.1.218237", "218273": "EJAT.PG.1.218273" };
-
   
-
   const TRI_STATIONS = [
-
     { id: "MOD-00536", name: "QuantAQ: Mosleys", lat: 38.920551, lon: -76.91951, type: "quantaq" },
-
     { id: "MOD-00537", name: "QuantAQ: St. Matthews Church", lat: 39.243000, lon: -76.512400, type: "quantaq" },
-
     { id: "MOD-00733", name: "QuantAQ: UMD Lab", lat: 38.905700, lon: -76.911500, type: "quantaq" },
-
     { id: "MOD-00745", name: "QuantAQ: Thurmond Jones Res", lat: 38.905100, lon: -76.910000, type: "quantaq" },
-
     { id: "MOD-00746", name: "QuantAQ: N Laurel", lat: 39.143200, lon: -76.846000, type: "quantaq" },
-
     { id: "MOD-00747", name: "QuantAQ: Linwood Jackson", lat: 39.233944, lon: -76.504501, type: "quantaq" },
-
     { id: "MOD-00748", name: "QuantAQ: Annapolis Mt Olive", lat: 38.969685, lon: -76.542290, type: "quantaq" },
-
     { id: "MOD-00749", name: "QuantAQ: HU Beltsville", lat: 39.055400, lon: -76.878800, type: "quantaq" },
-
     { id: "MOD-00760", name: "QuantAQ: Curtis Bay", lat: 39.055200, lon: -76.878600, type: "quantaq" },
-
     { id: "MOD-00824", name: "QuantAQ: CHECD Baltimore", lat: 39.224470, lon: -76.587008, type: "quantaq" },
-
     { id: "D14781", name: "C12: Sector A", lat: 38.92054, lon: -76.919716, type: "c12" },
-
     { id: "D14645", name: "C12: NW Boundary A", lat: 38.991268, lon: -76.943237, type: "c12" },
-
     { id: "D17615", name: "C12: SE Border", lat: 38.908325, lon: -76.899002, type: "c12" },
-
     { id: "E10588", name: "C12: NW Boundary B", lat: 38.991806, lon: -76.943130, type: "c12" },
-
     { id: "D14646", name: "C12: Standalone NW", lat: 38.989586, lon: -76.940407, type: "c12" }
-
   ];
 
-
-
-  let markerMap = {}, markerMeta = {};
-
-  const map = L.map("map").setView([38.922, -76.915], 10);
-
+  let markerMap = {}, markerMeta = {}, fullStationList = [];
+  const map = L.map("map").setView([38.922, -76.915], 11);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 
-
-
   const chart = new Chart(document.getElementById("airChart").getContext("2d"), {
-
     type: "line",
-
-    data: { datasets: [{ label: "Selected Station", data: [], borderColor: "#4477ce", tension: 0.1, fill: true, backgroundColor: "rgba(68, 119, 206, 0.1)" }] },
-
+    data: { datasets: [{ label: "AQI Level", data: [], borderColor: "#4477ce", tension: 0.1, fill: true, backgroundColor: "rgba(68, 119, 206, 0.1)" }] },
     options: { responsive: true, maintainAspectRatio: false, scales: { x: { type: "time" } } }
-
   });
 
-
-
   function aqiFromPM(pm) {
-
     if (!Number.isFinite(pm) || pm < 0) return 0;
-
-    const table = [{cl:0,ch:12,il:0,ih:50},{cl:12.1,ch:35.4,il:51,ih:100},{cl:35.5,ch:55.4,il:101,ih:150},{cl:55.5,ch:150.4,il:151,ih:200}];
-
+    const table = [{cl:0,ch:12.0,il:0,ih:50},{cl:12.1,ch:35.4,il:51,ih:100},{cl:35.5,ch:55.4,il:101,ih:150},{cl:55.5,ch:150.4,il:151,ih:200}];
     const b = table.find(r => pm <= r.ch) || table[table.length-1];
-
     return Math.round(((b.ih-b.il)/(b.ch-b.cl))*(pm-b.cl)+b.il);
-
   }
-
-
 
   function getAQIColor(aqi) {
-
+    if (!aqi || aqi === 0) return "#ccc";
     if (aqi <= 50) return "#00e400"; if (aqi <= 100) return "#ffff00";
-
     if (aqi <= 150) return "#ff7e00"; return "#ff0000";
-
   }
-
-
 
   function makeTriIcon(color) {
-
     return L.divIcon({ className: "tri", html: `<div style="width:0;height:0;border-left:10px solid transparent;border-right:10px solid transparent;border-bottom:18px solid ${color};filter:drop-shadow(0 0 1px #000);"></div>`, iconAnchor: [10, 18] });
-
   }
-
-
 
   async function proxyGet(params) {
-
-    const res = await fetch(API_PROXY + "?" + new URLSearchParams(params).toString());
-
-    return res.ok ? await res.json() : null;
-
+    try {
+      const res = await fetch(API_PROXY + "?" + new URLSearchParams(params).toString());
+      return res.ok ? await res.json() : null;
+    } catch(e) { return null; }
   }
 
-
+  // SEARCH LOGIC
+  function filterStations() {
+    const term = document.getElementById("stationSearch").value.toLowerCase();
+    const sel = document.getElementById("devSel");
+    sel.innerHTML = "";
+    fullStationList.filter(s => s.name.toLowerCase().includes(term)).forEach(s => {
+      sel.add(new Option(s.name, s.id));
+    });
+  }
 
   async function updateDisplay(id) {
-
-    let currentAQI = 0, ce24 = 0, history = [], name = "";
-
-    const meta = markerMeta[id];
-
-    name = meta.name;
-
-
+    let meta = markerMeta[id];
+    if(!meta) return;
+    document.getElementById("statName").innerText = meta.name;
+    let currentAQI = 0, ce24 = 0, history = [];
 
     if (meta.type === "quantaq" || meta.type === "c12") {
-
       const action = (meta.type === "quantaq") ? "quantaq_history" : "grove_history";
-
       const json = await proxyGet({ action: action, compId: id });
-
       if (Array.isArray(json) && json.length > 0) {
-
-        const samples = [...json].reverse();
-
-        const latestVal = samples[samples.length-1].pm25 || samples[samples.length-1].data || 0;
-
-        currentAQI = aqiFromPM(latestVal);
-
-        const avgPM = samples.reduce((a, b) => a + (b.pm25 || b.data || 0), 0) / samples.length;
-
-        ce24 = aqiFromPM(avgPM);
-
-        history = samples.map(s => ({ x: s.time, y: aqiFromPM(s.pm25 || s.data || 0) }));
-
+        const getVal = (s) => (s.pm25 !== undefined ? s.pm25 : (s.data !== undefined ? s.data : 0));
+        currentAQI = aqiFromPM(getVal(json[json.length-1]));
+        ce24 = aqiFromPM(json.reduce((a, b) => a + getVal(b), 0) / json.length);
+        history = json.map(s => ({ x: s.time, y: aqiFromPM(getVal(s)) }));
       }
-
     } else {
-
       const start = Math.floor(Date.now()/1000)-86400;
-
       const json = await proxyGet({ action: "purpleair_history", id, start });
-
-      if (json?.data) {
-
+      if (json?.data?.length > 0) {
         const rows = json.data.sort((a,b)=>a[0]-b[0]);
-
         currentAQI = aqiFromPM(rows[rows.length-1][1]);
-
         ce24 = aqiFromPM(rows.reduce((a,b)=>a+b[1],0)/rows.length);
-
         history = rows.map(r => ({ x: r[0]*1000, y: aqiFromPM(r[1]) }));
-
       }
-
     }
-
-    document.getElementById("statName").innerText = name;
-
-    document.getElementById("statAQI").innerText = currentAQI;
-
+    document.getElementById("statAQI").innerText = currentAQI || "--";
     document.getElementById("statAQI").style.color = getAQIColor(currentAQI);
-
-    document.getElementById("statCE").innerText = ce24;
-
+    document.getElementById("statCE").innerText = ce24 || "--";
     document.getElementById("statCE").style.color = getAQIColor(ce24);
-
     chart.data.datasets[0].data = history;
-
     chart.update();
-
   }
 
-
-
-  function handleDropdownChange(id) { map.flyTo(markerMap[id].getLatLng(), 13); updateDisplay(id); }
-
-
+  function handleDropdownChange(id) { 
+    if(markerMap[id]) map.flyTo(markerMap[id].getLatLng(), 13); 
+    updateDisplay(id); 
+  }
 
   async function init() {
-
     const sel = document.getElementById("devSel");
+    let aqiSum = 0, count = 0;
 
-    // Triangles
-
-    for(const s of TRI_STATIONS) {
-
+    // Load Triangles
+    TRI_STATIONS.forEach(s => {
       const m = L.marker([s.lat, s.lon], { icon: makeTriIcon("#999") }).addTo(map);
-
       markerMap[s.id] = m; markerMeta[s.id] = { name: s.name, type: s.type };
-
-      sel.add(new Option(s.name, s.id));
-
+      fullStationList.push({name: s.name, id: s.id});
       m.on("click", () => { sel.value = s.id; handleDropdownChange(s.id); });
-
       m.bindTooltip(`<b>${s.name}</b>`);
-
       
-
       const action = (s.type === "quantaq") ? "quantaq_history" : "grove_history";
-
-      proxyGet({ action: action, compId: s.id }).then(json => {
-
-        if(json && json.length > 0) {
-
-          const ceAQI = aqiFromPM(json.reduce((a,b)=>a+(b.pm25 || b.data || 0),0)/json.length);
-
-          m.setIcon(makeTriIcon(getAQIColor(ceAQI)));
-
+      proxyGet({ action, compId: s.id }).then(json => {
+        if(json?.length > 0) {
+          const val = json[json.length-1].pm25 || json[json.length-1].data || 0;
+          const a = aqiFromPM(val);
+          m.setIcon(makeTriIcon(getAQIColor(a)));
+          aqiSum += a; count++;
+          document.getElementById("netAvg").innerText = Math.round(aqiSum/count);
         }
-
       });
+    });
 
-    }
-
-    // Circles
-
+    // Load PurpleAir
     const paBox = await proxyGet({ action: "purpleair_box" });
-
     if(paBox?.data) {
-
-      for(const r of paBox.data) {
-
+      paBox.data.forEach(r => {
         const id = String(r[0]);
-
         if(PA_SENSORS[id]) {
-
           const m = L.circleMarker([r[1], r[2]], { radius: 10, fillColor: "#999", color: "#000", weight: 2, fillOpacity: 0.8 }).addTo(map);
-
           markerMap[id] = m; markerMeta[id] = { name: PA_SENSORS[id], type: "purpleair" };
-
-          sel.add(new Option(PA_SENSORS[id], id));
-
+          fullStationList.push({name: PA_SENSORS[id], id: id});
           m.on("click", () => { sel.value = id; handleDropdownChange(id); });
-
           m.bindTooltip(`<b>${PA_SENSORS[id]}</b>`);
-
-          proxyGet({ action: "purpleair_history", id, start: Math.floor(Date.now()/1000)-86400 }).then(hist => {
-
-             if(hist?.data) {
-
-                const ceAQI = aqiFromPM(hist.data.reduce((a,b)=>a+b[1],0)/hist.data.length);
-
-                m.setStyle({ fillColor: getAQIColor(ceAQI) });
-
-             }
-
-          });
-
+          
+          if(r[3] !== null) {
+            const a = aqiFromPM(r[3]);
+            m.setStyle({ fillColor: getAQIColor(a) });
+            aqiSum += a; count++;
+            document.getElementById("netAvg").innerText = Math.round(aqiSum/count);
+          }
         }
-
-      }
-
+      });
     }
-
-    sel.value = "203577"; handleDropdownChange("203577");
-
+    
+    filterStations();
+    sel.value = "203577";
+    updateDisplay("203577");
   }
 
   init();
-
 </script>
-
 </body>
-
 </html>
