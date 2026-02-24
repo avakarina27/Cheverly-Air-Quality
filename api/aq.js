@@ -1,64 +1,71 @@
-const fetch = require('node-fetch');
+/**
+ * EJAT Network Proxy - FINAL VERSION
+ * Handles: PurpleAir, QuantAQ, and GroveStreams (C12)
+ * Environment Variables required in Vercel:
+ * - PURPLEAIR_KEY
+ * - QUANTAQ_KEY
+ */
 
 module.exports = async (req, res) => {
-    // 1. Set Headers to allow the dashboard to talk to this API
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Content-Type', 'application/json');
 
     const { action, id, compId, start } = req.query;
 
-    // 2. YOUR API KEYS (CRITICAL: Fill these in)
-    const PURPLEAIR_KEY = 'YOUR_PURPLE_AIR_READ_KEY'; 
-    const QUANTAQ_KEY = 'YOUR_QUANTAQ_API_KEY'; 
-
     try {
-        // --- ROUTE 1: PURPLEAIR SENSOR LIST (The Box) ---
+        // --- 1. PURPLEAIR BOX (Initial Map Load) ---
         if (action === 'purpleair_box') {
-            const url = `https://api.purpleair.com/v1/sensors?fields=latitude,longitude,name&nwlat=38.96&nwlng=-76.96&selat=38.89&selng=-76.88`;
-            const response = await fetch(url, { headers: {'X-API-Key': PURPLEAIR_KEY}});
+            const response = await fetch(`https://api.purpleair.com/v1/sensors?fields=latitude,longitude,name&nwlat=38.96&nwlng=-76.96&selat=38.89&selng=-76.88`, {
+                headers: { 'X-API-Key': process.env.PURPLEAIR_KEY }
+            });
             const data = await response.json();
-            return res.status(200).send(JSON.stringify(data));
+            return res.status(200).json(data);
         }
 
-        // --- ROUTE 2: PURPLEAIR HISTORICAL DATA ---
+        // --- 2. PURPLEAIR HISTORY (Circles) ---
         if (action === 'purpleair_history') {
-            const url = `https://api.purpleair.com/v1/sensors/${id}/history?start_timestamp=${start}&fields=pm2.5_atm`;
-            const response = await fetch(url, { headers: {'X-API-Key': PURPLEAIR_KEY}});
+            const response = await fetch(`https://api.purpleair.com/v1/sensors/${id}/history?start_timestamp=${start}&fields=pm2.5_atm`, {
+                headers: { 'X-API-Key': process.env.PURPLEAIR_KEY }
+            });
             const data = await response.json();
-            return res.status(200).send(JSON.stringify(data));
+            return res.status(200).json(data);
         }
 
-        // --- ROUTE 3: QUANTAQ DATA (The "Triangles") ---
+        // --- 3. QUANTAQ HISTORY (SPODS/Triangles) ---
         if (action === 'quantaq_history') {
-            const auth = Buffer.from(`${QUANTAQ_KEY}:`).toString('base64');
-            const url = `https://api.quantaq.com/device-api/v1/devices/${compId}/data-raw/?limit=100`;
-            
-            const response = await fetch(url, {
+            const auth = Buffer.from(`${process.env.QUANTAQ_KEY}:`).toString('base64');
+            const response = await fetch(`https://api.quantaq.com/device-api/v1/devices/${compId}/data-raw/?limit=100`, {
                 headers: { 'Authorization': `Basic ${auth}` }
             });
             const data = await response.json();
             
-            // Format QuantAQ to match our Dashboard's expectations
+            // Standardize QuantAQ format
             const formatted = (data.data || []).map(entry => ({
                 time: new Date(entry.timestamp).getTime(),
                 pm25: entry.pm25 || entry.pm2_5 || 0
             }));
-            return res.status(200).send(JSON.stringify(formatted));
+            return res.status(200).json(formatted);
         }
 
-        // --- ROUTE 4: GROVE / C12 DATA ---
+        // --- 4. GROVESTREAMS HISTORY (C12s/Triangles) ---
         if (action === 'grove_history') {
-            const url = `https://api.grove.id/v1/devices/${compId}/points?limit=100`;
-            const response = await fetch(url);
+            // compId here is your GroveStreams Component ID
+            const response = await fetch(`https://grovestreams.com/api/feed?compid=${compId}&streamid=pm25&limit=100`);
             const data = await response.json();
-            return res.status(200).send(JSON.stringify(data));
+
+            // GroveStreams typically returns { data: [[time, val], [time, val]...] }
+            // We map it to our dashboard's standard: { time, pm25 }
+            const formatted = (data.data || []).map(point => ({
+                time: point[0], 
+                pm25: point[1]
+            }));
+            return res.status(200).json(formatted);
         }
 
-        // Error if none of the above actions match
-        return res.status(400).send(JSON.stringify({ error: "unknown_action", action }));
+        return res.status(400).json({ error: "unknown_action", action });
 
     } catch (error) {
-        console.error("Server Error:", error);
-        return res.status(500).send(JSON.stringify({ error: error.message }));
+        console.error("Vercel Proxy Error:", error.message);
+        return res.status(500).json({ error: "Server Error: " + error.message });
     }
 };
