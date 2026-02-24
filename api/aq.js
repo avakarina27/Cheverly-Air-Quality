@@ -21,7 +21,7 @@ export default async function handler(req, res) {
       }
     };
 
-    // --- 1. QUANTAQ (WORKING) ---
+    // --- 1. QUANTAQ (Fixed Path) ---
     if (action === "quantaq_history") {
       const sn = req.query.compId;
       const auth = Buffer.from(`${QUANTAQ_KEY}:`).toString('base64');
@@ -36,36 +36,28 @@ export default async function handler(req, res) {
       return res.status(out.status || 500).json({ error: "quantaq_failed", details: out.data });
     }
 
-    // --- 2. GROVE HISTORY (FIXED FOR DASHBOARD DISPLAY) ---
+    // --- 2. GROVE HISTORY (Reverted to the Working URL) ---
     if (action === "grove_history") {
       const compId = req.query.compId;
-      // We look for these IDs in the feed to make sure we don't grab the wrong sensor
-      const targetStreamIds = ['pm25', 'pm2_5', 'pm2.5', 'PM2.5'];
-      
+      // Reverting to the URL you confirmed worked for C12s
       const url = `https://grovestreams.com/api/comp/${encodeURIComponent(compId)}/feed?api_key=${encodeURIComponent(GROVE_KEY)}&limit=100`;
       const out = await fetchJson(url);
       
-      if (out.ok && out.data && out.data.stream) {
-          // 1. Find the index of the PM2.5 stream in the component's stream list
-          const streams = out.data.stream;
-          const pmIndex = streams.findIndex(s => targetStreamIds.includes(s.streamId));
-          
-          // 2. Map the data points using that specific index
-          // point[0] is time, point[pmIndex + 1] is the value for that specific stream
-          if (pmIndex !== -1 && out.data.data) {
-              const formatted = out.data.data.map(point => ({
+      if (out.ok && out.data && out.data.data) {
+          const formatted = out.data.data.map(point => {
+              // point[0] = Time
+              // point[1] = PM2.5
+              let val = point[1];
+              
+              // Ensure we actually have a number and it's not null/undefined
+              const parsedVal = (val !== null && val !== undefined) ? parseFloat(val) : 0;
+
+              return {
                   time: point[0],
-                  data: point[pmIndex + 1] !== null ? parseFloat(point[1]) : 0
-              }));
-              return res.status(200).json(formatted);
-          }
-          
-          // Fallback if index isn't found: use the first available data point
-          const formattedFallback = out.data.data.map(point => ({
-              time: point[0],
-              data: point[1] !== null ? parseFloat(point[1]) : 0
-          }));
-          return res.status(200).json(formattedFallback);
+                  data: isNaN(parsedVal) ? 0 : parsedVal // Dashboard looks for .data
+              };
+          });
+          return res.status(200).json(formatted);
       }
       return res.status(out.status || 500).json({ error: "grove_failed", details: out.data });
     }
