@@ -29,49 +29,43 @@ export default async function handler(req, res) {
       return await fetchJson(url2);
     };
 
-    // --- 1. QUANTAQ HISTORY (Fixed Path) ---
+    // --- 1. QUANTAQ HISTORY (KEEPING WORKING) ---
     if (action === "quantaq_history") {
-      const sn = req.query.compId; // In QuantAQ, compId is the Serial Number (e.g. MOD-00536)
+      const sn = req.query.compId;
       if (!sn) return res.status(400).json({ error: "missing_sn" });
-
       const auth = Buffer.from(`${QUANTAQ_KEY}:`).toString('base64');
-      
-      // Fixed Endpoint: /v1/devices/<sn>/data/ with raw=true
       const url = `https://api.quant-aq.com/v1/devices/${encodeURIComponent(sn)}/data/?limit=100&raw=true`;
-      
-      const out = await fetchJson(url, {
-        headers: { "Authorization": `Basic ${auth}` }
-      });
+      const out = await fetchJson(url, { headers: { "Authorization": `Basic ${auth}` } });
 
       if (out.ok && out.data && out.data.data) {
         const formatted = out.data.data.map(entry => ({
           time: new Date(entry.timestamp).getTime(),
-          // Check all possible PM2.5 field names QuantAQ uses
           pm25: entry.pm25 || entry.pm2_5 || entry.opcn3_pm25 || entry.pm25_env || 0
         }));
         return res.status(200).json(formatted);
       }
-      
-      return res.status(out.status || 500).json({ 
-        error: "quantaq_failed", 
-        detail: out.data 
-      });
+      return res.status(out.status || 500).json({ error: "quantaq_failed", detail: out.data });
     }
 
-    // --- 2. GROVE HISTORY (C12s) ---
+    // --- 2. GROVE HISTORY (FIXED FOR C12s) ---
     if (action === "grove_history") {
       const compId = req.query.compId;
       if (!compId) return res.status(400).json({ error: "missing_compId" });
-      const url = `https://grovestreams.com/api/comp/${encodeURIComponent(compId)}/feed?api_key=${encodeURIComponent(GROVE_KEY)}`;
+      
+      // Specifically targeting the 'pm25' stream which C12s use
+      const url = `https://grovestreams.com/api/comp/${encodeURIComponent(compId)}/stream/pm25/feed?api_key=${encodeURIComponent(GROVE_KEY)}&limit=100`;
       const out = await fetchJson(url);
+      
       if (out.ok && out.data && out.data.data) {
+          // dashboard.html line: (s.pm25 || s.data || 0)
+          // Grove data returns [[time, val], [time, val]]
           const formatted = out.data.data.map(point => ({
               time: point[0],
               data: point[1]
           }));
           return res.status(200).json(formatted);
       }
-      return res.status(out.status).json({ error: "grove_failed", details: out.data });
+      return res.status(out.status || 500).json({ error: "grove_failed", detail: out.data });
     }
 
     // --- 3. PURPLEAIR BOX ---
@@ -86,14 +80,6 @@ export default async function handler(req, res) {
       const id = req.query.id, start = req.query.start;
       const url = `https://api.purpleair.com/v1/sensors/${encodeURIComponent(id)}/history?fields=pm2.5_atm&average=60&start_timestamp=${encodeURIComponent(start)}`;
       const out = await purpleairFetch(url);
-      return res.status(out.status).json(out.data);
-    }
-
-    // --- 5. GROVE LAST VALUE ---
-    if (action === "grove_last") {
-      const compId = req.query.compId;
-      const url = `https://grovestreams.com/api/comp/${encodeURIComponent(compId)}/last_value?retStreamId&api_key=${encodeURIComponent(GROVE_KEY)}`;
-      const out = await fetchJson(url);
       return res.status(out.status).json(out.data);
     }
 
