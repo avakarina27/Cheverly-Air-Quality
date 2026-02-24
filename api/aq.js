@@ -25,6 +25,16 @@ export default async function handler(req, res) {
       return await fetchJson(url2);
     };
 
+    // --- NEW ACTION ADDED HERE ---
+    if (action === "grove_history") {
+      const compId = req.query.compId;
+      if (!compId) return res.status(400).json({ error: "missing_compId" });
+      // This fetches the actual feed/data stream
+      const url = `https://grovestreams.com/api/comp/${encodeURIComponent(compId)}/feed?api_key=${encodeURIComponent(GROVE_KEY)}`;
+      const out = await fetchJson(url);
+      return res.status(out.status).json(out.data);
+    }
+
     if (action === "purpleair_box") {
       if (!PURPLEAIR_KEY) return res.status(500).json({ error: "missing_PURPLEAIR_API_KEY" });
       const url = "https://api.purpleair.com/v1/sensors?nwlng=-77.15&nwlat=39.05&selng=-76.75&selat=38.75&fields=sensor_index,latitude,longitude,pm2.5_atm";
@@ -34,19 +44,12 @@ export default async function handler(req, res) {
     }
 
     if (action === "purpleair_history") {
-      if (!PURPLEAIR_KEY) return res.status(500).json({ error: "missing_PURPLEAIR_API_KEY" });
       const id = req.query.id, start = req.query.start;
       if (!id || !start) return res.status(400).json({ error: "missing_id_or_start" });
       const url = `https://api.purpleair.com/v1/sensors/${encodeURIComponent(id)}/history?fields=pm2.5_atm&average=60&start_timestamp=${encodeURIComponent(start)}`;
       const out = await purpleairFetch(url);
       if (!out.ok) return res.status(out.status).json({ error: "purpleair_history_failed", details: out.data });
       return res.status(200).json(out.data);
-    }
-
-    if (action === "quantaq_devices") {
-      const auth = Buffer.from(`${QUANTAQ_KEY}:`).toString("base64");
-      const out = await fetchJson("https://api.quant-aq.com/v1/devices?per_page=200", { headers: { Authorization: `Basic ${auth}` } });
-      return res.status(out.status).json(out.data);
     }
 
     if (action === "grove_last") {
