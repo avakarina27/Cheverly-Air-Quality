@@ -1,65 +1,64 @@
 const fetch = require('node-fetch');
 
 module.exports = async (req, res) => {
+    // 1. Set Headers to allow the dashboard to talk to this API
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Content-Type', 'application/json');
+
     const { action, id, compId, start } = req.query;
 
-    // --- CONFIGURATION ---
-    const PURPLEAIR_API_KEY = 'YOUR_PURPLE_AIR_READ_KEY'; 
-    const QUANTAQ_API_KEY = 'YOUR_QUANTAQ_API_KEY'; // Found in your QuantAQ Console
-    // ---------------------
+    // 2. YOUR API KEYS (CRITICAL: Fill these in)
+    const PURPLEAIR_KEY = 'YOUR_PURPLE_AIR_READ_KEY'; 
+    const QUANTAQ_KEY = 'YOUR_QUANTAQ_API_KEY'; 
 
     try {
-        switch (action) {
-            
-            // 1. PURPLEAIR DATA
-            case 'purpleair_box':
-                // Cheverly Area Box
-                const boxUrl = `https://api.purpleair.com/v1/sensors?fields=latitude,longitude,name&nwlat=38.96&nwlng=-76.96&selat=38.89&selng=-76.88`;
-                const boxRes = await fetch(boxUrl, { headers: { 'X-API-Key': PURPLEAIR_API_KEY } });
-                return res.json(await boxRes.json());
-
-            case 'purpleair_history':
-                const histUrl = `https://api.purpleair.com/v1/sensors/${id}/history?start_timestamp=${start}&fields=pm2.5_atm`;
-                const histRes = await fetch(histUrl, { headers: { 'X-API-Key': PURPLEAIR_API_KEY } });
-                return res.json(await histRes.json());
-
-            // 2. QUANTAQ DATA (The New Section)
-            case 'quantaq_history':
-                if (!compId) return res.status(400).json({ error: "Missing compId" });
-                
-                // QuantAQ uses Basic Auth (Key as username, empty password)
-                const auth = Buffer.from(`${QUANTAQ_API_KEY}:`).toString('base64');
-                const qUrl = `https://api.quantaq.com/device-api/v1/devices/${compId}/data-raw/?limit=100`;
-                
-                const qRes = await fetch(qUrl, {
-                    headers: { 'Authorization': `Basic ${auth}` }
-                });
-                
-                const qData = await qRes.json();
-                
-                // Format QuantAQ response to match dashboard expectations
-                if (qData && qData.data) {
-                    const formatted = qData.data.map(entry => ({
-                        time: new Date(entry.timestamp).getTime(),
-                        pm25: entry.pm25 || entry.pm2_5 || 0
-                    }));
-                    return res.json(formatted);
-                }
-                return res.json([]);
-
-            // 3. C12 / GROVE DATA
-            case 'grove_history':
-                // Replace with your specific Grove/C12 data endpoint if different
-                const gUrl = `https://api.grove.id/v1/devices/${compId}/points?limit=100`;
-                const gRes = await fetch(gUrl); 
-                const gData = await gRes.json();
-                return res.json(gData);
-
-            default:
-                return res.status(400).json({ error: "unknown_action", received: action });
+        // --- ROUTE 1: PURPLEAIR SENSOR LIST (The Box) ---
+        if (action === 'purpleair_box') {
+            const url = `https://api.purpleair.com/v1/sensors?fields=latitude,longitude,name&nwlat=38.96&nwlng=-76.96&selat=38.89&selng=-76.88`;
+            const response = await fetch(url, { headers: {'X-API-Key': PURPLEAIR_KEY}});
+            const data = await response.json();
+            return res.status(200).send(JSON.stringify(data));
         }
-    } catch (err) {
-        console.error("Proxy Error:", err);
-        return res.status(500).json({ error: "Internal server error" });
+
+        // --- ROUTE 2: PURPLEAIR HISTORICAL DATA ---
+        if (action === 'purpleair_history') {
+            const url = `https://api.purpleair.com/v1/sensors/${id}/history?start_timestamp=${start}&fields=pm2.5_atm`;
+            const response = await fetch(url, { headers: {'X-API-Key': PURPLEAIR_KEY}});
+            const data = await response.json();
+            return res.status(200).send(JSON.stringify(data));
+        }
+
+        // --- ROUTE 3: QUANTAQ DATA (The "Triangles") ---
+        if (action === 'quantaq_history') {
+            const auth = Buffer.from(`${QUANTAQ_KEY}:`).toString('base64');
+            const url = `https://api.quantaq.com/device-api/v1/devices/${compId}/data-raw/?limit=100`;
+            
+            const response = await fetch(url, {
+                headers: { 'Authorization': `Basic ${auth}` }
+            });
+            const data = await response.json();
+            
+            // Format QuantAQ to match our Dashboard's expectations
+            const formatted = (data.data || []).map(entry => ({
+                time: new Date(entry.timestamp).getTime(),
+                pm25: entry.pm25 || entry.pm2_5 || 0
+            }));
+            return res.status(200).send(JSON.stringify(formatted));
+        }
+
+        // --- ROUTE 4: GROVE / C12 DATA ---
+        if (action === 'grove_history') {
+            const url = `https://api.grove.id/v1/devices/${compId}/points?limit=100`;
+            const response = await fetch(url);
+            const data = await response.json();
+            return res.status(200).send(JSON.stringify(data));
+        }
+
+        // Error if none of the above actions match
+        return res.status(400).send(JSON.stringify({ error: "unknown_action", action }));
+
+    } catch (error) {
+        console.error("Server Error:", error);
+        return res.status(500).send(JSON.stringify({ error: error.message }));
     }
 };
