@@ -21,12 +21,26 @@ export default async function handler(req, res) {
       }
     };
 
-    // --- 1. QUANTAQ HISTORY (KEEPING WORKING) ---
+    const purpleairFetch = async (baseUrl) => {
+      let out = await fetchJson(baseUrl, { headers: { "X-API-Key": PURPLEAIR_KEY } });
+      if (out.ok) return out;
+      const join = baseUrl.includes("?") ? "&" : "?";
+      const url2 = `${baseUrl}${join}api_key=${encodeURIComponent(PURPLEAIR_KEY)}`;
+      return await fetchJson(url2);
+    };
+
+    // --- 1. QUANTAQ HISTORY (Updated to the working /v1/devices/ path) ---
     if (action === "quantaq_history") {
       const sn = req.query.compId;
+      if (!sn) return res.status(400).json({ error: "missing_compId" });
+
       const auth = Buffer.from(`${QUANTAQ_KEY}:`).toString('base64');
+      // Using the hyphenated domain and the correct path that worked in the last test
       const url = `https://api.quant-aq.com/v1/devices/${encodeURIComponent(sn)}/data/?limit=100&raw=true`;
-      const out = await fetchJson(url, { headers: { "Authorization": `Basic ${auth}` } });
+      
+      const out = await fetchJson(url, {
+        headers: { "Authorization": `Basic ${auth}` }
+      });
 
       if (out.ok && out.data && out.data.data) {
         const formatted = out.data.data.map(entry => ({
@@ -35,23 +49,16 @@ export default async function handler(req, res) {
         }));
         return res.status(200).json(formatted);
       }
-      return res.status(out.status || 500).json({ error: "quantaq_failed", detail: out.data });
+      return res.status(out.status).json({ error: "quantaq_failed", details: out.data });
     }
 
-    // --- 2. GROVE HISTORY (ROBUST STREAM DETECTION) ---
+    // --- 2. GROVE HISTORY (Your original working version) ---
     if (action === "grove_history") {
       const compId = req.query.compId;
       if (!compId) return res.status(400).json({ error: "missing_compId" });
       
-      // We try 'pm2_5' first as it's the most common for C-12s, then 'pm25'
-      const streamIds = ['pm2_5', 'pm25', 'PM2.5'];
-      let out;
-
-      for (const sId of streamIds) {
-        const url = `https://grovestreams.com/api/comp/${encodeURIComponent(compId)}/stream/${sId}/feed?api_key=${encodeURIComponent(GROVE_KEY)}&limit=100`;
-        out = await fetchJson(url);
-        if (out.ok) break; // If we find a working stream, stop looking
-      }
+      const url = `https://grovestreams.com/api/comp/${encodeURIComponent(compId)}/feed?api_key=${encodeURIComponent(GROVE_KEY)}`;
+      const out = await fetchJson(url);
       
       if (out.ok && out.data && out.data.data) {
           const formatted = out.data.data.map(point => ({
@@ -60,18 +67,13 @@ export default async function handler(req, res) {
           }));
           return res.status(200).json(formatted);
       }
-      
-      return res.status(out.status || 500).json({ 
-        error: "grove_failed", 
-        message: "Could not find a valid PM2.5 stream ID",
-        detail: out.data 
-      });
+      return res.status(out.status).json({ error: "grove_failed", details: out.data });
     }
 
     // --- 3. PURPLEAIR BOX ---
     if (action === "purpleair_box") {
       const url = "https://api.purpleair.com/v1/sensors?nwlng=-77.15&nwlat=39.05&selng=-76.75&selat=38.75&fields=sensor_index,latitude,longitude,pm2.5_atm";
-      const out = await fetchJson(url, { headers: { "X-API-Key": PURPLEAIR_KEY } });
+      const out = await purpleairFetch(url);
       return res.status(out.status).json(out.data);
     }
 
@@ -79,7 +81,7 @@ export default async function handler(req, res) {
     if (action === "purpleair_history") {
       const id = req.query.id, start = req.query.start;
       const url = `https://api.purpleair.com/v1/sensors/${encodeURIComponent(id)}/history?fields=pm2.5_atm&average=60&start_timestamp=${encodeURIComponent(start)}`;
-      const out = await fetchJson(url, { headers: { "X-API-Key": PURPLEAIR_KEY } });
+      const out = await purpleairFetch(url);
       return res.status(out.status).json(out.data);
     }
 
