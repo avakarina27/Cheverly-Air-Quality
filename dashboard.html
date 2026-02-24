@@ -100,20 +100,23 @@
   }
 
   async function proxyGet(params) {
-    const res = await fetch(API_PROXY + "?" + new URLSearchParams(params).toString());
-    return res.ok ? await res.json() : null;
+    try {
+      const res = await fetch(API_PROXY + "?" + new URLSearchParams(params).toString());
+      return res.ok ? await res.json() : null;
+    } catch (e) { return null; }
   }
 
   async function updateDisplay(id) {
-    let currentAQI = 0, ce24 = 0, history = [], name = "";
     const meta = markerMeta[id];
-    name = meta.name;
+    if (!meta) return; // Safety check to prevent the "name" error
+    
+    let currentAQI = 0, ce24 = 0, history = [];
+    const name = meta.name;
 
     if (meta.type === "quantaq" || meta.type === "c12") {
       const action = (meta.type === "quantaq") ? "quantaq_history" : "grove_history";
       const json = await proxyGet({ action: action, compId: id });
       if (Array.isArray(json) && json.length > 0) {
-        // Sort data chronologically to ensure latest is at the end
         const sorted = [...json].sort((a,b) => a.time - b.time);
         const latest = sorted[sorted.length-1];
         const latestVal = (latest.pm25 !== undefined) ? latest.pm25 : latest.data;
@@ -133,10 +136,11 @@
         history = rows.map(r => ({ x: r[0]*1000, y: aqiFromPM(r[1]) }));
       }
     }
+    
     document.getElementById("statName").innerText = name;
-    document.getElementById("statAQI").innerText = currentAQI;
+    document.getElementById("statAQI").innerText = currentAQI || "--";
     document.getElementById("statAQI").style.color = getAQIColor(currentAQI);
-    document.getElementById("statCE").innerText = ce24;
+    document.getElementById("statCE").innerText = ce24 || "--";
     document.getElementById("statCE").style.color = getAQIColor(ce24);
     chart.data.datasets[0].data = history;
     chart.update();
@@ -144,14 +148,15 @@
 
   function handleDropdownChange(id) { 
     if(markerMap[id]) {
-        map.flyTo(markerMap[id].getLatLng(), 13); 
-        updateDisplay(id); 
+      map.flyTo(markerMap[id].getLatLng(), 13); 
+      updateDisplay(id); 
     }
   }
 
   async function init() {
     const sel = document.getElementById("devSel");
-    // Triangles
+    
+    // 1. Add Triangles
     for(const s of TRI_STATIONS) {
       const m = L.marker([s.lat, s.lon], { icon: makeTriIcon("#999") }).addTo(map);
       markerMap[s.id] = m; markerMeta[s.id] = { name: s.name, type: s.type };
@@ -168,7 +173,8 @@
         }
       });
     }
-    // Circles
+
+    // 2. Add PurpleAir Circles
     const paBox = await proxyGet({ action: "purpleair_box" });
     if(paBox?.data) {
       for(const r of paBox.data) {
@@ -188,9 +194,15 @@
         }
       }
     }
-    // Load default
-    sel.value = "203577"; updateDisplay("203577");
+    
+    // 3. Load Default Station (Must be after the lists are built)
+    const defaultId = "203577";
+    if (markerMeta[defaultId]) {
+      sel.value = defaultId;
+      updateDisplay(defaultId);
+    }
   }
+
   init();
 </script>
 </body>
