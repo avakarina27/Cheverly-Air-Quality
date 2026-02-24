@@ -25,13 +25,45 @@ export default async function handler(req, res) {
       return await fetchJson(url2);
     };
 
-    // --- NEW ACTION ADDED HERE ---
+    // --- QUANTAQ ACTION (ADDED THIS) ---
+    if (action === "quantaq_history") {
+      const compId = req.query.compId;
+      if (!compId) return res.status(400).json({ error: "missing_compId" });
+
+      // QuantAQ uses Basic Auth (Key is the username, password is empty)
+      const auth = Buffer.from(`${QUANTAQ_KEY}:`).toString('base64');
+      const url = `https://api.quantaq.com/device-api/v1/devices/${encodeURIComponent(compId)}/data-raw/?limit=100`;
+      
+      const out = await fetchJson(url, {
+        headers: { "Authorization": `Basic ${auth}` }
+      });
+
+      // Format QuantAQ data to match what your dashboard.html expects
+      if (out.ok && out.data && out.data.data) {
+        const formatted = out.data.data.map(entry => ({
+          time: new Date(entry.timestamp).getTime(),
+          pm25: entry.pm25 || entry.pm2_5 || 0
+        }));
+        return res.status(200).json(formatted);
+      }
+      return res.status(out.status).json({ error: "quantaq_failed", details: out.data });
+    }
+
+    // --- GROVE HISTORY ---
     if (action === "grove_history") {
       const compId = req.query.compId;
       if (!compId) return res.status(400).json({ error: "missing_compId" });
-      // This fetches the actual feed/data stream
       const url = `https://grovestreams.com/api/comp/${encodeURIComponent(compId)}/feed?api_key=${encodeURIComponent(GROVE_KEY)}`;
       const out = await fetchJson(url);
+      
+      // Map GroveStreams [[time, val]] to {time, data} for dashboard.html
+      if (out.ok && out.data && out.data.data) {
+          const formatted = out.data.data.map(point => ({
+              time: point[0],
+              data: point[1]
+          }));
+          return res.status(200).json(formatted);
+      }
       return res.status(out.status).json(out.data);
     }
 
