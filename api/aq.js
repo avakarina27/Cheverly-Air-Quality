@@ -9,14 +9,20 @@ export default async function handler(req, res) {
 
     if (!action) return res.status(400).json({ error: "missing_action" });
 
+    // Helper to handle fetch and parsing
     const fetchJson = async (url, options = {}) => {
-      const r = await fetch(url, options);
-      const text = await r.text();
-      let data = text;
-      try { data = JSON.parse(text); } catch {}
-      return { ok: r.ok, status: r.status, data };
+      try {
+        const r = await fetch(url, options);
+        const text = await r.text();
+        let data = text;
+        try { data = JSON.parse(text); } catch {}
+        return { ok: r.ok, status: r.status, data };
+      } catch (e) {
+        return { ok: false, status: 500, data: e.message };
+      }
     };
 
+    // Helper for PurpleAir specific auth logic
     const purpleairFetch = async (baseUrl) => {
       let out = await fetchJson(baseUrl, { headers: { "X-API-Key": PURPLEAIR_KEY } });
       if (out.ok) return out;
@@ -25,48 +31,49 @@ export default async function handler(req, res) {
       return await fetchJson(url2);
     };
 
-    // --- QUANTAQ ACTION (ADDED THIS) ---
+    // --- 1. QUANTAQ HISTORY ---
     if (action === "quantaq_history") {
       const compId = req.query.compId;
       if (!compId) return res.status(400).json({ error: "missing_compId" });
 
-      // QuantAQ uses Basic Auth (Key is the username, password is empty)
       const auth = Buffer.from(`${QUANTAQ_KEY}:`).toString('base64');
-      const url = `https://api.quantaq.com/device-api/v1/devices/${encodeURIComponent(compId)}/data-raw/?limit=100`;
+      // Fixed: Using the correct hyphenated domain to resolve DNS issues
+      const url = `https://api.quant-aq.com/device-api/v1/devices/${encodeURIComponent(compId)}/data-raw/?limit=100`;
       
       const out = await fetchJson(url, {
         headers: { "Authorization": `Basic ${auth}` }
       });
 
-      // Format QuantAQ data to match what your dashboard.html expects
       if (out.ok && out.data && out.data.data) {
         const formatted = out.data.data.map(entry => ({
           time: new Date(entry.timestamp).getTime(),
-          pm25: entry.pm25 || entry.pm2_5 || 0
+          pm25: entry.pm25 || entry.pm2_5 || entry.opcn3_pm25 || 0
         }));
         return res.status(200).json(formatted);
       }
       return res.status(out.status).json({ error: "quantaq_failed", details: out.data });
     }
 
-    // --- GROVE HISTORY ---
+    // --- 2. GROVE HISTORY (C12s) ---
     if (action === "grove_history") {
       const compId = req.query.compId;
       if (!compId) return res.status(400).json({ error: "missing_compId" });
+      
       const url = `https://grovestreams.com/api/comp/${encodeURIComponent(compId)}/feed?api_key=${encodeURIComponent(GROVE_KEY)}`;
       const out = await fetchJson(url);
       
-      // Map GroveStreams [[time, val]] to {time, data} for dashboard.html
       if (out.ok && out.data && out.data.data) {
+          // dashboard.html looks for .data property for C12s
           const formatted = out.data.data.map(point => ({
               time: point[0],
               data: point[1]
           }));
           return res.status(200).json(formatted);
       }
-      return res.status(out.status).json(out.data);
+      return res.status(out.status).json({ error: "grove_failed", details: out.data });
     }
 
+    // --- 3. PURPLEAIR BOX ---
     if (action === "purpleair_box") {
       if (!PURPLEAIR_KEY) return res.status(500).json({ error: "missing_PURPLEAIR_API_KEY" });
       const url = "https://api.purpleair.com/v1/sensors?nwlng=-77.15&nwlat=39.05&selng=-76.75&selat=38.75&fields=sensor_index,latitude,longitude,pm2.5_atm";
@@ -75,6 +82,7 @@ export default async function handler(req, res) {
       return res.status(200).json(out.data);
     }
 
+    // --- 4. PURPLEAIR HISTORY ---
     if (action === "purpleair_history") {
       const id = req.query.id, start = req.query.start;
       if (!id || !start) return res.status(400).json({ error: "missing_id_or_start" });
@@ -84,6 +92,7 @@ export default async function handler(req, res) {
       return res.status(200).json(out.data);
     }
 
+    // --- 5. GROVE LAST VALUE ---
     if (action === "grove_last") {
       const compId = req.query.compId;
       const url = `https://grovestreams.com/api/comp/${encodeURIComponent(compId)}/last_value?retStreamId&api_key=${encodeURIComponent(GROVE_KEY)}`;
