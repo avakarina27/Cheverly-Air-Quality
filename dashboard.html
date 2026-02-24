@@ -68,7 +68,7 @@
       <div class="legend-item"><span class="dot" style="background-color:#ff0000;"></span> Unhealthy (151+)</div>
       <hr style="margin:10px 0; border:0; border-top:1px solid #eee;">
       <div class="legend-item"><span class="dot" style="background-color:#999;"></span> PurpleAir (Circle)</div>
-      <div class="legend-item"><span class="tri"></span> C12 Industrial (Triangle)</div>
+      <div class="legend-item"><span class="tri"></span> QuantAQ/C12 (Triangle)</div>
     </div>
   </aside>
 
@@ -81,10 +81,20 @@
 <script>
   const API_PROXY = "/api/aq";
   const SENSORS = { "284362": "EJAT.PG.1.284362", "52823": "EJAT.CV.6.52823", "53677": "EJAT.CV.1.53677", "54239": "EJAT.CV.6.54239", "54293": "EJAT.CV.2.54293", "57777": "EJAT.CV.1.57777", "57783": "EJAT.CV.6.57783", "57811": "EJAT.CV.4.57811", "57841": "EJAT.CV.3.57841", "57955": "EJAT.FH.1.57955", "160037": "EJAT.PG.1.160037", "175563": "EJAT.PG.1.175563", "178169": "EJAT.PG.1.178169", "181253": "EJAT.CH.1.181253", "184191": "EJAT.PG.1.184191", "185085": "EJAT.FH.1.185085", "197937": "EJAT.PG.1.197937", "203577": "EJAT.CV.2.203577 (Supersite)", "203597": "EJAT.FH.1.203597", "203601": "EJAT.CV.1.203601", "207729": "EJAT.CV.1.207729", "211993": "EJAT.CV.3.211993", "218227": "EJAT.PG.1.218227", "218237": "EJAT.PG.1.218237", "218273": "EJAT.PG.1.218273" };
-  const C12_STATIONS = [ { id: "D14781", name: "C12: Sector A", lat: 38.92054, lon: -76.919716 }, { id: "D14645", name: "C12: NW Boundary A", lat: 38.991268, lon: -76.943237 }, { id: "D17615", name: "C12: SE Border", lat: 38.908325, lon: -76.899002 }, { id: "E10588", name: "C12: NW Boundary B", lat: 38.991806, lon: -76.943130 }, { id: "D14646", name: "C12: Standalone NW", lat: 38.989586, lon: -76.940407 } ];
-  const CITY_AVG_SENSORS = [14633, 75995, 12595];
+  
+  const QUANTAQ_C12 = [
+    { id: "MOD-00536", name: "QuantAQ: Mosleys", lat: 38.920551, lon: -76.91951 },
+    { id: "MOD-00537", name: "QuantAQ: St. Matthews", lat: 39.243000, lon: -76.512400 },
+    { id: "D14781", name: "C12: Sector A", lat: 38.92054, lon: -76.919716 },
+    { id: "D14645", name: "C12: NW Boundary A", lat: 38.991268, lon: -76.943237 },
+    { id: "D17615", name: "C12: SE Border", lat: 38.908325, lon: -76.899002 },
+    { id: "E10588", name: "C12: NW Boundary B", lat: 38.991806, lon: -76.943130 },
+    { id: "D14646", name: "C12: Standalone NW", lat: 38.989586, lon: -76.940407 }
+  ];
 
+  const CITY_AVG_SENSORS = [14633, 75995, 12595];
   let markerMap = {}, markerMeta = {}, userMarker = null;
+
   const map = L.map("map").setView([38.922, -76.915], 11);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 
@@ -124,8 +134,9 @@
 
   async function updateDisplay(id) {
     let currentAQI = 0, ce24 = 0, history = [], name = "";
-    if (id.startsWith("D") || id.startsWith("E")) {
+    if (id.startsWith("D") || id.startsWith("E") || id.startsWith("MOD")) {
       name = markerMeta[id].name;
+      // Note: Using 'grove_history' for all triangle types as they likely route through the same data proxy logic now
       const json = await proxyGet({ action: "grove_history", compId: id });
       if (Array.isArray(json) && json.length > 0) {
         const samples = [...json].reverse();
@@ -192,27 +203,54 @@
 
   async function init() {
     const sel = document.getElementById("devSel");
-    for(const s of C12_STATIONS) {
+    
+    // Load Triangle Stations (QuantAQ + C12)
+    for(const s of QUANTAQ_C12) {
       const m = L.marker([s.lat, s.lon], { icon: makeSpodIcon("#999") }).addTo(map);
-      markerMap[s.id] = m; markerMeta[s.id] = { name: s.name };
+      markerMap[s.id] = m; 
+      markerMeta[s.id] = { name: s.name };
       sel.add(new Option(s.name, s.id));
       m.on("click", () => { sel.value = s.id; handleDropdownChange(s.id); });
-      // Auto-load color
+      
+      // Fetch initial data for color and tooltip
       proxyGet({ action: "grove_history", compId: s.id }).then(json => {
-        if(json && json.length > 0) m.setIcon(makeSpodIcon(getAQIColor(aqiFromPM(json.reduce((a,b)=>a+b.data,0)/json.length))));
+        if(json && json.length > 0) {
+          const lastAQI = aqiFromPM(json[0].data);
+          const ceAQI = aqiFromPM(json.reduce((a,b)=>a+b.data,0)/json.length);
+          m.setIcon(makeSpodIcon(getAQIColor(ceAQI)));
+          m.bindTooltip(`<b>${s.name}</b><br>Live AQI: ${lastAQI}<br>24h Avg: ${ceAQI}`);
+        }
       });
     }
+
+    // Load Circle Stations (PurpleAir)
     const paBox = await proxyGet({ action: "purpleair_box" });
     if(paBox?.data) {
       for(const r of paBox.data) {
         const id = String(r[0]);
         if(SENSORS[id]) {
-          const m = L.circleMarker([r[1], r[2]], { radius: 11, fillColor: getAQIColor(aqiFromPM(r[3])), color: "#000", weight: 2, fillOpacity: 0.9 }).addTo(map);
-          markerMap[id] = m; sel.add(new Option(SENSORS[id], id));
+          const name = SENSORS[id];
+          const m = L.circleMarker([r[1], r[2]], { radius: 11, fillColor: "#999", color: "#000", weight: 2, fillOpacity: 0.9 }).addTo(map);
+          markerMap[id] = m; 
+          markerMeta[id] = { name: name };
+          sel.add(new Option(name, id));
           m.on("click", () => { sel.value = id; handleDropdownChange(id); });
+          
+          // Initial color and tooltip for PurpleAir
+          const start = Math.floor(Date.now()/1000)-86400;
+          proxyGet({ action: "purpleair_history", id, start }).then(hist => {
+             if(hist?.data) {
+                const rows = hist.data;
+                const lastAQI = aqiFromPM(rows[rows.length-1][1]);
+                const ceAQI = aqiFromPM(rows.reduce((a,b)=>a+b[1],0)/rows.length);
+                m.setStyle({ fillColor: getAQIColor(ceAQI) });
+                m.bindTooltip(`<b>${name}</b><br>Live AQI: ${lastAQI}<br>24h Avg: ${ceAQI}`);
+             }
+          });
         }
       }
     }
+    
     await loadCityAvg();
     sel.value = "203577"; handleDropdownChange("203577");
   }
