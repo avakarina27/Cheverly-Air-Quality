@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>EJAT Air Quality Network</title>
+
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -15,7 +16,7 @@
     .topbar { background: var(--brand-navy); color: white; padding: 0 25px; display: flex; justify-content: space-between; align-items: center; height: 60px; z-index: 2000; }
     #layout { display: flex; height: calc(100vh - 60px); width: 100vw; }
     #sidebar { width: 380px; min-width: 380px; background: #f4f6f8; border-right: 1px solid #ddd; padding: 15px; overflow-y: auto; box-sizing: border-box; }
-    .card { background: white; padding: 15px; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 12px; }
+    .card { background: white; padding: 15px; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
     label { font-size: 0.7rem; font-weight: bold; color: #666; text-transform: uppercase; margin-bottom: 5px; display: block; }
     input, select { width: 100%; padding: 10px; margin-top: 5px; border-radius: 4px; border: 1px solid #ccc; box-sizing: border-box; }
     button { width: 100%; padding: 12px; margin-top: 8px; border-radius: 4px; border: none; background: var(--search-blue); color: white; font-weight: bold; cursor: pointer; }
@@ -23,7 +24,7 @@
     #map { height: 45%; width: 100%; border-bottom: 1px solid #ddd; z-index: 1; }
     #chart-box { height: 55%; width: 100%; padding: 15px; box-sizing: border-box; background: white; }
     .aqi-val { font-size: 64px; font-weight: 900; display: block; text-align: center; line-height: 1.1; text-shadow: 1px 1px 0 #000; }
-    .legend-item { display: flex; align-items: center; margin-bottom: 8px; font-size: 0.85rem; font-weight: 600; }
+    .legend-item { display: flex; align-items: center; margin-bottom: 8px; font-size: 0.85rem; font-weight: 600; color: #333; }
     .dot { width: 18px; height: 18px; border-radius: 50%; margin-right: 12px; border: 2px solid #000; display: inline-block; }
     .tri { width: 0; height: 0; border-left: 10px solid transparent; border-right: 10px solid transparent; border-bottom: 18px solid #999; margin-right: 12px; filter: drop-shadow(0px 0px 1px #000); }
   </style>
@@ -31,13 +32,13 @@
 <body>
 
 <header class="topbar">
-  <div class="brand" style="font-weight:bold;">EJAT Air Quality Network</div>
+  <div class="brand">EJAT Air Quality Dashboard</div>
 </header>
 
 <div id="layout">
   <aside id="sidebar">
     <div class="card">
-      <label>Location Search</label>
+      <label>Find My Station</label>
       <input type="text" id="addrInput" placeholder="Enter Address (e.g. 6401 Forest Rd)">
       <button id="locateBtn">Find Nearest Station</button>
     </div>
@@ -49,19 +50,19 @@
 
     <div class="card">
       <label>Live Reading</label>
-      <div id="statName" style="font-weight:bold; text-align:center; margin-bottom:10px;">--</div>
+      <div id="statName" style="font-weight:bold; text-align:center; margin-bottom:10px; color:#333;">--</div>
       <div id="statAQI" class="aqi-val" style="color:#ccc;">--</div>
-      <div style="text-align:center; font-size:0.7rem; font-weight:bold;">CURRENT AQI</div>
+      <div style="text-align:center; font-size:0.75rem; color:#666; font-weight:bold; margin-bottom:10px;">CURRENT AQI</div>
       <div id="statCE" class="aqi-val" style="color:#ccc;">--</div>
-      <div style="text-align:center; font-size:0.7rem; font-weight:bold;">24HR CE AQI</div>
+      <div style="text-align:center; font-size:0.75rem; color:#666; font-weight:bold;">24HR CE AQI</div>
     </div>
 
     <div class="card">
       <label>Legend</label>
-      <div class="legend-item"><span class="dot" style="background:#00e400;"></span> Good</div>
-      <div class="legend-item"><span class="dot" style="background:#ffff00;"></span> Moderate</div>
-      <div class="legend-item"><span class="tri" style="border-bottom-color:#999;"></span> QuantAQ/C12 (Triangle)</div>
+      <div class="legend-item"><span class="dot" style="background:#00e400;"></span> Good (0-50)</div>
+      <div class="legend-item"><span class="dot" style="background:#ffff00;"></span> Moderate (51-100)</div>
       <div class="legend-item"><span class="dot" style="background:#999;"></span> PurpleAir (Circle)</div>
+      <div class="legend-item"><span class="tri" style="border-bottom-color:#999;"></span> QuantAQ / C12 (Triangle)</div>
     </div>
   </aside>
 
@@ -73,9 +74,9 @@
 
 <script>
   const API_PROXY = "/api/aq";
-  
-  // PURPLE AIRS
-  const SENSORS = {
+
+  // 1. YOUR SENSOR IDS
+  const PURPLEAIRS = {
     "284362": "EJAT.PG.1.284362", "52823": "EJAT.CV.6.52823", "53677": "EJAT.CV.1.53677",
     "54239": "EJAT.CV.6.54239", "54293": "EJAT.CV.2.54293", "57777": "EJAT.CV.1.57777",
     "57783": "EJAT.CV.6.57783", "57811": "EJAT.CV.4.57811", "57841": "EJAT.CV.3.57841",
@@ -87,20 +88,19 @@
     "218273": "EJAT.PG.1.218273"
   };
 
-  // QUANTAQS
-  const SPODS = [
+  const QUANTAQS = [
     { sn: "MOD-00536", name: "QuantAQ MOD-00536 (Mosleys)", lat: 38.920551, lon: -76.91951 },
-    { sn: "MOD-00537", name: "QuantAQ MOD-00537 (Turner Station)", lat: 39.243000, lon: -76.512400 }
-    // Add others as needed...
+    { sn: "MOD-00537", name: "QuantAQ MOD-00537 (Turner Station)", lat: 39.243000, lon: -76.512400 },
+    { sn: "MOD-00733", name: "QuantAQ MOD-00733 (UMD Lab)", lat: 38.905700, lon: -76.911500 }
   ];
 
-  // C12S (Using same triangle logic)
   const C12S = [
-    { sn: "C12-001", name: "C12 Station 1", lat: 38.925, lon: -76.910 }
+    { sn: "C12-001", name: "C12 Station (6401 Forest Rd)", lat: 38.9231, lon: -76.9142 }
   ];
 
   const CITY_AVG_SENSORS = ["14633", "75995", "12595"];
 
+  // 2. STATE & MAP SETUP
   let markerMap = {};
   let markerMeta = {};
   let userMarker = null;
@@ -114,9 +114,13 @@
       { label: "Selected Station", data: [], borderColor: "#4477ce", fill: true, backgroundColor: "rgba(68,119,206,0.1)" },
       { label: "City Average", data: [], borderColor: "#ff4444", borderDash: [5,5], pointRadius: 0, fill: false }
     ]},
-    options: { responsive: true, maintainAspectRatio: false, scales: { x: { type: "time" }, y: { beginAtZero: true } } }
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: { x: { type: "time", time: { unit: "hour" } }, y: { beginAtZero: true, title: { display: true, text: "AQI" } } }
+    }
   });
 
+  // 3. UTILS
   function getAQIColor(aqi) {
     if (aqi <= 50) return "#00e400";
     if (aqi <= 100) return "#ffff00";
@@ -132,23 +136,20 @@
     });
   }
 
+  function calculateAQI(pm) {
+    if (pm === null || pm < 0) return 0;
+    if (pm <= 12) return Math.round((50/12)*pm);
+    if (pm <= 35.4) return Math.round(((100-51)/(35.4-12.1))*(pm-12.1)+51);
+    return Math.round(((150-101)/(55.4-35.5))*(pm-35.5)+101);
+  }
+
   async function proxyGet(params) {
     const url = API_PROXY + "?" + new URLSearchParams(params).toString();
     const res = await fetch(url);
     return res.ok ? await res.json() : null;
   }
 
-  function safeNum(x) { const v = Number(x); return Number.isFinite(v) ? v : null; }
-
-  // PM2.5 AQI calculation
-  function calculateAQI(pm) {
-    if (pm === null || pm < 0) return 0;
-    if (pm <= 12) return Math.round((50/12)*pm);
-    if (pm <= 35.4) return Math.round(((100-51)/(35.4-12.1))*(pm-12.1)+51);
-    if (pm <= 55.4) return Math.round(((150-101)/(55.4-35.5))*(pm-35.5)+101);
-    return 151; 
-  }
-
+  // 4. CORE LOGIC
   function handleDropdownChange(id) {
     if (!markerMap[id]) return;
     map.flyTo(markerMap[id].getLatLng(), 15);
@@ -157,20 +158,20 @@
 
   async function updateDisplay(id) {
     const start = Math.floor(Date.now() / 1000) - 86400;
-    let history = [];
-    
+    let stationData = [];
+
     if (id.startsWith("MOD-") || id.startsWith("C12-")) {
-      // Logic for QuantAQ/C12 history if API supports it
+      // Mock data for C12/QuantAQ or call proxy logic
       setLeftPanel(markerMeta[id].name, "Live", "N/A");
     } else {
       const json = await proxyGet({ action: "purpleair_history", id, start });
       if (json?.data) {
-        history = json.data.map(r => ({ x: r[0]*1000, y: calculateAQI(safeNum(r[1])) }));
-        const cur = history[history.length-1]?.y || 0;
-        setLeftPanel(markerMeta[id].name, cur, cur); // CE logic simplified for speed
+        stationData = json.data.map(r => ({ x: r[0]*1000, y: calculateAQI(r[1]) })).sort((a,b)=>a.x-b.x);
+        const cur = stationData[stationData.length-1]?.y || 0;
+        setLeftPanel(markerMeta[id].name, cur, cur);
       }
     }
-    chart.data.datasets[0].data = history;
+    chart.data.datasets[0].data = stationData;
     chart.update();
   }
 
@@ -182,67 +183,76 @@
     document.getElementById("statCE").style.color = getAQIColor(c);
   }
 
-  // Address Search Logic
+  // 5. ADDRESS SEARCH
   document.getElementById("locateBtn").onclick = async () => {
     const addr = document.getElementById("addrInput").value;
+    if(!addr) return;
     const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addr + " Cheverly MD")}`);
     const data = await res.json();
     if (data.length > 0) {
       const loc = L.latLng(data[0].lat, data[0].lon);
       if (userMarker) map.removeLayer(userMarker);
       userMarker = L.marker(loc).addTo(map).bindPopup("Your Location").openPopup();
-      map.setView(loc, 15);
       
-      let nearest = null, minDist = Infinity;
+      let nearestId = null; let minDist = Infinity;
       Object.keys(markerMap).forEach(id => {
         let d = loc.distanceTo(markerMap[id].getLatLng());
-        if (d < minDist) { minDist = d; nearest = id; }
+        if (d < minDist) { minDist = d; nearestId = id; }
       });
-      if (nearest) { document.getElementById("devSel").value = nearest; handleDropdownChange(nearest); }
+      if (nearestId) { 
+        document.getElementById("devSel").value = nearestId; 
+        handleDropdownChange(nearestId); 
+      }
     }
   };
 
+  // 6. CITY AVERAGE
   async function loadCityAvg() {
-    let totals = {};
+    let buckets = {};
     for (let id of CITY_AVG_SENSORS) {
       const json = await proxyGet({ action: "purpleair_history", id, start: Math.floor(Date.now()/1000)-86400 });
       json?.data?.forEach(r => {
-        let t = Math.floor(r[0]/3600)*3600000;
-        if (!totals[t]) totals[t] = [];
-        totals[t].push(calculateAQI(safeNum(r[1])));
+        let t = Math.floor(r[0]/3600)*3600000; // hourly
+        if (!buckets[t]) buckets[t] = [];
+        buckets[t].push(calculateAQI(r[1]));
       });
     }
-    chart.data.datasets[1].data = Object.keys(totals).map(t => ({ x: Number(t), y: totals[t].reduce((a,b)=>a+b,0)/totals[t].length })).sort((a,b)=>a.x-b.x);
+    chart.data.datasets[1].data = Object.keys(buckets).map(t => ({ 
+      x: Number(t), 
+      y: Math.round(buckets[t].reduce((a,b)=>a+b,0)/buckets[t].length) 
+    })).sort((a,b)=>a.x-b.x);
     chart.update();
   }
 
+  // 7. INITIALIZE
   async function init() {
     const sel = document.getElementById("devSel");
     
-    // 1. Plot QuantAQ & C12
-    [...SPODS, ...C12S].forEach(s => {
+    // Add QuantAQ & C12
+    [...QUANTAQS, ...C12S].forEach(s => {
       const m = L.marker([s.lat, s.lon], { icon: makeTriIcon("#999") }).addTo(map);
-      markerMap[s.sn] = m;
-      markerMeta[s.sn] = { name: s.name };
+      markerMap[s.sn] = m; markerMeta[s.sn] = { name: s.name };
       sel.add(new Option(s.name, s.sn));
       m.on("click", () => { sel.value = s.sn; handleDropdownChange(s.sn); });
     });
 
-    // 2. Plot ONLY listed Purple Airs
+    // Add PurpleAirs (STRICT LIST)
     const json = await proxyGet({ action: "purpleair_box" });
     json?.data?.forEach(r => {
       const id = String(r[0]);
-      if (SENSORS[id]) {
+      if (PURPLEAIRS[id]) {
         const m = L.circleMarker([r[1], r[2]], { radius: 10, fillColor: "#999", color: "#000", fillOpacity: 0.8 }).addTo(map);
-        markerMap[id] = m;
-        markerMeta[id] = { name: SENSORS[id] };
-        sel.add(new Option(SENSORS[id], id));
+        markerMap[id] = m; markerMeta[id] = { name: PURPLEAIRS[id] };
+        sel.add(new Option(PURPLEAIRS[id], id));
         m.on("click", () => { sel.value = id; handleDropdownChange(id); });
       }
     });
 
     loadCityAvg();
-    if (markerMap["203577"]) handleDropdownChange("203577");
+    if (markerMap["203577"]) {
+        document.getElementById("devSel").value = "203577";
+        handleDropdownChange("203577");
+    }
   }
 
   init();
