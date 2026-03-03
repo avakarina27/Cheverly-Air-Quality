@@ -1,182 +1,90 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>EJAT Cheverly Air Quality Network</title>
-  
+  <title>Cheverly Air Quality Network</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  
   <link rel="stylesheet" href="https://unpkg.com/leaflet-geosearch@3.8.0/dist/geosearch.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet-geosearch@3.8.0/dist/bundle.min.js"></script>
-
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    :root { --brand-navy: #1a305e; --brand-blue: #4477ce; }
-    body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-    
-    /* Top Navigator */
-    .navbar { background: var(--brand-navy); color: white; padding: 0 20px; height: 60px; display: flex; justify-content: space-between; align-items: center; z-index: 1000; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
-    .nav-links { display: flex; gap: 25px; }
-    .nav-item { color: white; text-decoration: none; font-weight: bold; font-size: 0.9rem; opacity: 0.8; cursor: pointer; border-bottom: 2px solid transparent; padding-bottom: 4px; }
-    .nav-item:hover, .nav-item.active { opacity: 1; border-bottom: 2px solid white; }
-    
-    #layout { display: flex; flex: 1; overflow: hidden; }
-    
-    /* Sidebar */
-    #sidebar { width: 350px; background: #f4f7f9; border-right: 1px solid #ccc; padding: 20px; overflow-y: auto; box-sizing: border-box; }
-    .card { background: white; border-radius: 10px; padding: 20px; border: 1px solid #ddd; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-    
-    /* Stats & Legend */
-    .stat-label { font-size: 0.7rem; font-weight: bold; color: #666; text-transform: uppercase; letter-spacing: 1px; }
-    #statAQI { font-size: 4rem; font-weight: 900; text-align: center; margin: 10px 0; line-height: 1; color: #ccc; }
-    .legend-grid { display: grid; grid-template-columns: 1fr; gap: 8px; margin-top: 15px; }
-    .legend-item { display: flex; align-items: center; gap: 10px; font-size: 0.85rem; font-weight: 600; }
-    .color-circle { width: 15px; height: 15px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.1); }
-
-    /* Main Map View */
-    #map-container { flex: 1; position: relative; }
-    #map { height: 100%; width: 100%; }
-
-    /* Tooltip Styling (Hover Data) */
-    .custom-tooltip { background: white; border: 2px solid var(--brand-navy); border-radius: 5px; padding: 8px; font-weight: bold; font-size: 13px; box-shadow: 0 2px 6px rgba(0,0,0,0.15); }
+    body { margin:0; display: flex; flex-direction: column; height: 100vh; font-family: sans-serif; }
+    #header { background: #1a305e; color: white; padding: 15px; display: flex; justify-content: space-between; }
+    #main { display: flex; flex: 1; }
+    #map { flex: 2; height: 100%; }
+    #details { flex: 1; background: #f8f9fa; padding: 20px; display: flex; flex-direction: column; gap: 20px; }
+    .chart-container { height: 250px; background: white; border: 1px solid #ddd; border-radius: 8px; }
   </style>
 </head>
 <body>
 
-  <nav class="navbar">
-    <div style="display: flex; align-items: center; gap: 10px;">
-      <div style="background: white; color: var(--brand-navy); font-weight: 900; padding: 5px 10px; border-radius: 4px;">EJAT</div>
-      <div style="font-weight: bold; letter-spacing: 1px;">CHEVERLY NETWORK</div>
+<div id="header">
+  <div style="font-weight:bold;">EJAT NETWORK</div>
+  <div>DC Area Average: <span id="dcAvg">--</span> AQI</div>
+</div>
+
+<div id="main">
+  <div id="map"></div>
+  <aside id="details">
+    <div id="info">
+      <h3 id="selName">Select a Sensor</h3>
+      <p>Type: <span id="selType">--</span></p>
+      <h1 id="selAQI">--</h1>
     </div>
-    
-    <div class="nav-links">
-      <a class="nav-item active">MAP VIEW</a>
-      <a class="nav-item">STATION LIST</a>
-      <a class="nav-item">ALERTS</a>
+    <div class="chart-container">
+      <canvas id="timeChart"></canvas>
     </div>
+  </aside>
+</div>
 
-    <div style="background: rgba(255,255,255,0.1); padding: 8px 15px; border-radius: 30px; font-size: 0.85rem;">
-      DC Area Average: <span id="dcAvg" style="font-weight: bold; color: #00e400;">--</span> AQI
-    </div>
-  </nav>
+<script>
+  const map = L.map('map').setView([38.922, -76.915], 13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-  <div id="layout">
-    <aside id="sidebar">
-      <div class="card">
-        <div class="stat-label">Selected Sensor</div>
-        <div id="statName" style="font-weight: bold; color: var(--brand-navy); margin-top: 10px; font-size: 1.1rem;">Click a marker</div>
-        <div id="statAQI">--</div>
-        <div style="text-align: center; font-size: 0.75rem; font-weight: bold; color: #999;">LIVE PM2.5 AQI</div>
-      </div>
+  // 1. ADDRESS SEARCH
+  const search = new GeoSearch.GeoSearchControl({
+    provider: new GeoSearch.OpenStreetMapProvider(),
+    style: 'bar', showMarker: true, keepResult: true,
+    placeholder: 'Search Cheverly Address...'
+  });
+  map.addControl(search);
 
-      <div class="card">
-        <div class="stat-label">Air Quality Legend</div>
-        <div class="legend-grid">
-          <div class="legend-item"><div class="color-circle" style="background: #00e400;"></div> 0 - 50: Good</div>
-          <div class="legend-item"><div class="color-circle" style="background: #ffff00;"></div> 51 - 100: Moderate</div>
-          <div class="legend-item"><div class="color-circle" style="background: #ff7e00;"></div> 101 - 150: Sensitive Groups</div>
-          <div class="legend-item"><div class="color-circle" style="background: #ff0000;"></div> 151+: Unhealthy</div>
-        </div>
-      </div>
-      
-      <div style="font-size: 0.7rem; color: #aaa; text-align: center; padding: 10px;">
-        Data updated every 10 minutes. <br> Powered by PurpleAir & QuantAQ.
-      </div>
-    </aside>
+  // 2. TIMESERIES CHART
+  const ctx = document.getElementById('timeChart').getContext('2d');
+  const chart = new Chart(ctx, {
+    type: 'line',
+    data: { labels: ['10m','9m','8m','7m','6m','5m','4m','3m','2m','Now'], datasets: [{ label: 'AQI History', data: [], borderColor: '#4477ce' }] },
+    options: { maintainAspectRatio: false }
+  });
 
-    <main id="map-container">
-      <div id="map"></div>
-    </main>
-  </div>
+  // 3. LOAD ALL SENSORS
+  async function loadData() {
+    const res = await fetch('/api/aq');
+    const data = await res.json();
+    let sum = 0, count = 0;
 
-  <script>
-    // Initialize Map on Cheverly
-    const map = L.map('map', { zoomControl: false }).setView([38.922, -76.915], 13);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-    L.control.zoom({ position: 'bottomright' }).addTo(map);
+    data.forEach(s => {
+      const color = s.aqi > 100 ? 'red' : s.aqi > 50 ? 'yellow' : 'green';
+      const marker = L.circleMarker([s.lat, s.lon], { radius: 10, fillColor: color, color: '#000', weight: 1, fillOpacity: 0.8 }).addTo(map);
 
-    // 1. ADDRESS SEARCH (The feature you requested)
-    const searchProvider = new window.GeoSearch.OpenStreetMapProvider();
-    const searchControl = new window.GeoSearch.GeoSearchControl({
-      provider: searchProvider,
-      style: 'bar',
-      placeholder: 'Search for a house or street address...',
-      showMarker: true,
-      retainZoomLevel: false,
-      animateZoom: true,
-      keepResult: true
+      // HOVER DATA
+      marker.bindTooltip(`<b>${s.type}: ${s.id}</b><br>AQI: ${s.aqi}`);
+
+      marker.on('click', () => {
+        document.getElementById('selName').innerText = s.name;
+        document.getElementById('selType').innerText = s.type;
+        document.getElementById('selAQI').innerText = s.aqi;
+        // Update Chart with dummy historical data
+        chart.data.datasets[0].data = Array.from({length: 10}, () => Math.floor(Math.random() * 60));
+        chart.update();
+      });
+
+      if(s.aqi > 0) { sum += s.aqi; count++; }
     });
-    map.addControl(searchControl);
+    document.getElementById('dcAvg').innerText = Math.round(sum/count);
+  }
 
-    function getAQIColor(aqi) {
-      if (!aqi || aqi === 0) return "#ccc";
-      if (aqi <= 50) return "#00e400";
-      if (aqi <= 100) return "#ffff00";
-      if (aqi <= 150) return "#ff7e00";
-      return "#ff0000";
-    }
-
-    // 2. DATA LOAD & HOVER DATA & DC AVERAGE
-    async function loadNetworkData() {
-      try {
-        const response = await fetch('/api/aq?action=purpleair_box');
-        if (!response.ok) throw new Error("Vercel Limit");
-        
-        const json = await response.json();
-        let aqiTotal = 0;
-        let sensorCount = 0;
-
-        json.data.forEach(sensor => {
-          const id = sensor[0];
-          const lat = sensor[1];
-          const lon = sensor[2];
-          const aqi = Math.round(sensor[3] || 0);
-
-          const marker = L.circleMarker([lat, lon], {
-            radius: 12,
-            fillColor: getAQIColor(aqi),
-            color: "#000",
-            weight: 1.5,
-            fillOpacity: 0.9
-          }).addTo(map);
-
-          // HOVER DATA (Tooltip)
-          marker.bindTooltip(`<b>Sensor ${id}</b><br>Live AQI: ${aqi}`, {
-            className: 'custom-tooltip',
-            direction: 'top',
-            offset: [0, -10]
-          });
-
-          // UPDATE SIDEBAR ON CLICK
-          marker.on('click', () => {
-            document.getElementById('statName').innerText = "Sensor ID: " + id;
-            document.getElementById('statAQI').innerText = aqi;
-            document.getElementById('statAQI').style.color = getAQIColor(aqi);
-            map.flyTo([lat, lon], 15);
-          });
-
-          if (aqi > 0) {
-            aqiTotal += aqi;
-            sensorCount++;
-          }
-        });
-
-        // 3. DC AREA AVERAGE CALCULATION
-        if (sensorCount > 0) {
-          const avg = Math.round(aqiTotal / sensorCount);
-          document.getElementById('dcAvg').innerText = avg;
-          document.getElementById('dcAvg').style.color = getAQIColor(avg);
-        }
-
-      } catch (err) {
-        console.warn("Could not load live data. Check Vercel limits.");
-        document.getElementById('statName').innerText = "API Limit Reached";
-        document.getElementById('statAQI').innerText = "!!";
-      }
-    }
-
-    loadNetworkData();
-  </script>
+  loadData();
+</script>
 </body>
 </html>
