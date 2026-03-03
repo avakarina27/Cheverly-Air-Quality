@@ -1,3 +1,5 @@
+export const config = { runtime: "nodejs" };
+
 export default async function handler(req, res) {
   try {
     const action = req.query.action;
@@ -18,11 +20,9 @@ export default async function handler(req, res) {
 
     // PurpleAir can work either via header or query param depending on endpoint/account
     const purpleairFetch = async (baseUrl) => {
-      // Attempt 1: header auth
       let out = await fetchJson(baseUrl, { headers: { "X-API-Key": PURPLEAIR_KEY } });
       if (out.ok) return out;
 
-      // Attempt 2: query auth
       const join = baseUrl.includes("?") ? "&" : "?";
       const url2 = `${baseUrl}${join}api_key=${encodeURIComponent(PURPLEAIR_KEY)}`;
       return await fetchJson(url2);
@@ -90,6 +90,10 @@ export default async function handler(req, res) {
       };
     };
 
+    const normSn = (s) => String(s || "")
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, "");
+
     const getQuantDevices = async () => {
       const headers = quantAuthHeaders();
       const url = "https://api.quant-aq.com/v1/devices?per_page=200&page=1";
@@ -108,41 +112,86 @@ export default async function handler(req, res) {
       return await fetchJson(url, { headers });
     };
 
-    // QuantAQ: data-by-date (simple; your dashboard calls this for today + yesterday)
     if (action === "quantaq_by_date") {
       if (!QUANTAQ_KEY) return res.status(500).json({ error: "missing_QUANTAQ_API_KEY" });
 
-      const sn = req.query.sn;
+      const snInput = req.query.sn;
       const date = req.query.date;
-      if (!sn || !date) return res.status(400).json({ error: "missing_sn_or_date" });
+      if (!snInput || !date) return res.status(400).json({ error: "missing_sn_or_date" });
 
-      const out = await quantDataByDate(sn, date);
-      if (!out.ok) {
-        return res.status(out.status).json({
-          error: "quantaq_by_date_failed",
-          status: out.status,
-          details: out.data,
-          url: `https://api.quant-aq.com/v1/devices/${sn}/data-by-date/${date}/`
+      // 1) Try exactly as provided
+      let out = await quantDataByDate(snInput, date);
+      if (out.ok) return res.status(200).json(out.data);
+
+      // 2) If it's a 404, try resolve serial by listing devices
+      if (out.status === 404) {
+        const devs = await getQuantDevices();
+
+        if (!devs.ok) {
+          return res.status(devs.status).json({
+            error: "quantaq_devices_list_failed",
+            details: devs.data,
+            original_try: { sn: snInput, date, status: out.status, details: out.data }
+          });
+        }
+
+        const list = Array.isArray(devs.data?.data) ? devs.data.data : [];
+        const target = normSn(snInput);
+
+        let match = list.find(d => normSn(d?.sn) === target);
+
+        if (!match) {
+          const stripZeros = (x) => normSn(x).replace(/0+/g, "0").replace(/0([1-9])/g, "$1");
+          const targetLoose = stripZeros(snInput);
+          match = list.find(d => stripZeros(d?.sn) === targetLoose);
+        }
+
+        if (match?.sn) {
+          const retry = await quantDataByDate(match.sn, date);
+          if (retry.ok) {
+            return res.status(200).json({
+              resolved_sn: match.sn,
+              data: retry.data
+            });
+          }
+
+          return res.status(retry.status).json({
+            error: "quantaq_retry_failed",
+            resolved_sn: match.sn,
+            details: retry.data
+          });
+        }
+
+        const sample = list.slice(0, 15).map(d => d?.sn).filter(Boolean);
+
+        return res.status(404).json({
+          error: "quantaq_sn_not_found_for_key",
+          provided_sn: snInput,
+          hint: "Your QuantAQ key does not see a device with that serial. Use one of the returned sns in your SPODS list.",
+          sample_sns: sample,
+          total_visible_devices: list.length
         });
       }
 
-      return res.status(200).json(out.data);
+      return res.status(out.status).json({
+        error: "quantaq_failed",
+        status: out.status,
+        details: out.data
+      });
     }
 
     // ------------------------
-    // GroveStreams (C12): last_value
+    // GroveStreams (C-12): last values
     // ------------------------
     if (action === "grove_last") {
-      // You can pass api_key via query for testing, but DO NOT rely on it long-term.
-      const apiKey = req.query.api_key || GROVE_KEY;
-      const compId = req.query.compId;
+      if (!GROVE_KEY) return res.status(500).json({ error: "missing_GROVESTREAMS_API_KEY" });
 
+      const compId = req.query.compId;
       if (!compId) return res.status(400).json({ error: "missing_compId" });
-      if (!apiKey) return res.status(500).json({ error: "missing_GROVESTREAMS_API_KEY" });
 
       const url =
         `https://grovestreams.com/api/comp/${encodeURIComponent(compId)}/last_value` +
-        `?retStreamId&api_key=${encodeURIComponent(apiKey)}`;
+        `?retStreamId&api_key=${encodeURIComponent(GROVE_KEY)}`;
 
       const out = await fetchJson(url);
 
@@ -155,6 +204,7 @@ export default async function handler(req, res) {
         });
       }
 
+      // Grove returns an array like [{data, streamId, time}, ...]
       return res.status(200).json(out.data);
     }
 
