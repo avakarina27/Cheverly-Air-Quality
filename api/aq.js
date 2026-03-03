@@ -11,7 +11,9 @@ export default async function handler(req, res) {
         headers: { "Authorization": `Basic ${auth}` }
       });
       const j = await r.json();
-      return res.json(j.data.map(e => ({ time: new Date(e.timestamp).getTime(), pm25: e.pm25 || 0 })));
+      // Added safety check: if j.data doesn't exist, return empty array
+      const data = j.data || [];
+      return res.json(data.map(e => ({ time: new Date(e.timestamp).getTime(), pm25: e.pm25 || 0 })));
     }
 
     if (action === "purpleair_box") {
@@ -26,15 +28,17 @@ export default async function handler(req, res) {
       return res.json(j);
     }
     
-    // Fallback for C12
     if (action === "grove_history") {
       const r = await fetch(`https://grovestreams.com/api/comp/${compId}/feed?api_key=${gk}`);
       const j = await r.json();
-      return res.json(j.data.map(p => ({ time: p[0], data: p[1] })));
+      // GroveStreams usually returns a nested data array or a feed object
+      const data = j.data || j.feed?.data || [];
+      return res.json(data.map(p => ({ time: p[0], data: p[1] })));
     }
 
     return res.status(404).send("Not Found");
   } catch (e) {
+    console.error("API Proxy Error:", e.message);
     return res.status(500).json({ error: e.message });
   }
 }
