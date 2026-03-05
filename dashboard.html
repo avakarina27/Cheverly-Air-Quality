@@ -240,7 +240,6 @@
     "218273": "EJAT.PG.1.218273"
   };
 
-  // QuantAQ devices
   const SPODS = [
     { sn: "MOD-00536", name: "QuantAQ MOD-00536 (Mosleys - Cheverly)", lat: 38.920551, lon: -76.91951 },
     { sn: "MOD-00537", name: "QuantAQ MOD-00537 (St. Matthews Church - Turner Station)", lat: 39.243000, lon: -76.512400 },
@@ -254,7 +253,6 @@
     { sn: "MOD-00824", name: "QuantAQ MOD-00824 (CHECD centralized site - Baltimore)", lat: 39.224470, lon: -76.587008 }
   ];
 
-  // C-12 active compIDs (green / working)
   const C12S = [
     { compId: "D14781", name: "C-12 D14781 (Cheverly ARP 1st Supersite - Mosleys)" },
     { compId: "D14645", name: "C-12 D14645 (Cheverly ARP 2nd Supersite - Mr. Jones)" },
@@ -345,16 +343,12 @@
     const now = new Date();
     const today = isoDateLocal(now);
     const yday = isoDateLocal(new Date(now.getTime() - 86400000));
-
     const a = await proxyGet({ action: "quantaq_by_date", sn, date: today });
     const b = await proxyGet({ action: "quantaq_by_date", sn, date: yday });
-
     const rows = [];
     if (b && b.data) rows.push(...b.data);
     if (a && a.data) rows.push(...a.data);
-
     const cutoff = Date.now() - 86400000;
-
     return rows
       .map(r => {
         const tRaw = r.timestamp_local || r.timestamp || r.time || r.datetime;
@@ -397,7 +391,6 @@
     if (C === null || C === undefined) return null;
     const c = Number(C);
     if (!Number.isFinite(c) || c < 0) return null;
-
     for (const bp of table) {
       if (c >= bp.cLow && c <= bp.cHigh) {
         const I = ((bp.iHigh - bp.iLow) / (bp.cHigh - bp.cLow)) * (c - bp.cLow) + bp.iLow;
@@ -407,7 +400,6 @@
     return null;
   }
 
-  // PM2.5 24h EPA AQI breakpoints
   const BP_PM25_24H = [
     { cLow: 0.0,   cHigh: 12.0,   iLow: 0,   iHigh: 50 },
     { cLow: 12.1,  cHigh: 35.4,   iLow: 51,  iHigh: 100 },
@@ -418,7 +410,6 @@
     { cLow: 350.5, cHigh: 500.4,  iLow: 401, iHigh: 500 }
   ];
 
-  // CE adders (your current logic)
   function ceAdderPercent(aqi) {
     if (aqi >= 80 && aqi <= 99) return 0.01;
     if (aqi >= 100 && aqi <= 119) return 0.02;
@@ -429,16 +420,13 @@
   function computeCEAQIFromAQIs(aqis) {
     const list = aqis.filter(v => Number.isFinite(v));
     if (!list.length) return 0;
-
     const base = Math.max(...list);
-
     let adders = 0;
     for (const aqi of list) {
       if (aqi === base) continue;
       const pct = ceAdderPercent(aqi);
       if (pct > 0) adders += base * pct;
     }
-
     return Math.round(base + adders);
   }
 
@@ -447,16 +435,9 @@
     return aqi === null ? 0 : aqi;
   }
 
-  // --------
-  // C-12: convert BC (880nm) to an AQI-like number
-  // This is a placeholder mapping so your dashboard works end-to-end.
-  // When we add true annual + benchmark logic, we can swap this function.
-  // --------
   function computeAQI_FromBC_880ngm3(bc) {
     const v = safeNum(bc);
     if (v === null) return 0;
-
-    // Simple linear scale: 600 ng/m3 -> AQI 100, cap at 500
     const aqi = Math.round((v / 600.0) * 100.0);
     return Math.max(0, Math.min(500, aqi));
   }
@@ -482,107 +463,75 @@
   async function updateDisplay(id) {
     const start = Math.floor(Date.now() / 1000) - 86400;
 
-    // ----- C-12 -----
     if (id.startsWith("C12-")) {
       showC12Vars(true);
       const compId = id.replace("C12-", "");
       const meta = C12S.find(x => x.compId === compId);
       const displayName = meta ? meta.name : `C-12 ${compId}`;
-
       const json = await fetchC12Last(compId);
-      // expected: array of {data, streamId, time}
       const rows = Array.isArray(json) ? json : (Array.isArray(json?.data) ? json.data : []);
       const pick = (sid) => rows.find(r => String(r.streamId) === sid);
-
       const bc = pick("880nm")?.data;
       const flow = pick("Flow")?.data;
       const bp = pick("BP")?.data;
       const bt = pick("BT")?.data;
       const rssi = pick("rssi")?.data;
-      const lat = pick("lat")?.data;
-      const lon = pick("long")?.data;
       const tms = pick("880nm")?.time || pick("BP")?.time || pick("BT")?.time || null;
-
       const currentAQI = computeAQI_FromBC_880ngm3(bc);
-
-      // Until GroveStreams history is wired in, CE = current for C-12
       const ce24 = currentAQI;
-
       setLeftReadout(displayName, currentAQI, ce24);
-
       document.getElementById("c12_bc").innerText = (bc ?? "--");
       document.getElementById("c12_flow").innerText = (flow ?? "--");
       document.getElementById("c12_bp").innerText = (bp ?? "--");
       document.getElementById("c12_bt").innerText = (bt ?? "--");
       document.getElementById("c12_rssi").innerText = (rssi ?? "--");
       document.getElementById("c12_time").innerText = (tms ? new Date(tms).toLocaleString() : "--");
-
-      // Color marker by CE-AQI
-      if (markerMap[id]) markerMap[id].setIcon(makeC12Icon(getAQIColor(ce24)));
-
-      // Plot: we do not have a C-12 time series yet, so clear local dataset
+      if (markerMap[id]) {
+          markerMap[id].setIcon(makeC12Icon(getAQIColor(ce24)));
+          markerMap[id].setTooltipContent(`<b>${displayName}</b><br>Current AQI: ${currentAQI}<br>24h CE AQI: ${ce24}`);
+      }
       chart.data.datasets[0].data = [];
       chart.update();
-
-      // If lat/lon exists, keep marker location sane (optional)
-      if (markerMap[id] && lat != null && lon != null) {
-        // do not move marker constantly; only if coordinates are valid and marker is at 0,0 (not used here)
-      }
-
       return;
     }
 
-    // ----- QuantAQ -----
     if (id.startsWith("MOD-")) {
       showC12Vars(false);
       const meta = SPODS.find(s => s.sn === id);
       const name = meta ? meta.name : id;
-
       const series = await fetchQuantAQLast24h(id);
       const latest = series.length ? series[series.length - 1] : null;
-
       const currentAQI = latest ? computeCurrentAQI_FromPM(latest.pm25) : 0;
-
-      // Your QuantAQ CE logic: right now it’s PM2.5 only unless other fields exist in your feed
-      // (We can expand once you confirm which QuantAQ fields are populated consistently.)
       const pm25_24 = avg(series.map(p => p.pm25).filter(v => v !== null));
       const aqi_pm25_24 = aqiFromBreakpoints(pm25_24, BP_PM25_24H);
       const ce24 = computeCEAQIFromAQIs([aqi_pm25_24].filter(v => v !== null));
-
       setLeftReadout(name, currentAQI, ce24);
-
-      // Color triangle by CE-AQI
-      if (markerMap[id]) markerMap[id].setIcon(makeSpodIcon(getAQIColor(ce24)));
-
-      // Plot AQI time series derived from PM2.5
-      chart.data.datasets[0].data = series
-        .filter(p => Number.isFinite(p.t))
-        .map(p => ({ x: p.t, y: computeCurrentAQI_FromPM(p.pm25) }));
+      if (markerMap[id]) {
+          markerMap[id].setIcon(makeSpodIcon(getAQIColor(ce24)));
+          markerMap[id].setTooltipContent(`<b>${name}</b><br>Current AQI: ${currentAQI}<br>24h CE AQI: ${ce24}`);
+      }
+      chart.data.datasets[0].data = series.filter(p => Number.isFinite(p.t)).map(p => ({ x: p.t, y: computeCurrentAQI_FromPM(p.pm25) }));
       chart.update();
       return;
     }
 
-    // ----- PurpleAir -----
     showC12Vars(false);
     const json = await fetchPurpleAirHistory(id, start);
     if (json && json.data) {
       const rows = json.data.sort((a,b)=>a[0]-b[0]);
       const latestRow = rows.length ? rows[rows.length - 1] : null;
-
       const pmNow = latestRow ? safeNum(latestRow[1]) : null;
       const currentAQI = computeCurrentAQI_FromPM(pmNow);
-
       const pmSeries = rows.map(r => safeNum(r[1])).filter(v => v !== null);
       const pm24 = avg(pmSeries);
       const aqiPm24 = aqiFromBreakpoints(pm24, BP_PM25_24H);
       const ce24 = computeCEAQIFromAQIs([aqiPm24].filter(v => v !== null));
-
       const name = SENSORS[id] || "Unknown Station";
       setLeftReadout(name, currentAQI, ce24);
-
-      // Color circle by CE-AQI
-      if (markerMap[id]) markerMap[id].setStyle({ fillColor: getAQIColor(ce24) });
-
+      if (markerMap[id]) {
+          markerMap[id].setStyle({ fillColor: getAQIColor(ce24) });
+          markerMap[id].setTooltipContent(`<b>${name}</b><br>Current AQI: ${currentAQI}<br>24h CE AQI: ${ce24}`);
+      }
       chart.data.datasets[0].data = rows.map(r => ({ x: r[0]*1000, y: computeCurrentAQI_FromPM(safeNum(r[1])) }));
       chart.update();
     }
@@ -602,7 +551,6 @@
         });
       }
     }
-
     chart.data.datasets[1].data = Object.keys(combined)
       .map(t => {
         const arr = combined[t];
@@ -610,45 +558,34 @@
         return { x: parseInt(t, 10), y: avgVal };
       })
       .sort((a, b) => a.x - b.x);
-
     chart.update();
   }
 
   document.getElementById("locateBtn").addEventListener("click", async () => {
     const query = document.getElementById("addrInput").value;
     if (!query) return;
-
     const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ", Cheverly, MD")}`;
-
     try {
       const response = await fetch(url);
       const results = await response.json();
       if (!results.length) return;
-
       const lat = Number(results[0].lat);
       const lon = Number(results[0].lon);
       const userLoc = L.latLng(lat, lon);
-
       if (userMarker) map.removeLayer(userMarker);
       userMarker = L.marker([lat, lon]).addTo(map).bindPopup("Your Location").openPopup();
-
       map.flyTo(userLoc, 15);
-
       let nearestId = null;
       let minDist = Infinity;
-
       Object.keys(markerMap).forEach(id => {
         const dist = userLoc.distanceTo(markerMap[id].getLatLng());
         if (dist < minDist) { minDist = dist; nearestId = id; }
       });
-
       if (nearestId) {
         document.getElementById("devSel").value = nearestId;
         handleDropdownChange(nearestId);
       }
-    } catch (e) {
-      console.error(e);
-    }
+    } catch (e) { console.error(e); }
   });
 
   async function init() {
@@ -658,38 +595,47 @@
     for (const s of SPODS) {
       let currentAQI = 0;
       let ce24 = 0;
-
       try {
         const series = await fetchQuantAQLast24h(s.sn);
         const latest = series.length ? series[series.length - 1] : null;
         currentAQI = latest ? computeCurrentAQI_FromPM(latest.pm25) : 0;
-
         const pm25_24 = avg(series.map(p => p.pm25).filter(v => v !== null));
         const aqi_pm25_24 = aqiFromBreakpoints(pm25_24, BP_PM25_24H);
         ce24 = computeCEAQIFromAQIs([aqi_pm25_24].filter(v => v !== null));
       } catch (e) {}
-
       const m = L.marker([s.lat, s.lon], { icon: makeSpodIcon(getAQIColor(ce24)) }).addTo(map);
       markerMap[s.sn] = m;
       sel.add(new Option(s.name, s.sn));
-
       m.bindTooltip(`<b>${s.name}</b><br>Current AQI: ${currentAQI}<br>24h CE AQI: ${ce24}`);
       m.on("click", () => { sel.value = s.sn; handleDropdownChange(s.sn); });
     }
 
-    // 2) PurpleAir (initially CE derived from 24h history is computed when selected, but we can still color by current until selection)
+    // 2) PurpleAir (Revised to fetch CE AQI for Tooltips)
     const pa = await fetchPurpleAirBox();
     if (pa && pa.data) {
-      pa.data.forEach(r => {
+      await Promise.all(pa.data.map(async (r) => {
         const id = String(r[0]);
         if (!SENSORS[id]) return;
 
         const pmNow = safeNum(r[3]);
         const currentAQI = computeCurrentAQI_FromPM(pmNow);
+        
+        // Fetch 24h history to calculate CE value for the tooltip
+        const start = Math.floor(Date.now() / 1000) - 86400;
+        let ce24 = currentAQI; 
+        try {
+          const history = await fetchPurpleAirHistory(id, start);
+          if (history && history.data) {
+            const pmSeries = history.data.map(h => safeNum(h[1])).filter(v => v !== null);
+            const pm24 = avg(pmSeries);
+            const aqiPm24 = aqiFromBreakpoints(pm24, BP_PM25_24H);
+            ce24 = computeCEAQIFromAQIs([aqiPm24].filter(v => v !== null));
+          }
+        } catch(e) {}
 
         const m = L.circleMarker([r[1], r[2]], {
           radius: 11,
-          fillColor: getAQIColor(currentAQI),
+          fillColor: getAQIColor(ce24),
           color: "#000",
           weight: 2,
           fillOpacity: 0.9
@@ -697,10 +643,9 @@
 
         markerMap[id] = m;
         sel.add(new Option(SENSORS[id], id));
-
-        m.bindTooltip(`<b>${SENSORS[id]}</b><br>Current AQI: ${currentAQI}<br>24h CE AQI: `);
+        m.bindTooltip(`<b>${SENSORS[id]}</b><br>Current AQI: ${currentAQI}<br>24h CE AQI: ${ce24}`);
         m.on("click", () => { sel.value = id; handleDropdownChange(id); });
-      });
+      }));
     }
 
     // 3) C-12 (GroveStreams)
@@ -709,33 +654,23 @@
         const json = await fetchC12Last(c.compId);
         const rows = Array.isArray(json) ? json : (Array.isArray(json?.data) ? json.data : []);
         const pick = (sid) => rows.find(r => String(r.streamId) === sid);
-
         const lat = safeNum(pick("lat")?.data);
         const lon = safeNum(pick("long")?.data);
         if (lat === null || lon === null) continue;
-
         const bc = pick("880nm")?.data;
         const currentAQI = computeAQI_FromBC_880ngm3(bc);
-        const ce24 = currentAQI; // until we add GroveStreams history
-
+        const ce24 = currentAQI; 
         const id = `C12-${c.compId}`;
         const m = L.marker([lat, lon], { icon: makeC12Icon(getAQIColor(ce24)) }).addTo(map);
-
         markerMap[id] = m;
         sel.add(new Option(c.name, id));
-
         m.bindTooltip(`<b>${c.name}</b><br>Current AQI: ${currentAQI}<br>24h CE AQI: ${ce24}`);
         m.on("click", () => { sel.value = id; handleDropdownChange(id); });
-      } catch (e) {
-        // skip if a single C-12 fails
-      }
+      } catch (e) {}
     }
 
     await loadCityAvg();
-
-    // Default selection
     if (sel.options.length) {
-      // prefer supersite if present
       const prefer = "203577";
       sel.value = (markerMap[prefer] ? prefer : sel.options[0].value);
       handleDropdownChange(sel.value);
