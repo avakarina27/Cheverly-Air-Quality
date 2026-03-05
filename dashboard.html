@@ -698,7 +698,7 @@
         markerMap[id] = m;
         sel.add(new Option(SENSORS[id], id));
 
-        m.bindTooltip(`<b>${SENSORS[id]}</b><br>Current AQI: ${currentAQI}<br>24h CE AQI: (computed on select)`);
+        m.bindTooltip(`<b>${SENSORS[id]}</b><br>Current AQI: ${currentAQI}<br>24h CE AQI: `);
         m.on("click", () => { sel.value = id; handleDropdownChange(id); });
       });
     }
