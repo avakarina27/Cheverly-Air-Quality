@@ -112,13 +112,13 @@
       display: grid;
       grid-template-columns: 140px 1fr;
       gap: 4px 8px;
-      font-size: 0.82rem;
+      font-size: 0.85rem;
       margin-top: 15px;
       border-top: 1px solid #eee;
       padding-top: 10px;
     }
     .kv .k { font-weight: 900; color: #222; }
-    .kv .v { font-weight: 700; color: #222; text-align: left; }
+    .kv .v { font-weight: 700; color: #d00; text-align: left; }
 
     .legend-item {
       display: flex;
@@ -207,9 +207,7 @@
       <div class="legend-item"><span class="dot" style="background-color:#ffff00;"></span> Moderate (51 to 100)</div>
       <div class="legend-item"><span class="dot" style="background-color:#ff7e00;"></span> Sensitive (101 to 150)</div>
       <div class="legend-item"><span class="dot" style="background-color:#ff0000;"></span> Unhealthy (151 plus)</div>
-
       <hr style="border:none;border-top:1px solid #ddd;margin:12px 0;">
-
       <div class="legend-item"><span class="dot" style="background-color:#999;"></span> PurpleAir (circle)</div>
       <div class="legend-item"><span class="tri" style="border-bottom-color:#999;"></span> QuantAQ (triangle)</div>
       <div class="legend-item"><span class="diamond"></span> C 12 Black Carbon (diamond)</div>
@@ -436,33 +434,77 @@
     }
   }
 
+  async function loadCityAvg() {
+    let combined = {};
+    for (const id of CITY_AVG_SENSORS) {
+      const start = Math.floor(Date.now() / 1000) - 86400;
+      const json = await fetchPurpleAirHistory(String(id), start);
+      if (json && json.data) {
+        json.data.forEach(r => {
+          const t = Math.round(r[0] / 3600) * 3600000;
+          if (!combined[t]) combined[t] = [];
+          combined[t].push(computeCurrentAQI_FromPM(safeNum(r[1])));
+        });
+      }
+    }
+    chart.data.datasets[1].data = Object.keys(combined).map(t => ({ x: parseInt(t, 10), y: avg(combined[t]) })).sort((a, b) => a.x - b.x);
+    chart.update();
+  }
+
+  document.getElementById("locateBtn").addEventListener("click", async () => {
+    const query = document.getElementById("addrInput").value;
+    if (!query) return;
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ", Cheverly, MD")}`;
+    try {
+      const response = await fetch(url);
+      const results = await response.json();
+      if (!results.length) return;
+      const lat = Number(results[0].lat), lon = Number(results[0].lon);
+      if (userMarker) map.removeLayer(userMarker);
+      userMarker = L.marker([lat, lon]).addTo(map).bindPopup("Your Location").openPopup();
+      map.flyTo([lat, lon], 15);
+      let nearestId = null, minDist = Infinity;
+      Object.keys(markerMap).forEach(id => {
+        const d = map.distance([lat, lon], markerMap[id].getLatLng());
+        if (d < minDist) { minDist = d; nearestId = id; }
+      });
+      if (nearestId) { document.getElementById("devSel").value = nearestId; handleDropdownChange(nearestId); }
+    } catch (e) { console.error(e); }
+  });
+
   async function init() {
     const sel = document.getElementById("devSel");
+    const start = Math.floor(Date.now() / 1000) - 86400;
+
     for (const s of SPODS) {
-      const m = L.marker([s.lat, s.lon], { icon: makeSpodIcon("#999") }).addTo(map);
-      markerMap[s.sn] = m; sel.add(new Option(s.name, s.sn));
-      m.on("click", () => { sel.value = s.sn; handleDropdownChange(s.sn); });
+      let ce24 = 0; try { const series = await fetchQuantAQLast24h(s.sn); ce24 = computeCEAQIFromAQIs([aqiFromBreakpoints(avg(series.map(p=>p.pm25)), BP_PM25_24H)].filter(v=>v!==null)); } catch(e){}
+      const m = L.marker([s.lat, s.lon], { icon: makeSpodIcon(getAQIColor(ce24)) }).addTo(map);
+      markerMap[s.sn] = m; sel.add(new Option(s.name, s.sn)); m.on("click", () => { sel.value = s.sn; handleDropdownChange(s.sn); });
     }
+
     const pa = await fetchPurpleAirBox();
     if (pa && pa.data) {
-      pa.data.forEach(r => {
-        const id = String(r[0]); if (!SENSORS[id]) return;
-        const m = L.circleMarker([r[1], r[2]], { radius: 11, fillColor: "#999", color: "#000", weight: 2, fillOpacity: 0.9 }).addTo(map);
-        markerMap[id] = m; sel.add(new Option(SENSORS[id], id));
-        m.on("click", () => { sel.value = id; handleDropdownChange(id); });
-      });
+      for (const r of pa.data) {
+        const id = String(r[0]); if (!SENSORS[id]) continue;
+        let ce24 = 0; try { const h = await fetchPurpleAirHistory(id, start); ce24 = computeCEAQIFromAQIs([aqiFromBreakpoints(avg(h.data.map(x=>safeNum(x[1]))), BP_PM25_24H)].filter(v=>v!==null)); } catch(e){}
+        const m = L.circleMarker([r[1], r[2]], { radius: 11, fillColor: getAQIColor(ce24), color: "#000", weight: 2, fillOpacity: 0.9 }).addTo(map);
+        markerMap[id] = m; sel.add(new Option(SENSORS[id], id)); m.on("click", () => { sel.value = id; handleDropdownChange(id); });
+      }
     }
+
     for (const c of C12S) {
       const json = await fetchC12Last(c.compId);
       const rows = Array.isArray(json) ? json : (json?.data || []);
       const pick = (sid) => rows.find(r => String(r.streamId) === sid);
       const lat = safeNum(pick("lat")?.data), lon = safeNum(pick("long")?.data);
       if (lat === null || lon === null) continue;
+      const bc = pick("880nm")?.data;
       const id = `C12-${c.compId}`;
-      const m = L.marker([lat, lon], { icon: makeC12Icon("#999") }).addTo(map);
-      markerMap[id] = m; sel.add(new Option(c.name, id));
-      m.on("click", () => { sel.value = id; handleDropdownChange(id); });
+      const m = L.marker([lat, lon], { icon: makeC12Icon(getAQIColor(computeAQI_FromBC_880ngm3(bc))) }).addTo(map);
+      markerMap[id] = m; sel.add(new Option(c.name, id)); m.on("click", () => { sel.value = id; handleDropdownChange(id); });
     }
+
+    await loadCityAvg();
     if (sel.options.length) handleDropdownChange(sel.value = markerMap["203577"] ? "203577" : sel.options[0].value);
   }
   init();
