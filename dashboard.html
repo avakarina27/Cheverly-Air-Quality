@@ -63,7 +63,7 @@
       <select id="devSel" onchange="handleDropdownChange(this.value)"></select>
     </div>
 
-    <div class="card" style="min-height: 250px;">
+    <div class="card" style="min-height: 200px;">
       <label>Live Station Reading</label>
       <div id="details">
         <div id="statName" style="font-weight:bold; font-size:0.9rem; margin-bottom:5px; color:#333; text-align:center;">--</div>
@@ -74,7 +74,6 @@
         
         <div id="extraDetails" class="kv">
           <div class="k" id="label_param">Reading:</div><div class="v" id="val_param">--</div>
-          <div class="k">DC Comparative Avg:</div><div class="v" id="val_dc">--</div>
         </div>
       </div>
     </div>
@@ -110,7 +109,7 @@
     data: { 
       datasets: [
         { label: "Station AQI", data: [], borderColor: "#4477ce", tension: 0.1, fill: true, backgroundColor: "rgba(68, 119, 206, 0.1)" },
-        { label: "DC Average", data: [], borderColor: "#999", borderDash: [5, 5], tension: 0, fill: false, pointRadius: 0 }
+        { label: "DC Comparative Trend", data: [], borderColor: "#ff0000", borderDash: [5, 5], tension: 0.3, fill: false, pointRadius: 0 }
       ] 
     },
     options: { responsive: true, maintainAspectRatio: false, scales: { x: { type: "time" }, y: { beginAtZero: true, title: { display: true, text: "AQI" } } } }
@@ -150,26 +149,21 @@
   function safeNum(x) { const v = Number(x); return Number.isFinite(v) ? v : null; }
   function avg(arr) { if (!arr || !arr.length) return null; const nums = arr.filter(v => Number.isFinite(v)); return nums.length ? nums.reduce((a,b)=>a+b,0) / nums.length : null; }
 
-  async function getDCAverage() {
-    const dcId = "104193"; // Representative central DC station
-    const start = Math.floor(Date.now() / 1000) - 86400;
-    const json = await proxyGet({ action: "purpleair_history", id: dcId, start });
-    if (json?.data) {
-        return Math.round(avg(json.data.map(r => aqiFromBreakpoints(safeNum(r[1]), BP_PM25_24H))) || 0);
-    }
-    return 15; // Fallback
-  }
-
   function handleDropdownChange(id) { 
     if(markerMap[id]) { map.flyTo(markerMap[id].getLatLng(), 15); updateDisplay(id); }
   }
 
   async function updateDisplay(id) {
     const start = Math.floor(Date.now() / 1000) - 86400;
-    const extraLabel = document.getElementById("label_param"), extraVal = document.getElementById("val_param"), dcVal = document.getElementById("val_dc");
+    const extraLabel = document.getElementById("label_param"), extraVal = document.getElementById("val_param");
     
-    const dcAvg = await getDCAverage();
-    dcVal.innerText = dcAvg;
+    // Fetch DC Trend Data
+    const dcId = "104193"; 
+    const dcJson = await proxyGet({ action: "purpleair_history", id: dcId, start });
+    let dcSeries = [];
+    if (dcJson?.data) {
+        dcSeries = dcJson.data.map(r => ({ x: r[0] * 1000, y: aqiFromBreakpoints(safeNum(r[1]), BP_PM25_24H) || 0 })).sort((a, b) => a.x - b.x);
+    }
 
     if (id.startsWith("C12-")) {
       const compId = id.replace("C12-", "");
@@ -184,6 +178,7 @@
       document.getElementById("statCE").style.color = getAQIColor(cur);
       extraLabel.innerText = "BC Black Carbon:"; extraVal.innerText = bc ?? "--";
       chart.data.datasets[0].data = [];
+      chart.data.datasets[1].data = dcSeries;
     } else if (id.startsWith("MOD-")) {
       const resA = await proxyGet({ action: "quantaq_by_date", sn: id, date: new Date().toISOString().split('T')[0] });
       const series = (resA?.data || []).map(r => {
@@ -199,6 +194,7 @@
       document.getElementById("statCE").innerText = ce; document.getElementById("statCE").style.color = getAQIColor(ce);
       extraLabel.innerText = "PM2.5 Conc:"; extraVal.innerText = last ? `${safeNum(last.pm25 || last.pm2_5)} µg/m³` : "--";
       chart.data.datasets[0].data = series.map(p => ({ x: p.t, y: aqiFromBreakpoints(p.pm25, BP_PM25_24H) }));
+      chart.data.datasets[1].data = dcSeries;
     } else {
       const json = await proxyGet({ action: "purpleair_history", id, start });
       if (json?.data) {
@@ -210,16 +206,9 @@
         document.getElementById("statCE").innerText = ce; document.getElementById("statCE").style.color = getAQIColor(ce);
         extraLabel.innerText = "PM2.5 Conc:"; extraVal.innerText = json.data[json.data.length-1][1] + " µg/m³";
         chart.data.datasets[0].data = series;
+        chart.data.datasets[1].data = dcSeries;
       }
     }
-    
-    // Update chart background comparative line
-    if(chart.data.datasets[0].data.length > 0) {
-        const first = chart.data.datasets[0].data[0].x;
-        const final = chart.data.datasets[0].data[chart.data.datasets[0].data.length-1].x;
-        chart.data.datasets[1].data = [{x: first, y: dcAvg}, {x: final, y: dcAvg}];
-    }
-    
     chart.update();
   }
 
