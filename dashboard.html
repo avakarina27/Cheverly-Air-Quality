@@ -108,11 +108,18 @@
     type: "line",
     data: { 
       datasets: [
-        { label: "Station AQI", data: [], borderColor: "#4477ce", tension: 0.1, fill: true, backgroundColor: "rgba(68, 119, 206, 0.1)" },
-        { label: "DC Comparative Trend", data: [], borderColor: "#ff0000", borderDash: [5, 5], tension: 0.3, fill: false, pointRadius: 0 }
+        { label: "Station AQI", data: [], borderColor: "#4477ce", tension: 0.1, fill: true, backgroundColor: "rgba(68, 119, 206, 0.1)", spanGaps: true },
+        { label: "DC Comparative Trend", data: [], borderColor: "#ff0000", borderDash: [5, 5], tension: 0.3, fill: false, pointRadius: 0, spanGaps: true, borderWidth: 2 }
       ] 
     },
-    options: { responsive: true, maintainAspectRatio: false, scales: { x: { type: "time" }, y: { beginAtZero: true, title: { display: true, text: "AQI" } } } }
+    options: { 
+      responsive: true, 
+      maintainAspectRatio: false, 
+      scales: { 
+        x: { type: "time", time: { unit: 'hour' } }, 
+        y: { beginAtZero: true, title: { display: true, text: "AQI" } } 
+      } 
+    }
   });
 
   const BP_PM25_24H = [ { cLow: 0.0, cHigh: 12.0, iLow: 0, iHigh: 50 }, { cLow: 12.1, cHigh: 35.4, iLow: 51, iHigh: 100 }, { cLow: 35.5, cHigh: 55.4, iLow: 101, iHigh: 150 }, { cLow: 55.5, cHigh: 150.4, iLow: 151, iHigh: 200 } ];
@@ -141,9 +148,11 @@
   }
 
   async function proxyGet(params) {
-    const url = API_PROXY + "?" + new URLSearchParams(params).toString();
-    const res = await fetch(url);
-    return res.ok ? await res.json() : null;
+    try {
+      const url = API_PROXY + "?" + new URLSearchParams(params).toString();
+      const res = await fetch(url);
+      return res.ok ? await res.json() : null;
+    } catch(e) { return null; }
   }
 
   function safeNum(x) { const v = Number(x); return Number.isFinite(v) ? v : null; }
@@ -157,14 +166,15 @@
     const start = Math.floor(Date.now() / 1000) - 86400;
     const extraLabel = document.getElementById("label_param"), extraVal = document.getElementById("val_param");
     
-    // Fetch DC Trend Data
-    const dcId = "104193"; 
-    const dcJson = await proxyGet({ action: "purpleair_history", id: dcId, start });
+    // FETCH DC TREND (ID 104193)
     let dcSeries = [];
-    if (dcJson?.data) {
+    const dcJson = await proxyGet({ action: "purpleair_history", id: "104193", start });
+    if (dcJson && dcJson.data) {
         dcSeries = dcJson.data.map(r => ({ x: r[0] * 1000, y: aqiFromBreakpoints(safeNum(r[1]), BP_PM25_24H) || 0 })).sort((a, b) => a.x - b.x);
     }
+    chart.data.datasets[1].data = dcSeries;
 
+    // FETCH STATION DATA
     if (id.startsWith("C12-")) {
       const compId = id.replace("C12-", "");
       const res = await proxyGet({ action: "grove_last", compId });
@@ -178,35 +188,37 @@
       document.getElementById("statCE").style.color = getAQIColor(cur);
       extraLabel.innerText = "BC Black Carbon:"; extraVal.innerText = bc ?? "--";
       chart.data.datasets[0].data = [];
-      chart.data.datasets[1].data = dcSeries;
     } else if (id.startsWith("MOD-")) {
       const resA = await proxyGet({ action: "quantaq_by_date", sn: id, date: new Date().toISOString().split('T')[0] });
       const series = (resA?.data || []).map(r => {
-        const tObj = new Date(r.timestamp);
-        const localT = r.timestamp.includes('Z') ? tObj : new Date(r.timestamp + "Z");
-        return { t: localT.getTime(), pm25: safeNum(r.pm25 || r.pm2_5) };
-      }).sort((a,b) => a.t - b.t);
+        const localT = new Date(r.timestamp + (r.timestamp.includes('Z') ? '' : 'Z')).getTime();
+        return { x: localT, y: aqiFromBreakpoints(safeNum(r.pm25 || r.pm2_5), BP_PM25_24H) };
+      }).sort((a,b) => a.x - b.x);
       const last = (resA?.data || []).slice(-1)[0];
       const lastAQI = last ? aqiFromBreakpoints(safeNum(last.pm25 || last.pm2_5), BP_PM25_24H) : 0;
-      const ce = computeCEAQIFromAQIs([aqiFromBreakpoints(avg(series.map(p=>p.pm25)), BP_PM25_24H)]);
+      const ce = computeCEAQIFromAQIs(series.map(p => p.y));
       document.getElementById("statName").innerText = SPODS.find(s=>s.sn===id).name;
-      document.getElementById("statAQI").innerText = lastAQI; document.getElementById("statAQI").style.color = getAQIColor(lastAQI);
-      document.getElementById("statCE").innerText = ce; document.getElementById("statCE").style.color = getAQIColor(ce);
-      extraLabel.innerText = "PM2.5 Conc:"; extraVal.innerText = last ? `${safeNum(last.pm25 || last.pm2_5)} µg/m³` : "--";
-      chart.data.datasets[0].data = series.map(p => ({ x: p.t, y: aqiFromBreakpoints(p.pm25, BP_PM25_24H) }));
-      chart.data.datasets[1].data = dcSeries;
+      document.getElementById("statAQI").innerText = lastAQI; 
+      document.getElementById("statAQI").style.color = getAQIColor(lastAQI);
+      document.getElementById("statCE").innerText = ce; 
+      document.getElementById("statCE").style.color = getAQIColor(ce);
+      extraLabel.innerText = "PM2.5 Conc:"; 
+      extraVal.innerText = last ? `${safeNum(last.pm25 || last.pm2_5)} µg/m³` : "--";
+      chart.data.datasets[0].data = series;
     } else {
       const json = await proxyGet({ action: "purpleair_history", id, start });
-      if (json?.data) {
+      if (json && json.data) {
         const series = json.data.map(r => ({ x: r[0]*1000, y: aqiFromBreakpoints(safeNum(r[1]), BP_PM25_24H) || 0 })).sort((a,b) => a.x - b.x);
         const cur = series[series.length-1]?.y || 0;
-        const ce = computeCEAQIFromAQIs([aqiFromBreakpoints(avg(json.data.map(r=>safeNum(r[1]))), BP_PM25_24H)]);
+        const ce = computeCEAQIFromAQIs(series.map(p => p.y));
         document.getElementById("statName").innerText = SENSORS[id];
-        document.getElementById("statAQI").innerText = cur; document.getElementById("statAQI").style.color = getAQIColor(cur);
-        document.getElementById("statCE").innerText = ce; document.getElementById("statCE").style.color = getAQIColor(ce);
-        extraLabel.innerText = "PM2.5 Conc:"; extraVal.innerText = json.data[json.data.length-1][1] + " µg/m³";
+        document.getElementById("statAQI").innerText = cur; 
+        document.getElementById("statAQI").style.color = getAQIColor(cur);
+        document.getElementById("statCE").innerText = ce; 
+        document.getElementById("statCE").style.color = getAQIColor(ce);
+        extraLabel.innerText = "PM2.5 Conc:"; 
+        extraVal.innerText = (json.data[json.data.length-1]?.[1] || "--") + " µg/m³";
         chart.data.datasets[0].data = series;
-        chart.data.datasets[1].data = dcSeries;
       }
     }
     chart.update();
@@ -223,7 +235,7 @@
     const sel = document.getElementById("devSel");
     for (const s of SPODS) {
       const res = await proxyGet({ action: "quantaq_by_date", sn: s.sn, date: new Date().toISOString().split('T')[0] });
-      const ce = computeCEAQIFromAQIs([aqiFromBreakpoints(avg((res?.data || []).map(p => safeNum(p.pm25 || p.pm2_5))), BP_PM25_24H)]);
+      const ce = computeCEAQIFromAQIs((res?.data || []).map(p => aqiFromBreakpoints(safeNum(p.pm25 || p.pm2_5), BP_PM25_24H)));
       createInteractiveMarker(s.sn, s.lat, s.lon, ce); sel.add(new Option(s.name, s.sn));
     }
     const pa = await proxyGet({ action: "purpleair_box" });
@@ -231,7 +243,7 @@
       for (const r of pa.data) {
         const id = String(r[0]); if (!SENSORS[id]) continue;
         const h = await proxyGet({ action: "purpleair_history", id, start: Math.floor(Date.now()/1000)-86400 });
-        const ce = computeCEAQIFromAQIs([aqiFromBreakpoints(avg((h?.data || []).map(x=>safeNum(x[1]))), BP_PM25_24H)]);
+        const ce = computeCEAQIFromAQIs((h?.data || []).map(x => aqiFromBreakpoints(safeNum(x[1]), BP_PM25_24H)));
         createInteractiveMarker(id, r[1], r[2], ce); sel.add(new Option(SENSORS[id], id));
       }
     }
