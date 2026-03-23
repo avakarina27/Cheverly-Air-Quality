@@ -88,7 +88,6 @@
     }
     .sublabel { font-size: 0.75rem; color: #666; font-weight: 700; margin-top: 2px; text-align: center; }
 
-    /* Key-Value Details (Red Text Style) */
     .kv {
       display: grid; grid-template-columns: 140px 1fr; gap: 4px 8px;
       font-size: 0.85rem; margin-top: 15px; border-top: 1px solid #eee; padding-top: 10px;
@@ -251,6 +250,7 @@
       const last = series[series.length-1];
       const cur = last ? aqiFromBreakpoints(last.pm25, BP_PM25_24H) : 0;
       const ce = computeCEAQIFromAQIs([aqiFromBreakpoints(avg(series.map(p=>p.pm25)), BP_PM25_24H)]);
+      
       document.getElementById("statName").innerText = SPODS.find(s=>s.sn===id).name;
       document.getElementById("statAQI").innerText = cur;
       document.getElementById("statAQI").style.color = getAQIColor(cur);
@@ -267,6 +267,7 @@
         const series = json.data.map(r => ({ x: r[0]*1000, y: aqiFromBreakpoints(safeNum(r[1]), BP_PM25_24H) || 0 })).sort((a,b) => a.x - b.x);
         const cur = series[series.length-1]?.y || 0;
         const ce = computeCEAQIFromAQIs([aqiFromBreakpoints(avg(json.data.map(r=>safeNum(r[1]))), BP_PM25_24H)]);
+        
         document.getElementById("statName").innerText = SENSORS[id];
         document.getElementById("statAQI").innerText = cur;
         document.getElementById("statAQI").style.color = getAQIColor(cur);
@@ -329,7 +330,6 @@
     if (sel.options.length) handleDropdownChange(sel.value = markerMap["203577"] ? "203577" : sel.options[0].value);
   }
 
-  // FIXED ADDRESS SEARCH LOGIC
   document.getElementById("locateBtn").onclick = async () => {
     const q = document.getElementById("addrInput").value;
     if (!q) return;
@@ -343,13 +343,12 @@
       if (userMarker) map.removeLayer(userMarker);
       userMarker = L.marker(loc).addTo(map).bindPopup("Your Search Location").openPopup();
       
-      // Finding the mathematically closest station
       let nearestId = null;
       let minDist = Infinity;
 
       Object.keys(markerMap).forEach(stationId => {
         const stationLatLng = markerMap[stationId].getLatLng();
-        const dist = map.distance(loc, stationLatLng); // Calculates distance in meters
+        const dist = map.distance(loc, stationLatLng);
         if (dist < minDist) {
           minDist = dist;
           nearestId = stationId;
