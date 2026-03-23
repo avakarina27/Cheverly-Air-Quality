@@ -66,7 +66,6 @@
     #map { height: 45%; width: 100%; border-bottom: 1px solid #ddd; z-index: 1; }
     #chart-box { height: 55%; width: 100%; padding: 15px; box-sizing: border-box; background: white; }
 
-    /* Map Overlay Legend */
     .map-legend {
       position: absolute; top: 15px; right: 15px;
       z-index: 1000; background: rgba(255, 255, 255, 0.95);
@@ -89,6 +88,7 @@
     }
     .sublabel { font-size: 0.75rem; color: #666; font-weight: 700; margin-top: 2px; text-align: center; }
 
+    /* Key-Value Details (Red Text Style) */
     .kv {
       display: grid; grid-template-columns: 140px 1fr; gap: 4px 8px;
       font-size: 0.85rem; margin-top: 15px; border-top: 1px solid #eee; padding-top: 10px;
@@ -96,7 +96,6 @@
     .kv .k { font-weight: 900; color: #222; }
     .kv .v { font-weight: 700; color: #d00; text-align: left; }
 
-    /* Hover Tooltip Styling */
     .leaflet-tooltip-own {
       background: #333; color: white; border: none; font-weight: bold; font-size: 14px;
       box-shadow: 0 2px 4px rgba(0,0,0,0.3); border-radius: 4px; padding: 4px 8px;
@@ -135,9 +134,10 @@
         <div style="font-size:0.75rem; color:#666; font-weight: bold; margin-top:5px; text-align:center;">CURRENT AQI</div>
         <div id="statCE" class="subval" style="color:#ccc;">--</div>
         <div class="sublabel">24 HOUR CE AQI</div>
-        <div id="c12Vars" class="kv" style="display:none;">
-          <div class="k">BC Black Carbon:</div><div class="v" id="c12_bc">--</div>
-          <div class="k">Time:</div><div class="v" id="c12_time">--</div>
+        
+        <div id="extraDetails" class="kv">
+          <div class="k" id="label_param">Reading:</div><div class="v" id="val_param">--</div>
+          <div class="k">Last Update:</div><div class="v" id="val_time">--</div>
         </div>
       </div>
     </div>
@@ -152,7 +152,6 @@
       <div class="legend-item"><span class="dot" style="background-color:#ff7e00;"></span> Sensitive (101-150)</div>
       <div class="legend-item"><span class="dot" style="background-color:#ff0000;"></span> Unhealthy (151+)</div>
     </div>
-    
     <div id="chart-box"><canvas id="airChart"></canvas></div>
   </div>
 </div>
@@ -160,7 +159,6 @@
 <script>
   const API_PROXY = "/api/aq";
 
-  // Data Definitions (Same as before)
   const SENSORS = { "284362": "EJAT.PG.1.284362", "52823": "EJAT.CV.6.52823", "53677": "EJAT.CV.1.53677", "54239": "EJAT.CV.6.54239", "54293": "EJAT.CV.2.54293", "57777": "EJAT.CV.1.57777", "57783": "EJAT.CV.6.57783", "57811": "EJAT.CV.4.57811", "57841": "EJAT.CV.3.57841", "57955": "EJAT.FH.1.57955", "160037": "EJAT.PG.1.160037", "175563": "EJAT.PG.1.175563", "178169": "EJAT.PG.1.178169", "181253": "EJAT.CH.1.181253", "184191": "EJAT.PG.1.184191", "185085": "EJAT.FH.1.185085", "197937": "EJAT.PG.1.197937", "203577": "EJAT.CV.2.203577 (Supersite)", "203597": "EJAT.FH.1.203597", "203601": "EJAT.CV.1.203601", "207729": "EJAT.CV.1.207729", "211993": "EJAT.CV.3.211993", "218227": "EJAT.PG.1.218227", "218237": "EJAT.PG.1.218237", "218273": "EJAT.PG.1.218273" };
   const SPODS = [ { sn: "MOD-00536", name: "QuantAQ MOD-00536 (Mosleys - Cheverly)", lat: 38.920551, lon: -76.91951 }, { sn: "MOD-00537", name: "QuantAQ MOD-00537 (St. Matthews Church - Turner Station)", lat: 39.243000, lon: -76.512400 }, { sn: "MOD-00733", name: "QuantAQ MOD-00733 (UMD Lab)", lat: 38.905700, lon: -76.911500 }, { sn: "MOD-00745", name: "QuantAQ MOD-00745 (Thurmond Jones Residence - Beltsville)", lat: 38.905100, lon: -76.910000 }, { sn: "MOD-00746", name: "QuantAQ MOD-00746 (MDE 1103246 - North Laurel)", lat: 39.143200, lon: -76.846000 }, { sn: "MOD-00747", name: "QuantAQ MOD-00747 (Linwood Jackson - Turner Station)", lat: 39.233944, lon: -76.504501 }, { sn: "MOD-00748", name: "QuantAQ MOD-00748 (Annapolis - Mt. Olive)", lat: 38.969685, lon: -76.542290 }, { sn: "MOD-00749", name: "QuantAQ MOD-00749 (HU Beltsville)", lat: 39.055400, lon: -76.878800 }, { sn: "MOD-00760", name: "QuantAQ MOD-00760 (Curtis Bay, MD)", lat: 39.055200, lon: -76.878600 }, { sn: "MOD-00824", name: "QuantAQ MOD-00824 (CHECD centralized site - Baltimore)", lat: 39.224470, lon: -76.587008 } ];
   const C12S = [ { compId: "D14781", name: "C-12 D14781 (Cheverly ARP 1st Supersite - Mosleys)" }, { compId: "D14645", name: "C-12 D14645 (Cheverly ARP 2nd Supersite - Mr. Jones)" }, { compId: "D17615", name: "C-12 D17615 (Pacrust, Quadrant)" }, { compId: "E10588", name: "C-12 E10588 (Russ' lab)" }, { compId: "D14646", name: "C-12 D14646 (UMD Chem Building)" } ];
@@ -227,9 +225,10 @@
 
   async function updateDisplay(id) {
     const start = Math.floor(Date.now() / 1000) - 86400;
-    document.getElementById("c12Vars").style.display = id.startsWith("C12-") ? "grid" : "none";
+    const extraLabel = document.getElementById("label_param");
+    const extraVal = document.getElementById("val_param");
+    const extraTime = document.getElementById("val_time");
 
-    let rawData = [];
     if (id.startsWith("C12-")) {
       const compId = id.replace("C12-", "");
       const res = await proxyGet({ action: "grove_last", compId });
@@ -241,26 +240,31 @@
       document.getElementById("statAQI").style.color = getAQIColor(cur);
       document.getElementById("statCE").innerText = cur;
       document.getElementById("statCE").style.color = getAQIColor(cur);
-      document.getElementById("c12_bc").innerText = bc ?? "--";
-      document.getElementById("c12_time").innerText = rows[0]?.time ? new Date(rows[0].time).toLocaleString() : "--";
+      
+      extraLabel.innerText = "BC Black Carbon:";
+      extraVal.innerText = bc ?? "--";
+      extraTime.innerText = rows[0]?.time ? new Date(rows[0].time).toLocaleString() : "--";
       chart.data.datasets[0].data = [];
     } else if (id.startsWith("MOD-")) {
       const resA = await proxyGet({ action: "quantaq_by_date", sn: id, date: new Date().toISOString().split('T')[0] });
-      const series = (resA?.data || []).map(r => ({ t: Date.parse(r.timestamp), pm25: safeNum(r.pm25 || r.pm2_5) }))
-                                     .sort((a,b) => a.t - b.t); // CRITICAL SORTING
-      const cur = series.length ? aqiFromBreakpoints(series[series.length-1].pm25, BP_PM25_24H) : 0;
+      const series = (resA?.data || []).map(r => ({ t: Date.parse(r.timestamp), pm25: safeNum(r.pm25 || r.pm2_5) })).sort((a,b) => a.t - b.t);
+      const last = series[series.length-1];
+      const cur = last ? aqiFromBreakpoints(last.pm25, BP_PM25_24H) : 0;
       const ce = computeCEAQIFromAQIs([aqiFromBreakpoints(avg(series.map(p=>p.pm25)), BP_PM25_24H)]);
       document.getElementById("statName").innerText = SPODS.find(s=>s.sn===id).name;
       document.getElementById("statAQI").innerText = cur;
       document.getElementById("statAQI").style.color = getAQIColor(cur);
       document.getElementById("statCE").innerText = ce;
       document.getElementById("statCE").style.color = getAQIColor(ce);
+
+      extraLabel.innerText = "PM2.5 Conc:";
+      extraVal.innerText = last ? `${last.pm25} µg/m³` : "--";
+      extraTime.innerText = last ? new Date(last.t).toLocaleString() : "--";
       chart.data.datasets[0].data = series.map(p => ({ x: p.t, y: aqiFromBreakpoints(p.pm25, BP_PM25_24H) }));
     } else {
       const json = await proxyGet({ action: "purpleair_history", id, start });
       if (json?.data) {
-        const series = json.data.map(r => ({ x: r[0]*1000, y: aqiFromBreakpoints(safeNum(r[1]), BP_PM25_24H) || 0 }))
-                                .sort((a,b) => a.x - b.x); // CRITICAL SORTING
+        const series = json.data.map(r => ({ x: r[0]*1000, y: aqiFromBreakpoints(safeNum(r[1]), BP_PM25_24H) || 0 })).sort((a,b) => a.x - b.x);
         const cur = series[series.length-1]?.y || 0;
         const ce = computeCEAQIFromAQIs([aqiFromBreakpoints(avg(json.data.map(r=>safeNum(r[1]))), BP_PM25_24H)]);
         document.getElementById("statName").innerText = SENSORS[id];
@@ -268,28 +272,19 @@
         document.getElementById("statAQI").style.color = getAQIColor(cur);
         document.getElementById("statCE").innerText = ce;
         document.getElementById("statCE").style.color = getAQIColor(ce);
+
+        extraLabel.innerText = "PM2.5 Conc:";
+        extraVal.innerText = json.data[json.data.length-1][1] + " µg/m³";
+        extraTime.innerText = new Date(series[series.length-1].x).toLocaleString();
         chart.data.datasets[0].data = series;
       }
     }
     chart.update();
   }
 
-  async function loadCityAvg() {
-    let combined = {};
-    for (const id of CITY_AVG_SENSORS) {
-      const res = await proxyGet({ action: "purpleair_history", id, start: Math.floor(Date.now()/1000)-86400 });
-      if (res?.data) res.data.forEach(r => { const t = Math.round(r[0]/3600)*3600000; (combined[t] = combined[t] || []).push(aqiFromBreakpoints(safeNum(r[1]), BP_PM25_24H)); });
-    }
-    chart.data.datasets[1].data = Object.keys(combined).map(t => ({ x: parseInt(t), y: avg(combined[t]) })).sort((a,b)=>a.x-b.x);
-    chart.update();
-  }
-
   function createInteractiveMarker(id, lat, lon, ceVal) {
     const m = L.circleMarker([lat, lon], { radius: 11, fillColor: getAQIColor(ceVal), color: "#000", weight: 2, fillOpacity: 0.9 }).addTo(map);
-    
-    // Add Tooltip for Hover
     m.bindTooltip(`AQI: ${ceVal}`, { permanent: false, direction: 'top', className: 'leaflet-tooltip-own' });
-    
     m.on("click", () => { document.getElementById("devSel").value = id; handleDropdownChange(id); });
     markerMap[id] = m;
     return m;
@@ -334,16 +329,37 @@
     if (sel.options.length) handleDropdownChange(sel.value = markerMap["203577"] ? "203577" : sel.options[0].value);
   }
 
+  // FIXED ADDRESS SEARCH LOGIC
   document.getElementById("locateBtn").onclick = async () => {
     const q = document.getElementById("addrInput").value;
     if (!q) return;
     const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q + ", Cheverly, MD")}`);
     const data = await res.json();
     if (data.length) {
-      const loc = [data[0].lat, data[0].lon];
+      const userLat = parseFloat(data[0].lat);
+      const userLon = parseFloat(data[0].lon);
+      const loc = [userLat, userLon];
+
       if (userMarker) map.removeLayer(userMarker);
       userMarker = L.marker(loc).addTo(map).bindPopup("Your Search Location").openPopup();
-      map.flyTo(loc, 15);
+      
+      // Finding the mathematically closest station
+      let nearestId = null;
+      let minDist = Infinity;
+
+      Object.keys(markerMap).forEach(stationId => {
+        const stationLatLng = markerMap[stationId].getLatLng();
+        const dist = map.distance(loc, stationLatLng); // Calculates distance in meters
+        if (dist < minDist) {
+          minDist = dist;
+          nearestId = stationId;
+        }
+      });
+
+      if (nearestId) {
+        document.getElementById("devSel").value = nearestId;
+        handleDropdownChange(nearestId);
+      }
     }
   };
 
