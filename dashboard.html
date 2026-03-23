@@ -14,7 +14,6 @@
     :root {
       --brand-navy: #1a305e !important;
       --search-blue: #4477ce !important;
-      --orange: #f59e0b !important;
     }
 
     html, body {
@@ -140,8 +139,6 @@
       <div class="legend-item"><span class="dot" style="background-color:#ffff00;"></span> Moderate (51 to 100)</div>
       <div class="legend-item"><span class="dot" style="background-color:#ff7e00;"></span> Sensitive (101 to 150)</div>
       <div class="legend-item"><span class="dot" style="background-color:#ff0000;"></span> Unhealthy (151 plus)</div>
-      <hr style="border:none;border-top:1px solid #ddd;margin:12px 0;">
-      <div class="legend-item"><span class="dot" style="background-color:#999;"></span> All Stations (Uniform Circle)</div>
     </div>
   </aside>
 
@@ -206,59 +203,6 @@
     }
   });
 
-  function getAQIColor(aqi) {
-    if (aqi <= 50) return "#00e400";
-    if (aqi <= 100) return "#ffff00";
-    if (aqi <= 150) return "#ff7e00";
-    return "#ff0000";
-  }
-
-  // Standardized Circle Icon for all non-PurpleAir sensors
-  function makeCircleIcon(color) {
-    return L.divIcon({
-      className: "station-circle",
-      html: `<div style="width:18px;height:18px;border-radius:50%;background:${color};border:2px solid #000;box-sizing:border-box;filter:drop-shadow(0 0 2px #000);"></div>`,
-      iconSize: [22, 22],
-      iconAnchor: [11, 11]
-    });
-  }
-
-  async function proxyGet(params) {
-    const url = API_PROXY + "?" + new URLSearchParams(params).toString();
-    const res = await fetch(url);
-    return res.ok ? await res.json() : null;
-  }
-
-  async function fetchPurpleAirHistory(sensorId, startEpochSeconds) { return await proxyGet({ action: "purpleair_history", id: String(sensorId), start: String(startEpochSeconds) }); }
-
-  async function fetchQuantAQLast24h(sn) {
-    const now = new Date();
-    const today = isoDateLocal(now);
-    const yday = isoDateLocal(new Date(now.getTime() - 86400000));
-    const a = await proxyGet({ action: "quantaq_by_date", sn, date: today });
-    const b = await proxyGet({ action: "quantaq_by_date", sn, date: yday });
-    const rows = [];
-    if (b && b.data) rows.push(...b.data);
-    if (a && a.data) rows.push(...a.data);
-    const cutoff = Date.now() - 86400000;
-    return rows.map(r => {
-      const tRaw = r.timestamp_local || r.timestamp || r.time || r.datetime;
-      const t = Date.parse(tRaw);
-      const pm25 = safeNum(r.pm25 ?? r.pm2_5 ?? r.pm2_5_atm ?? r["pm2.5"] ?? r["pm2_5"] ?? r["PM2.5"]);
-      return { t, pm25 };
-    }).filter(p => Number.isFinite(p.t) && p.t >= cutoff).sort((x, y) => x.t - y.t);
-  }
-
-  function isoDateLocal(d) {
-    const yr = d.getFullYear();
-    const mo = String(d.getMonth() + 1).padStart(2, "0");
-    const da = String(d.getDate()).padStart(2, "0");
-    return `${yr}-${mo}-${da}`;
-  }
-
-  function safeNum(x) { const v = Number(x); return Number.isFinite(v) ? v : null; }
-  function avg(arr) { if (!arr || !arr.length) return null; const nums = arr.filter(v => Number.isFinite(v)); return nums.length ? nums.reduce((a,b)=>a+b,0) / nums.length : null; }
-
   const BP_PM25_24H = [
     { cLow: 0.0, cHigh: 12.0, iLow: 0, iHigh: 50 },
     { cLow: 12.1, cHigh: 35.4, iLow: 51, iHigh: 100 },
@@ -266,8 +210,15 @@
     { cLow: 55.5, cHigh: 150.4, iLow: 151, iHigh: 200 }
   ];
 
+  function getAQIColor(aqi) {
+    if (aqi <= 50) return "#00e400";
+    if (aqi <= 100) return "#ffff00";
+    if (aqi <= 150) return "#ff7e00";
+    return "#ff0000";
+  }
+
   function aqiFromBreakpoints(C, table) {
-    if (C === null) return null;
+    if (C === null || !Number.isFinite(Number(C))) return null;
     const c = Number(C);
     for (const bp of table) { if (c >= bp.cLow && c <= bp.cHigh) return Math.round(((bp.iHigh - bp.iLow) / (bp.cHigh - bp.cLow)) * (c - bp.cLow) + bp.iLow); }
     return c > 150.4 ? 201 : null;
@@ -282,13 +233,19 @@
     return Math.round(base + adders);
   }
 
-  function setLeftReadout(name, cur, ce) {
-    document.getElementById("statName").innerText = name;
-    document.getElementById("statAQI").innerText = cur;
-    document.getElementById("statAQI").style.color = getAQIColor(cur);
-    document.getElementById("statCE").innerText = ce;
-    document.getElementById("statCE").style.color = getAQIColor(ce);
+  // Unified Circle Marker styling for all hardware
+  function getMarkerStyle(color) {
+    return { radius: 11, fillColor: color, color: "#000", weight: 2, fillOpacity: 0.9 };
   }
+
+  async function proxyGet(params) {
+    const url = API_PROXY + "?" + new URLSearchParams(params).toString();
+    const res = await fetch(url);
+    return res.ok ? await res.json() : null;
+  }
+
+  function safeNum(x) { const v = Number(x); return Number.isFinite(v) ? v : null; }
+  function avg(arr) { if (!arr || !arr.length) return null; const nums = arr.filter(v => Number.isFinite(v)); return nums.length ? nums.reduce((a,b)=>a+b,0) / nums.length : null; }
 
   function handleDropdownChange(id) { map.flyTo(markerMap[id].getLatLng(), 15); updateDisplay(id); }
 
@@ -302,24 +259,37 @@
       const rows = Array.isArray(res) ? res : (res?.data || []);
       const bc = rows.find(r => r.streamId === "880nm")?.data;
       const cur = bc ? Math.round((bc / 600) * 100) : 0;
-      setLeftReadout(C12S.find(x => x.compId === compId).name, cur, cur);
+      document.getElementById("statName").innerText = C12S.find(x => x.compId === compId).name;
+      document.getElementById("statAQI").innerText = cur;
+      document.getElementById("statAQI").style.color = getAQIColor(cur);
+      document.getElementById("statCE").innerText = cur;
+      document.getElementById("statCE").style.color = getAQIColor(cur);
       document.getElementById("c12_bc").innerText = bc ?? "--";
       document.getElementById("c12_time").innerText = rows[0]?.time ? new Date(rows[0].time).toLocaleString() : "--";
       chart.data.datasets[0].data = []; chart.update();
     } else if (id.startsWith("MOD-")) {
-      const series = await fetchQuantAQLast24h(id);
-      const latest = series.length ? aqiFromBreakpoints(series[series.length-1].pm25, BP_PM25_24H) : 0;
+      const resA = await proxyGet({ action: "quantaq_by_date", sn: id, date: new Date().toISOString().split('T')[0] });
+      const series = (resA?.data || []).map(r => ({ t: Date.parse(r.timestamp), pm25: safeNum(r.pm25 || r.pm2_5) }));
+      const cur = series.length ? aqiFromBreakpoints(series[series.length-1].pm25, BP_PM25_24H) : 0;
       const ce = computeCEAQIFromAQIs([aqiFromBreakpoints(avg(series.map(p=>p.pm25)), BP_PM25_24H)]);
-      setLeftReadout(SPODS.find(s=>s.sn===id).name, latest, ce);
+      document.getElementById("statName").innerText = SPODS.find(s=>s.sn===id).name;
+      document.getElementById("statAQI").innerText = cur;
+      document.getElementById("statAQI").style.color = getAQIColor(cur);
+      document.getElementById("statCE").innerText = ce;
+      document.getElementById("statCE").style.color = getAQIColor(ce);
       chart.data.datasets[0].data = series.map(p => ({ x: p.t, y: aqiFromBreakpoints(p.pm25, BP_PM25_24H) }));
       chart.update();
     } else {
-      const json = await fetchPurpleAirHistory(id, start);
+      const json = await proxyGet({ action: "purpleair_history", id, start });
       if (json?.data) {
         const series = json.data.map(r => ({ x: r[0]*1000, y: aqiFromBreakpoints(safeNum(r[1]), BP_PM25_24H) || 0 }));
         const cur = series[series.length-1]?.y || 0;
         const ce = computeCEAQIFromAQIs([aqiFromBreakpoints(avg(json.data.map(r=>safeNum(r[1]))), BP_PM25_24H)]);
-        setLeftReadout(SENSORS[id], cur, ce);
+        document.getElementById("statName").innerText = SENSORS[id];
+        document.getElementById("statAQI").innerText = cur;
+        document.getElementById("statAQI").style.color = getAQIColor(cur);
+        document.getElementById("statCE").innerText = ce;
+        document.getElementById("statCE").style.color = getAQIColor(ce);
         chart.data.datasets[0].data = series; chart.update();
       }
     }
@@ -328,7 +298,7 @@
   async function loadCityAvg() {
     let combined = {};
     for (const id of CITY_AVG_SENSORS) {
-      const res = await fetchPurpleAirHistory(id, Math.floor(Date.now()/1000)-86400);
+      const res = await proxyGet({ action: "purpleair_history", id, start: Math.floor(Date.now()/1000)-86400 });
       if (res?.data) res.data.forEach(r => { const t = Math.round(r[0]/3600)*3600000; (combined[t] = combined[t] || []).push(aqiFromBreakpoints(safeNum(r[1]), BP_PM25_24H)); });
     }
     chart.data.datasets[1].data = Object.keys(combined).map(t => ({ x: parseInt(t), y: avg(combined[t]) })).sort((a,b)=>a.x-b.x);
@@ -355,27 +325,37 @@
     const sel = document.getElementById("devSel");
     const start = Math.floor(Date.now()/1000)-86400;
 
+    // Load and Color QuantAQ Markers
     for (const s of SPODS) {
-      const m = L.marker([s.lat, s.lon], { icon: makeCircleIcon("#999") }).addTo(map);
+      const res = await proxyGet({ action: "quantaq_by_date", sn: s.sn, date: new Date().toISOString().split('T')[0] });
+      const avgPM = avg((res?.data || []).map(p => safeNum(p.pm25 || p.pm2_5)));
+      const ce = computeCEAQIFromAQIs([aqiFromBreakpoints(avgPM, BP_PM25_24H)]);
+      const m = L.circleMarker([s.lat, s.lon], getMarkerStyle(getAQIColor(ce))).addTo(map);
       markerMap[s.sn] = m; sel.add(new Option(s.name, s.sn)); m.on("click", () => { sel.value = s.sn; handleDropdownChange(s.sn); });
     }
 
+    // Load and Color PurpleAir Markers
     const pa = await proxyGet({ action: "purpleair_box" });
     if (pa?.data) {
-      pa.data.forEach(r => {
-        const id = String(r[0]); if (!SENSORS[id]) return;
-        const m = L.circleMarker([r[1], r[2]], { radius: 11, fillColor: "#999", color: "#000", weight: 2, fillOpacity: 0.9 }).addTo(map);
+      for (const r of pa.data) {
+        const id = String(r[0]); if (!SENSORS[id]) continue;
+        const h = await proxyGet({ action: "purpleair_history", id, start });
+        const ce = computeCEAQIFromAQIs([aqiFromBreakpoints(avg((h?.data || []).map(x=>safeNum(x[1]))), BP_PM25_24H)]);
+        const m = L.circleMarker([r[1], r[2]], getMarkerStyle(getAQIColor(ce))).addTo(map);
         markerMap[id] = m; sel.add(new Option(SENSORS[id], id)); m.on("click", () => { sel.value = id; handleDropdownChange(id); });
-      });
+      }
     }
 
+    // Load and Color C12 Markers
     for (const c of C12S) {
       const res = await proxyGet({ action: "grove_last", compId: c.compId });
       const rows = Array.isArray(res) ? res : (res?.data || []);
       const lat = safeNum(rows.find(r=>r.streamId==="lat")?.data), lon = safeNum(rows.find(r=>r.streamId==="long")?.data);
       if (lat && lon) {
+        const bc = rows.find(r => r.streamId === "880nm")?.data;
+        const cur = bc ? Math.round((bc / 600) * 100) : 0;
         const id = `C12-${c.compId}`;
-        const m = L.marker([lat, lon], { icon: makeCircleIcon("#999") }).addTo(map);
+        const m = L.circleMarker([lat, lon], getMarkerStyle(getAQIColor(cur))).addTo(map);
         markerMap[id] = m; sel.add(new Option(c.name, id)); m.on("click", () => { sel.value = id; handleDropdownChange(id); });
       }
     }
