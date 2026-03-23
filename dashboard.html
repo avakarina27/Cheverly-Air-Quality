@@ -215,6 +215,14 @@
   function safeNum(x) { const v = Number(x); return Number.isFinite(v) ? v : null; }
   function avg(arr) { if (!arr || !arr.length) return null; const nums = arr.filter(v => Number.isFinite(v)); return nums.length ? nums.reduce((a,b)=>a+b,0) / nums.length : null; }
 
+  // FIX: Robust UTC to Local Time conversion for QuantAQ
+  function formatUTCToLocal(utcString) {
+    if (!utcString) return "--";
+    const date = new Date(utcString);
+    // Returns formatted local string (e.g., "1/5/2026, 3:30:00 PM")
+    return date.toLocaleString();
+  }
+
   function handleDropdownChange(id) { 
     if(markerMap[id]) {
       map.flyTo(markerMap[id].getLatLng(), 15); 
@@ -242,24 +250,24 @@
       
       extraLabel.innerText = "BC Black Carbon:";
       extraVal.innerText = bc ?? "--";
-      extraTime.innerText = rows[0]?.time ? new Date(rows[0].time).toLocaleString() : "--";
+      extraTime.innerText = rows[0]?.time ? formatUTCToLocal(rows[0].time) : "--";
       chart.data.datasets[0].data = [];
     } else if (id.startsWith("MOD-")) {
       const resA = await proxyGet({ action: "quantaq_by_date", sn: id, date: new Date().toISOString().split('T')[0] });
       const series = (resA?.data || []).map(r => ({ t: Date.parse(r.timestamp), pm25: safeNum(r.pm25 || r.pm2_5) })).sort((a,b) => a.t - b.t);
-      const last = series[series.length-1];
-      const cur = last ? aqiFromBreakpoints(last.pm25, BP_PM25_24H) : 0;
+      const last = (resA?.data || []).slice(-1)[0];
+      const lastAQI = last ? aqiFromBreakpoints(safeNum(last.pm25 || last.pm2_5), BP_PM25_24H) : 0;
       const ce = computeCEAQIFromAQIs([aqiFromBreakpoints(avg(series.map(p=>p.pm25)), BP_PM25_24H)]);
       
       document.getElementById("statName").innerText = SPODS.find(s=>s.sn===id).name;
-      document.getElementById("statAQI").innerText = cur;
-      document.getElementById("statAQI").style.color = getAQIColor(cur);
+      document.getElementById("statAQI").innerText = lastAQI;
+      document.getElementById("statAQI").style.color = getAQIColor(lastAQI);
       document.getElementById("statCE").innerText = ce;
       document.getElementById("statCE").style.color = getAQIColor(ce);
 
       extraLabel.innerText = "PM2.5 Conc:";
-      extraVal.innerText = last ? `${last.pm25} µg/m³` : "--";
-      extraTime.innerText = last ? new Date(last.t).toLocaleString() : "--";
+      extraVal.innerText = last ? `${safeNum(last.pm25 || last.pm2_5)} µg/m³` : "--";
+      extraTime.innerText = last ? formatUTCToLocal(last.timestamp) : "--";
       chart.data.datasets[0].data = series.map(p => ({ x: p.t, y: aqiFromBreakpoints(p.pm25, BP_PM25_24H) }));
     } else {
       const json = await proxyGet({ action: "purpleair_history", id, start });
@@ -289,6 +297,12 @@
     m.on("click", () => { document.getElementById("devSel").value = id; handleDropdownChange(id); });
     markerMap[id] = m;
     return m;
+  }
+
+  // Placeholder for missing city average function
+  async function loadCityAvg() {
+    console.log("Loading city averages...");
+    // Future logic for city-wide comparison can be placed here.
   }
 
   async function init() {
