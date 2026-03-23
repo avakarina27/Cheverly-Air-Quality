@@ -74,7 +74,7 @@
         
         <div id="extraDetails" class="kv">
           <div class="k" id="label_param">Reading:</div><div class="v" id="val_param">--</div>
-          <div class="k">Last Update:</div><div class="v" id="val_time">--</div>
+          <div class="k">DC Comparative Avg:</div><div class="v" id="val_dc">--</div>
         </div>
       </div>
     </div>
@@ -107,7 +107,12 @@
 
   const chart = new Chart(document.getElementById("airChart").getContext("2d"), {
     type: "line",
-    data: { datasets: [{ label: "Station AQI", data: [], borderColor: "#4477ce", tension: 0.1, fill: true, backgroundColor: "rgba(68, 119, 206, 0.1)" }] },
+    data: { 
+      datasets: [
+        { label: "Station AQI", data: [], borderColor: "#4477ce", tension: 0.1, fill: true, backgroundColor: "rgba(68, 119, 206, 0.1)" },
+        { label: "DC Average", data: [], borderColor: "#999", borderDash: [5, 5], tension: 0, fill: false, pointRadius: 0 }
+      ] 
+    },
     options: { responsive: true, maintainAspectRatio: false, scales: { x: { type: "time" }, y: { beginAtZero: true, title: { display: true, text: "AQI" } } } }
   });
 
@@ -145,12 +150,14 @@
   function safeNum(x) { const v = Number(x); return Number.isFinite(v) ? v : null; }
   function avg(arr) { if (!arr || !arr.length) return null; const nums = arr.filter(v => Number.isFinite(v)); return nums.length ? nums.reduce((a,b)=>a+b,0) / nums.length : null; }
 
-  // FIX: Robust Automatic UTC to Local Time conversion for QuantAQ
-  function formatUTCToLocal(utcString) {
-    if (!utcString) return "--";
-    const date = new Date(utcString);
-    const utcDate = (utcString.includes('Z') || utcString.includes('+')) ? date : new Date(utcString + "Z");
-    return utcDate.toLocaleString([], { hour: '2-digit', minute: '2-digit', month: 'short', day: 'numeric' });
+  async function getDCAverage() {
+    const dcId = "104193"; // Representative central DC station
+    const start = Math.floor(Date.now() / 1000) - 86400;
+    const json = await proxyGet({ action: "purpleair_history", id: dcId, start });
+    if (json?.data) {
+        return Math.round(avg(json.data.map(r => aqiFromBreakpoints(safeNum(r[1]), BP_PM25_24H))) || 0);
+    }
+    return 15; // Fallback
   }
 
   function handleDropdownChange(id) { 
@@ -159,7 +166,10 @@
 
   async function updateDisplay(id) {
     const start = Math.floor(Date.now() / 1000) - 86400;
-    const extraLabel = document.getElementById("label_param"), extraVal = document.getElementById("val_param"), extraTime = document.getElementById("val_time");
+    const extraLabel = document.getElementById("label_param"), extraVal = document.getElementById("val_param"), dcVal = document.getElementById("val_dc");
+    
+    const dcAvg = await getDCAverage();
+    dcVal.innerText = dcAvg;
 
     if (id.startsWith("C12-")) {
       const compId = id.replace("C12-", "");
@@ -173,7 +183,6 @@
       document.getElementById("statCE").innerText = cur;
       document.getElementById("statCE").style.color = getAQIColor(cur);
       extraLabel.innerText = "BC Black Carbon:"; extraVal.innerText = bc ?? "--";
-      extraTime.innerText = rows[0]?.time ? formatUTCToLocal(rows[0].time) : "--";
       chart.data.datasets[0].data = [];
     } else if (id.startsWith("MOD-")) {
       const resA = await proxyGet({ action: "quantaq_by_date", sn: id, date: new Date().toISOString().split('T')[0] });
@@ -189,7 +198,6 @@
       document.getElementById("statAQI").innerText = lastAQI; document.getElementById("statAQI").style.color = getAQIColor(lastAQI);
       document.getElementById("statCE").innerText = ce; document.getElementById("statCE").style.color = getAQIColor(ce);
       extraLabel.innerText = "PM2.5 Conc:"; extraVal.innerText = last ? `${safeNum(last.pm25 || last.pm2_5)} µg/m³` : "--";
-      extraTime.innerText = last ? formatUTCToLocal(last.timestamp) : "--";
       chart.data.datasets[0].data = series.map(p => ({ x: p.t, y: aqiFromBreakpoints(p.pm25, BP_PM25_24H) }));
     } else {
       const json = await proxyGet({ action: "purpleair_history", id, start });
@@ -201,10 +209,17 @@
         document.getElementById("statAQI").innerText = cur; document.getElementById("statAQI").style.color = getAQIColor(cur);
         document.getElementById("statCE").innerText = ce; document.getElementById("statCE").style.color = getAQIColor(ce);
         extraLabel.innerText = "PM2.5 Conc:"; extraVal.innerText = json.data[json.data.length-1][1] + " µg/m³";
-        extraTime.innerText = new Date(series[series.length-1].x).toLocaleString();
         chart.data.datasets[0].data = series;
       }
     }
+    
+    // Update chart background comparative line
+    if(chart.data.datasets[0].data.length > 0) {
+        const first = chart.data.datasets[0].data[0].x;
+        const final = chart.data.datasets[0].data[chart.data.datasets[0].data.length-1].x;
+        chart.data.datasets[1].data = [{x: first, y: dcAvg}, {x: final, y: dcAvg}];
+    }
+    
     chart.update();
   }
 
