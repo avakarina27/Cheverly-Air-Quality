@@ -135,11 +135,10 @@
     try {
       if (id.startsWith("C12-")) {
         const compId = id.replace("C12-", "");
+        // Fix: C-12 history fetch logic targeting the 880nm stream
         const res = await fetch(`${API_PROXY}?action=grove_history&compId=${compId}&start=${start}`).then(r => r.json());
         
-        // Ensure res.data exists and handle cases where it might be empty or formatted differently
-        const rawData = res.data || [];
-        chartData = rawData
+        chartData = (res.data || [])
           .filter(r => r.streamId === "880nm")
           .map(r => ({ x: new Date(r.time * 1000), y: parseFloat(r.data) }))
           .sort((a, b) => a.x - b.x);
@@ -185,7 +184,6 @@
   function init() {
     const sel = document.getElementById("devSel");
     
-    // Initialize C12s
     C12S.forEach(c => {
       const m = L.circleMarker([c.lat, c.lon], { radius: 10, color: 'blue', fillOpacity: 0.8 }).addTo(map);
       markerMap["C12-" + c.compId] = m;
@@ -193,9 +191,7 @@
       m.on('click', () => { sel.value = "C12-" + c.compId; handleDropdownChange(sel.value); });
     });
 
-    // Initialize Standard Sensors
     Object.keys(SENSORS).forEach(id => {
-      // Offset slightly to prevent overlapping markers on map if coordinates are similar
       const m = L.circleMarker([38.922 + (Math.random()*0.005), -76.915 + (Math.random()*0.005)], { radius: 10, color: 'green', fillOpacity: 0.8 }).addTo(map);
       markerMap[id] = m;
       sel.add(new Option(SENSORS[id], id));
