@@ -132,46 +132,40 @@
     let chartData = [];
     let label = "";
 
-    try {
-      if (id.startsWith("C12-")) {
-        const compId = id.replace("C12-", "");
-        // Fix: C-12 history fetch logic targeting the 880nm stream
-        const res = await fetch(`${API_PROXY}?action=grove_history&compId=${compId}&start=${start}`).then(r => r.json());
-        
-        chartData = (res.data || [])
-          .filter(r => r.streamId === "880nm")
-          .map(r => ({ x: new Date(r.time * 1000), y: parseFloat(r.data) }))
-          .sort((a, b) => a.x - b.x);
-        
-        label = "Black Carbon (ng/m³)";
-        const last = chartData.length > 0 ? chartData[chartData.length - 1].y : 0;
-        document.getElementById("statAQI").innerText = Math.round(last);
-        document.getElementById("label_param").innerText = "BC Concentration:";
-        document.getElementById("val_param").innerText = last.toFixed(1) + " ng/m³";
-        document.getElementById("statName").innerText = C12S.find(c => "C12-"+c.compId === id)?.name || id;
-      } else {
-        const res = await fetch(`${API_PROXY}?action=purpleair_history&id=${id}&start=${start}`).then(r => r.json());
-        chartData = (res.data || [])
-          .map(r => ({ x: new Date(r[0] * 1000), y: parseFloat(r[1]) }))
-          .sort((a, b) => a.x - b.x);
-        
-        label = "PM2.5 AQI";
-        const last = chartData.length > 0 ? chartData[chartData.length - 1].y : 0;
-        document.getElementById("statAQI").innerText = Math.round(last);
-        document.getElementById("label_param").innerText = "PM2.5 Reading:";
-        document.getElementById("val_param").innerText = last.toFixed(1) + " µg/m³";
-        document.getElementById("statName").innerText = SENSORS[id] || id;
-      }
-
-      chart.data.datasets[0].label = label;
-      chart.data.datasets[0].data = chartData;
-      chart.options.scales.y.title.text = label;
-      chart.update();
-      document.getElementById("statAQI").style.color = "var(--brand-navy)";
-
-    } catch (e) {
-      console.error("Error updating display:", e);
+    if (id.startsWith("C12-")) {
+      const compId = id.replace("C12-", "");
+      const res = await fetch(`${API_PROXY}?action=grove_history&compId=${compId}&start=${start}`).then(r => r.json());
+      
+      // Ensure data is sorted and mapped correctly for Chart.js
+      chartData = (res.data || [])
+        .filter(r => r.streamId === "880nm")
+        .map(r => ({ x: r.time * 1000, y: parseFloat(r.data) }))
+        .sort((a, b) => a.x - b.x);
+      
+      label = "Black Carbon (ng/m³)";
+      const last = chartData.length > 0 ? chartData[chartData.length - 1].y : 0;
+      document.getElementById("statAQI").innerText = Math.round(last);
+      document.getElementById("label_param").innerText = "BC Concentration:";
+      document.getElementById("val_param").innerText = last.toFixed(1) + " ng/m³";
+      document.getElementById("statName").innerText = C12S.find(c => "C12-"+c.compId === id).name;
+    } else {
+      const res = await fetch(`${API_PROXY}?action=purpleair_history&id=${id}&start=${start}`).then(r => r.json());
+      chartData = (res.data || [])
+        .map(r => ({ x: r[0] * 1000, y: parseFloat(r[1]) }))
+        .sort((a, b) => a.x - b.x);
+      
+      label = "PM2.5 AQI";
+      const last = chartData.length > 0 ? chartData[chartData.length - 1].y : 0;
+      document.getElementById("statAQI").innerText = Math.round(last);
+      document.getElementById("label_param").innerText = "PM2.5 Reading:";
+      document.getElementById("val_param").innerText = last.toFixed(1) + " µg/m³";
+      document.getElementById("statName").innerText = SENSORS[id];
     }
+
+    chart.data.datasets[0].label = label;
+    chart.data.datasets[0].data = chartData;
+    chart.options.scales.y.title.text = label;
+    chart.update();
   }
 
   function handleDropdownChange(val) {
@@ -192,7 +186,7 @@
     });
 
     Object.keys(SENSORS).forEach(id => {
-      const m = L.circleMarker([38.922 + (Math.random()*0.005), -76.915 + (Math.random()*0.005)], { radius: 10, color: 'green', fillOpacity: 0.8 }).addTo(map);
+      const m = L.circleMarker([38.922 + (Math.random()*0.01), -76.915 + (Math.random()*0.01)], { radius: 10, color: 'green', fillOpacity: 0.8 }).addTo(map);
       markerMap[id] = m;
       sel.add(new Option(SENSORS[id], id));
       m.on('click', () => { sel.value = id; handleDropdownChange(id); });
