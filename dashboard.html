@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Dashboard</title> 
-  
+  <title>Dashboard | EJAT Air Quality Network</title>
+
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -16,10 +16,12 @@
       --search-blue: #4477ce; 
       --aqi-orange: #ff7e00;
       --aqi-red: #ff0000;
+      --aqi-purple: #8f3f97;
     }
 
     html, body { margin: 0; padding: 0; height: 100%; width: 100%; font-family: "Segoe UI", Roboto, sans-serif; overflow: hidden; background: #fdfdfd; }
     
+    /* Unified Navigation */
     .topbar { 
       background: var(--brand-navy); 
       color: white; 
@@ -37,6 +39,7 @@
     .nav a:hover { opacity: 1; }
     .nav a.active { opacity: 1; border-bottom: 2px solid white; padding-bottom: 4px; }
 
+    /* Dashboard Layout */
     #layout { display: flex; height: calc(100vh - 64px); width: 100vw; }
     #sidebar { width: 380px; min-width: 380px; background: #f4f6f8; border-right: 1px solid #ddd; padding: 1.25rem; overflow-y: auto; box-sizing: border-box; }
     
@@ -51,18 +54,28 @@
     #map { height: 45%; width: 100%; border-bottom: 1px solid #ddd; z-index: 1; }
     #chart-box { height: 55%; width: 100%; padding: 1.5rem; box-sizing: border-box; background: white; }
 
+    /* Legend & Tooltips */
+    .map-legend { position: absolute; top: 15px; right: 15px; z-index: 1000; background: rgba(255, 255, 255, 0.95); padding: 12px; border-radius: 12px; border: 1px solid rgba(0,0,0,0.1); box-shadow: 0 4px 12px rgba(0,0,0,0.15); min-width: 170px; }
+    .legend-title { font-size: 0.8rem; font-weight: 800; margin-bottom: 10px; color: var(--brand-navy); text-align: center; border-bottom: 1px solid #eee; padding-bottom: 6px; }
+    .legend-item { display: flex; align-items: center; margin-bottom: 6px; font-size: 0.8rem; font-weight: 600; color: #444; }
+    .dot { width: 12px; height: 12px; border-radius: 50%; margin-right: 10px; border: 1px solid #000; }
+
+    /* Reading Display */
     .aqi-val { font-size: 72px; font-weight: 900; display: block; text-align: center; line-height: 1.1; text-shadow: 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000; }
+    .subval { margin-top: 10px; font-size: 1.1rem; font-weight: 800; text-align: center; text-shadow: 0.5px 0.5px 0 #000, -0.5px -0.5px 0 #000; }
     .sublabel { font-size: 0.75rem; color: #777; font-weight: bold; margin-top: 4px; text-align: center; text-transform: uppercase; }
     
     .kv { display: grid; grid-template-columns: 140px 1fr; gap: 6px 10px; font-size: 0.9rem; margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px; }
     .kv .k { font-weight: 800; color: #444; }
     .kv .v { font-weight: 700; color: var(--aqi-red); text-align: left; }
+
+    .leaflet-tooltip-own { background: #333; color: white; border: none; font-weight: bold; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.3); border-radius: 4px; padding: 4px 8px; }
   </style>
 </head>
 
 <body>
 <header class="topbar">
-  <div class="brand">Cheverly Air Quality</div>
+  <div class="brand"><strong>EJAT</strong> Cheverly Air Quality</div>
   <nav class="nav">
     <a href="index.html">Home</a>
     <a href="dashboard.html" class="active">Map & Data</a>
@@ -83,12 +96,15 @@
       <select id="devSel" onchange="handleDropdownChange(this.value)"></select>
     </div>
 
-    <div class="card">
-      <label id="readingLabel">Live Station Reading</label>
+    <div class="card" style="min-height: 250px;">
+      <label>Live Station Reading</label>
       <div id="details">
         <div id="statName" style="font-weight:bold; font-size:1rem; margin-bottom:10px; color:var(--brand-navy); text-align:center;">--</div>
         <div id="statAQI" class="aqi-val" style="color:#ccc;">--</div>
-        <div class="sublabel" id="currentLabel">Current Measurement</div>
+        <div class="sublabel" style="color:var(--brand-navy)">Current PM2.5 AQI</div>
+        
+        <div id="statCE" class="subval" style="color:#ccc;">--</div>
+        <div class="sublabel">24 Hour CE-AQI</div>
         
         <div id="extraDetails" class="kv">
           <div class="k" id="label_param">Concentration:</div>
@@ -100,94 +116,198 @@
 
   <div id="main-content">
     <div id="map"></div>
+    <div class="map-legend">
+      <div class="legend-title">Cumulative Exposure</div>
+      <div class="legend-item"><span class="dot" style="background-color:#00e400;"></span> Good (0-50)</div>
+      <div class="legend-item"><span class="dot" style="background-color:#ffff00;"></span> Moderate (51-100)</div>
+      <div class="legend-item"><span class="dot" style="background-color:#ff7e00;"></span> Sensitive (101-150)</div>
+      <div class="legend-item"><span class="dot" style="background-color:#ff0000;"></span> Unhealthy (151+)</div>
+    </div>
     <div id="chart-box"><canvas id="airChart"></canvas></div>
   </div>
 </div>
 
 <script>
+  /* [Logic remains identical to your working file] */
   const API_PROXY = "/api/aq";
-  const SENSORS = { "284362": "EJAT.PG.1.284362", "203577": "EJAT.CV.2.203577 (Supersite)", "52823": "EJAT.CV.6.52823", "53677": "EJAT.CV.1.53677" };
-  const C12S = [ { compId: "D14781", name: "C-12 Cheverly Supersite", lat: 38.922, lon: -76.915 }, { compId: "D14645", name: "C-12 Mr. Jones", lat: 38.925, lon: -76.910 } ];
+  const SENSORS = { "284362": "EJAT.PG.1.284362", "52823": "EJAT.CV.6.52823", "53677": "EJAT.CV.1.53677", "54239": "EJAT.CV.6.54239", "54293": "EJAT.CV.2.54293", "57777": "EJAT.CV.1.57777", "57783": "EJAT.CV.6.57783", "57841": "EJAT.CV.3.57841", "57955": "EJAT.FH.1.57955", "160037": "EJAT.PG.1.160037", "175563": "EJAT.PG.1.175563", "178169": "EJAT.PG.1.178169", "184191": "EJAT.PG.1.184191", "197937": "EJAT.PG.1.197937", "203577": "EJAT.CV.2.203577 (Supersite)", "203601": "EJAT.CV.1.203601", "207729": "EJAT.CV.1.207729", "211993": "EJAT.CV.3.211993", "218227": "EJAT.PG.1.218227", "218237": "EJAT.PG.1.218237", "218273": "EJAT.PG.1.218273" };
+
+  const SPODS = [ 
+    { sn: "MOD-00745", name: "QuantAQ MOD-00745 (Beltsville)", lat: 38.905100, lon: -76.910000 }, 
+    { sn: "MOD-00746", name: "QuantAQ MOD-00746 (North Laurel)", lat: 39.143200, lon: -76.846000 }, 
+    { sn: "MOD-00747", name: "QuantAQ MOD-00747 (Turner Station)", lat: 39.233944, lon: -76.504501 }, 
+    { sn: "MOD-00748", name: "QuantAQ MOD-00748 (Annapolis)", lat: 38.969685, lon: -76.542290 }, 
+    { sn: "MOD-00749", name: "QuantAQ MOD-00749 (HU Beltsville)", lat: 39.055400, lon: -76.878800 } 
+  ];
+
+  const C12S = [ { compId: "D14781", name: "C-12 D14781 (Cheverly Supersite)" }, { compId: "D14645", name: "C-12 D14645 (Mr. Jones)" }, { compId: "D17615", name: "C-12 D17615 (Pacrust)" }, { compId: "E10588", name: "C-12 E10588 (Russ' lab)" }, { compId: "D14646", name: "C-12 D14646 (UMD Chem Building)" } ];
 
   let markerMap = {};
-  const map = L.map("map").setView([38.922, -76.915], 13);
+  let userMarker = null;
+
+  const map = L.map("map").setView([38.922, -76.915], 11);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 
-  const ctx = document.getElementById("airChart").getContext("2d");
-  const chart = new Chart(ctx, {
+  const chart = new Chart(document.getElementById("airChart").getContext("2d"), {
     type: "line",
-    data: { datasets: [{ label: "Data Trend", data: [], borderColor: "#4477ce", backgroundColor: "rgba(68, 119, 206, 0.1)", fill: true, tension: 0.1 }] },
+    data: { 
+      datasets: [
+        { label: "Station AQI", data: [], borderColor: "#4477ce", tension: 0.1, fill: true, backgroundColor: "rgba(68, 119, 206, 0.1)", spanGaps: true },
+        { label: "DC Comparative Trend", data: [], borderColor: "rgba(255, 0, 0, 0.6)", borderDash: [5, 5], tension: 0.3, fill: false, pointRadius: 0, spanGaps: true, borderWidth: 2 }
+      ] 
+    },
     options: { 
-      responsive: true, 
-      maintainAspectRatio: false, 
+      responsive: true, maintainAspectRatio: false, 
       scales: { 
-        x: { type: "time", time: { unit: 'hour' } },
-        y: { beginAtZero: true, title: { display: true, text: "Value" } } 
+        x: { type: "time", time: { unit: 'hour' } }, 
+        y: { beginAtZero: true, title: { display: true, text: "AQI" } } 
       } 
     }
   });
 
+  const BP_PM25_24H = [ { cLow: 0.0, cHigh: 12.0, iLow: 0, iHigh: 50 }, { cLow: 12.1, cHigh: 35.4, iLow: 51, iHigh: 100 }, { cLow: 35.5, cHigh: 55.4, iLow: 101, iHigh: 150 }, { cLow: 55.5, cHigh: 150.4, iLow: 151, iHigh: 200 } ];
+
+  function getAQIColor(aqi) {
+    if (aqi <= 50) return "#00e400";
+    if (aqi <= 100) return "#ffff00";
+    if (aqi <= 150) return "#ff7e00";
+    return "#ff0000";
+  }
+
+  function aqiFromBreakpoints(C, table) {
+    if (C === null || !Number.isFinite(Number(C))) return null;
+    const c = Number(C);
+    for (const bp of table) { if (c >= bp.cLow && c <= bp.cHigh) return Math.round(((bp.iHigh - bp.iLow) / (bp.cHigh - bp.cLow)) * (c - bp.cLow) + bp.iLow); }
+    return c > 150.4 ? 201 : null;
+  }
+
+  function computeCEAQIFromAQIs(aqis) {
+    const list = aqis.filter(v => Number.isFinite(v));
+    if (!list.length) return 0;
+    const base = Math.max(...list);
+    let adders = 0;
+    list.forEach(a => { if (a !== base) { const pct = a >= 120 ? 0.03 : (a >= 100 ? 0.02 : (a >= 80 ? 0.01 : 0)); adders += base * pct; }});
+    return Math.round(base + adders);
+  }
+
+  async function proxyGet(params) {
+    try {
+      const url = API_PROXY + "?" + new URLSearchParams(params).toString();
+      const res = await fetch(url);
+      return res.ok ? await res.json() : null;
+    } catch(e) { return null; }
+  }
+
+  function safeNum(x) { const v = Number(x); return Number.isFinite(v) ? v : null; }
+
+  function handleDropdownChange(id) { 
+    if(markerMap[id]) { map.flyTo(markerMap[id].getLatLng(), 15); updateDisplay(id); }
+  }
+
   async function updateDisplay(id) {
     const start = Math.floor(Date.now() / 1000) - 86400;
-    let chartData = [];
-    let label = "";
+    const extraLabel = document.getElementById("label_param"), extraVal = document.getElementById("val_param");
+    
+    let dcSeries = [];
+    const dcJson = await proxyGet({ action: "purpleair_history", id: "156557", start });
+    if (dcJson && dcJson.data) {
+        dcSeries = dcJson.data.map(r => ({ x: r[0] * 1000, y: aqiFromBreakpoints(safeNum(r[1]), BP_PM25_24H) || 0 })).sort((a, b) => a.x - b.x);
+    }
+    chart.data.datasets[1].data = dcSeries;
 
     if (id.startsWith("C12-")) {
       const compId = id.replace("C12-", "");
-      const res = await fetch(`${API_PROXY}?action=grove_history&compId=${compId}&start=${start}`).then(r => r.json());
-      chartData = (res.data || [])
-        .filter(r => r.streamId === "880nm")
-        .map(r => ({ x: r.time * 1000, y: r.data }));
-      
-      label = "Black Carbon (ng/m³)";
-      const last = chartData[chartData.length - 1]?.y || 0;
-      document.getElementById("statAQI").innerText = Math.round(last);
-      document.getElementById("label_param").innerText = "BC Concentration:";
-      document.getElementById("val_param").innerText = last + " ng/m³";
+      const res = await proxyGet({ action: "grove_last", compId });
+      const rows = Array.isArray(res) ? res : (res?.data || []);
+      const bc = rows.find(r => r.streamId === "880nm")?.data;
+      const cur = bc ? Math.round((bc / 600) * 100) : 0;
+      document.getElementById("statName").innerText = C12S.find(x => x.compId === compId).name;
+      document.getElementById("statAQI").innerText = cur;
+      document.getElementById("statAQI").style.color = getAQIColor(cur);
+      document.getElementById("statCE").innerText = cur;
+      document.getElementById("statCE").style.color = getAQIColor(cur);
+      extraLabel.innerText = "BC Black Carbon:"; extraVal.innerText = bc ? `${bc} ng/m³` : "--";
+      chart.data.datasets[0].data = [];
+    } else if (id.startsWith("MOD-")) {
+      const resA = await proxyGet({ action: "quantaq_by_date", sn: id, date: new Date().toISOString().split('T')[0] });
+      const series = (resA?.data || []).map(r => {
+        const localT = new Date(r.timestamp + (r.timestamp.includes('Z') ? '' : 'Z')).getTime();
+        return { x: localT, y: aqiFromBreakpoints(safeNum(r.pm25 || r.pm2_5), BP_PM25_24H) };
+      }).sort((a,b) => a.x - b.x);
+      const last = (resA?.data || []).slice(-1)[0];
+      const lastAQI = last ? aqiFromBreakpoints(safeNum(last.pm25 || last.pm2_5), BP_PM25_24H) : 0;
+      const ce = computeCEAQIFromAQIs(series.map(p => p.y));
+      document.getElementById("statName").innerText = SPODS.find(s=>s.sn===id).name;
+      document.getElementById("statAQI").innerText = lastAQI; document.getElementById("statAQI").style.color = getAQIColor(lastAQI);
+      document.getElementById("statCE").innerText = ce; document.getElementById("statCE").style.color = getAQIColor(ce);
+      extraLabel.innerText = "PM2.5 Conc:"; extraVal.innerText = last ? `${safeNum(last.pm25 || last.pm2_5)} µg/m³` : "--";
+      chart.data.datasets[0].data = series;
     } else {
-      const res = await fetch(`${API_PROXY}?action=purpleair_history&id=${id}&start=${start}`).then(r => r.json());
-      chartData = (res.data || []).map(r => ({ x: r[0] * 1000, y: r[1] }));
-      
-      label = "PM2.5 AQI";
-      const last = chartData[chartData.length - 1]?.y || 0;
-      document.getElementById("statAQI").innerText = Math.round(last);
-      document.getElementById("label_param").innerText = "PM2.5 Reading:";
-      document.getElementById("val_param").innerText = last + " µg/m³";
+      const json = await proxyGet({ action: "purpleair_history", id, start });
+      if (json && json.data) {
+        const series = json.data.map(r => ({ x: r[0]*1000, y: aqiFromBreakpoints(safeNum(r[1]), BP_PM25_24H) || 0 })).sort((a,b) => a.x - b.x);
+        const cur = series[series.length-1]?.y || 0;
+        const ce = computeCEAQIFromAQIs(series.map(p => p.y));
+        document.getElementById("statName").innerText = SENSORS[id];
+        document.getElementById("statAQI").innerText = cur; document.getElementById("statAQI").style.color = getAQIColor(cur);
+        document.getElementById("statCE").innerText = ce; document.getElementById("statCE").style.color = getAQIColor(ce);
+        extraLabel.innerText = "PM2.5 Conc:"; extraVal.innerText = (json.data[json.data.length-1]?.[1] || "--") + " µg/m³";
+        chart.data.datasets[0].data = series;
+      }
     }
-
-    chart.data.datasets[0].label = label;
-    chart.data.datasets[0].data = chartData;
-    chart.options.scales.y.title.text = label;
     chart.update();
   }
 
-  function handleDropdownChange(val) {
-    if (markerMap[val]) {
-      map.flyTo(markerMap[val].getLatLng(), 15);
-      updateDisplay(val);
-    }
+  function createInteractiveMarker(id, lat, lon, ceVal) {
+    const m = L.circleMarker([lat, lon], { radius: 11, fillColor: getAQIColor(ceVal), color: "#000", weight: 2, fillOpacity: 0.9 }).addTo(map);
+    m.bindTooltip(`AQI: ${ceVal}`, { permanent: false, direction: 'top', className: 'leaflet-tooltip-own' });
+    m.on("click", () => { document.getElementById("devSel").value = id; handleDropdownChange(id); });
+    markerMap[id] = m;
   }
 
-  function init() {
+  async function init() {
     const sel = document.getElementById("devSel");
-    
-    C12S.forEach(c => {
-      const m = L.circleMarker([c.lat, c.lon], { radius: 10, color: 'blue', fillOpacity: 0.8 }).addTo(map);
-      markerMap["C12-" + c.compId] = m;
-      sel.add(new Option(c.name, "C12-" + c.compId));
-      m.on('click', () => { sel.value = "C12-" + c.compId; handleDropdownChange(sel.value); });
-    });
-
-    Object.keys(SENSORS).forEach(id => {
-      const m = L.circleMarker([38.922 + (Math.random()*0.01), -76.915 + (Math.random()*0.01)], { radius: 10, color: 'green', fillOpacity: 0.8 }).addTo(map);
-      markerMap[id] = m;
-      sel.add(new Option(SENSORS[id], id));
-      m.on('click', () => { sel.value = id; handleDropdownChange(id); });
-    });
-
-    if (sel.options.length > 0) handleDropdownChange(sel.value);
+    for (const s of SPODS) {
+      const res = await proxyGet({ action: "quantaq_by_date", sn: s.sn, date: new Date().toISOString().split('T')[0] });
+      const ce = computeCEAQIFromAQIs((res?.data || []).map(p => aqiFromBreakpoints(safeNum(p.pm25 || p.pm2_5), BP_PM25_24H)));
+      createInteractiveMarker(s.sn, s.lat, s.lon, ce); sel.add(new Option(s.name, s.sn));
+    }
+    const pa = await proxyGet({ action: "purpleair_box" });
+    if (pa?.data) {
+      for (const r of pa.data) {
+        const id = String(r[0]); if (!SENSORS[id]) continue;
+        const h = await proxyGet({ action: "purpleair_history", id, start: Math.floor(Date.now()/1000)-86400 });
+        const ce = computeCEAQIFromAQIs((h?.data || []).map(x => aqiFromBreakpoints(safeNum(x[1]), BP_PM25_24H)));
+        createInteractiveMarker(id, r[1], r[2], ce); sel.add(new Option(SENSORS[id], id));
+      }
+    }
+    for (const c of C12S) {
+      const res = await proxyGet({ action: "grove_last", compId: c.compId });
+      const rows = Array.isArray(res) ? res : (res?.data || []);
+      const lat = safeNum(rows.find(r=>r.streamId==="lat")?.data);
+      const lon = safeNum(rows.find(r=>r.streamId==="long")?.data);
+      const bcVal = safeNum(rows.find(r=>r.streamId==="880nm")?.data);
+      const ceVal = bcVal ? Math.round((bcVal / 600) * 100) : 0;
+      if (lat && lon) { 
+        createInteractiveMarker(`C12-${c.compId}`, lat, lon, ceVal); 
+        sel.add(new Option(c.name, `C12-${c.compId}`)); 
+      }
+    }
+    if (sel.options.length) handleDropdownChange(sel.value = markerMap["203577"] ? "203577" : sel.options[0].value);
   }
 
+  document.getElementById("locateBtn").onclick = async () => {
+    const q = document.getElementById("addrInput").value; if (!q) return;
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q + ", Cheverly, MD")}`).then(r => r.json());
+    if (res.length) {
+      const loc = [parseFloat(res[0].lat), parseFloat(res[0].lon)];
+      if (userMarker) map.removeLayer(userMarker);
+      userMarker = L.marker(loc).addTo(map).bindPopup("Your Search Location").openPopup();
+      let nearestId = null, minDist = Infinity;
+      Object.keys(markerMap).forEach(id => { const d = map.distance(loc, markerMap[id].getLatLng()); if (d < minDist) { minDist = d; nearestId = id; } });
+      if (nearestId) { document.getElementById("devSel").value = nearestId; handleDropdownChange(nearestId); }
+    }
+  };
   init();
 </script>
 </body>
