@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Cheverly Air Quality</title>
+  <title>Cheverly Air Quality | EJAT Network</title>
   
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   
@@ -19,12 +19,10 @@
     html { scroll-behavior: smooth; }
     body { margin: 0; font-family: "Segoe UI", Roboto, sans-serif; background: #fdfdfd; color: #333; }
 
-    /* Navigation */
     .topbar { background: var(--brand-navy); color: #fff; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; }
     .topbar .nav a { color: #fff; text-decoration: none; margin-left: 1.5rem; font-weight: 500; opacity: 0.8; transition: opacity 0.2s; }
     .topbar .nav a:hover { opacity: 1; }
 
-    /* Hero */
     .hero {
       position: relative;
       color: #fff;
@@ -39,7 +37,6 @@
 
     .container { max-width: 1200px; margin: 0 auto; padding: 0 1.5rem 3rem; }
 
-    /* The 5 Primary Buttons */
     .tiles--five { 
       display: grid; 
       gap: 20px; 
@@ -74,7 +71,6 @@
     .tile h3 { margin: 0 0 12px; font-size: 1.15rem; font-weight: 700; line-height: 1.3; }
     .tile p { font-size: 0.95rem; opacity: 0.9; margin: 0; line-height: 1.5; }
 
-    /* Info Section & Mini Map */
     .info-section { margin-top: 6rem; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: start; }
     @media (max-width: 850px) { .info-section { grid-template-columns: 1fr; } }
 
@@ -95,7 +91,7 @@
 
 <body>
   <header class="topbar">
-    <div class="brand">Cheverly Air Quality</div>
+    <div class="brand"><strong>EJAT</strong> Cheverly Air Quality</div>
     <nav class="nav">
       <a href="index.html">Home</a>
       <a href="dashboard.html">Map & Data</a>
@@ -114,35 +110,35 @@
     <section class="tiles--five">
       <a class="tile tile-1" href="dashboard.html">
         <h3>Is the air at my house safe to breathe?</h3>
-        <p>View air pollution readings and how those levels are affecting you and your children's health.</p>
+        <p>View air pollution readings and how those levels are affecting your health.</p>
       </a>
 
       <a class="tile tile-2" href="dashboard.html">
         <h3>Neighborhood Air Quality Map</h3>
-        <p>Take a look at the community air quality network and the history of how it was put together.</p>
+        <p>Take a look at the community air quality network and the history of its development.</p>
       </a>
       
       <a class="tile tile-3" href="writeup.html#methodology">
         <h3>The Methodology</h3>
-        <p>Understand why the CE-AQI is a better communication tool than the EPA's traditional AQI.</p>
+        <p>Understand why CE-AQI is a better communication tool for Cheverly than the standard EPA AQI.</p>
       </a>      
       
       <a class="tile tile-4" href="writeup.html#health">
         <h3>Health Risks</h3>
-        <p>Understand the types of health risks linked to the different air pollutants you may be breathing.</p>
+        <p>Understand the health risks linked to the specific pollutants detected in our air.</p>
       </a>
 
       <a class="tile tile-5" href="writeup.html#action">
         <h3>Get Involved</h3>
-        <p>Learn about who is taking action and how you can play a critical role in just a few minutes a week.</p>
+        <p>Learn how you can play a critical role in local environmental justice with just a few minutes a week.</p>
       </a>
     </section>
 
     <section class="info-section">
       <div class="info-text">
         <h2>Why Cumulative Exposure Matters</h2>
-        <p>Traditional maps often only show one pollutant at a time. Our <strong>CE-AQI (Cumulative Exposure Air Quality Index)</strong> combines fine particulate matter (PM2.5) and Black Carbon (Diesel Particulate Matter) to show the true combined health impact.</p>
-        <p>By factoring in the high annual averages of Black Carbon in our region, we ensure that community members have the data they need to make safe choices for their families.</p>
+        <p>Traditional maps often only show one pollutant at a time. Our <strong>CE-AQI (Cumulative Exposure Air Quality Index)</strong> combines fine particulate matter (PM2.5) and Black Carbon to show the true combined health impact.</p>
+        <p>By factoring in localized environmental data, we ensure that community members can make safe choices for their families.</p>
       </div>
       
       <div id="mini-map"></div>
@@ -170,26 +166,58 @@
     }).addTo(miniMap);
 
     const API_PROXY = "/api/aq";
-    const sensors = ["284362", "52823", "53677", "54239", "54293", "57777", "57783", "57841", "57955", "160037", "175563", "178169", "184191", "197937", "203577", "203601", "207729", "211993", "218227", "218237", "218273"];
+    const SENSORS = ["284362", "52823", "53677", "54239", "54293", "57777", "57783", "57841", "57955", "160037", "175563", "178169", "184191", "197937", "203577", "203601", "207729", "211993", "218227", "218237", "218273"];
+
+    const BP_PM25_24H = [ { cLow: 0.0, cHigh: 12.0, iLow: 0, iHigh: 50 }, { cLow: 12.1, cHigh: 35.4, iLow: 51, iHigh: 100 }, { cLow: 35.5, cHigh: 55.4, iLow: 101, iHigh: 150 }, { cLow: 55.5, cHigh: 150.4, iLow: 151, iHigh: 200 } ];
+
+    function getAQIColor(aqi) {
+      if (aqi <= 50) return "#00e400";
+      if (aqi <= 100) return "#ffff00";
+      if (aqi <= 150) return "#ff7e00";
+      return "#ff0000";
+    }
+
+    function aqiFromBreakpoints(C, table) {
+      if (C === null || !Number.isFinite(Number(C))) return null;
+      const c = Number(C);
+      for (const bp of table) { if (c >= bp.cLow && c <= bp.cHigh) return Math.round(((bp.iHigh - bp.iLow) / (bp.cHigh - bp.cLow)) * (c - bp.cLow) + bp.iLow); }
+      return c > 150.4 ? 201 : null;
+    }
+
+    function computeCEAQI(aqis) {
+      const list = aqis.filter(v => Number.isFinite(v));
+      if (!list.length) return 0;
+      const base = Math.max(...list);
+      let adders = 0;
+      list.forEach(a => { if (a !== base) { const pct = a >= 120 ? 0.03 : (a >= 100 ? 0.02 : (a >= 80 ? 0.01 : 0)); adders += base * pct; }});
+      return Math.round(base + adders);
+    }
 
     async function loadPreviewDots() {
       try {
-        const res = await fetch(API_PROXY + "?action=purpleair_box");
-        const pa = await res.json();
-        if (pa?.data) {
-          pa.data.forEach(r => {
-            if (sensors.includes(String(r[0]))) {
+        const boxRes = await fetch(API_PROXY + "?action=purpleair_box");
+        const paBox = await boxRes.json();
+        const start = Math.floor(Date.now()/1000)-86400;
+
+        if (paBox?.data) {
+          for (const r of paBox.data) {
+            const id = String(r[0]);
+            if (SENSORS.includes(id)) {
+              const hRes = await fetch(`${API_PROXY}?action=purpleair_history&id=${id}&start=${start}`);
+              const history = await hRes.json();
+              const ce = computeCEAQI((history?.data || []).map(x => aqiFromBreakpoints(Number(x[1]), BP_PM25_24H)));
+              
               L.circleMarker([r[1], r[2]], {
-                radius: 9,
-                fillColor: "#4477ce",
+                radius: 10,
+                fillColor: getAQIColor(ce),
                 color: "#000",
-                weight: 1.5,
+                weight: 2,
                 fillOpacity: 0.9
               }).addTo(miniMap);
             }
-          });
+          }
         }
-      } catch (e) { console.error("Map preview error:", e); }
+      } catch (e) { console.error("Preview load error:", e); }
     }
 
     loadPreviewDots();
