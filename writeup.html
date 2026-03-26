@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Community Insights</title>
+  <title>FAQs</title>
   <link rel="stylesheet" href="style.css" />
   <style>
     :root { --brand-navy: #1a305e; --search-blue: #4477ce; }
@@ -11,16 +11,15 @@
     .container { max-width: 900px; margin: 40px auto; padding: 0 20px; }
     .topbar { background: var(--brand-navy); color: white; padding: 0 25px; display: flex; justify-content: space-between; align-items: center; height: 60px; }
     .nav a { color: white; text-decoration: none; margin-left: 20px; font-size: 0.9rem; }
+    .nav a.active { border-bottom: 2px solid white; padding-bottom: 4px; opacity: 1; }
     
     h1 { color: var(--brand-navy); font-size: 2.2rem; margin-bottom: 10px; }
     h2 { color: var(--brand-navy); border-bottom: 2px solid #eee; padding-bottom: 10px; margin-top: 40px; text-transform: uppercase; font-size: 1.2rem; letter-spacing: 0.5px; }
-    h3 { color: var(--search-blue); margin-top: 25px; font-size: 1.1rem; }
     
     .intro-text { font-size: 1.1rem; color: #555; margin-bottom: 30px; }
     .info-box { background: #f8fafc; border-left: 5px solid var(--search-blue); padding: 20px; margin: 20px 0; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
     .info-box strong { color: var(--brand-navy); display: block; margin-bottom: 10px; font-size: 1.05rem; }
     .info-box ul { margin: 0; padding-left: 20px; }
-    .info-box li { margin-bottom: 5px; }
     
     table { width: 100%; border-collapse: collapse; margin: 25px 0; font-size: 0.95rem; }
     th, td { border: 1px solid #ddd; padding: 15px; text-align: left; }
@@ -35,18 +34,18 @@
     <div class="brand">Cheverly Air Quality</div>
     <nav class="nav">
       <a href="index.html">Home</a>
-      <a href="dashboard.html">Dashboard</a>
-      <a href="writeup.html" aria-current="page">Community Insights</a>
+      <a href="dashboard.html">Map & Data</a>
+      <a href="writeup.html" class="active">FAQs</a>
     </nav>
   </header>
 
   <main class="container">
-    <h1>Understanding the CE-AQI Concept</h1>
+    <h1>Frequently Asked Questions</h1>
     <p class="intro-text">The EJAT Network uses a "Cumulative Exposure - Air Quality Index" (CE-AQI) to communicate the health risks of multiple pollutants simultaneously. Cumulative exposure is real and significant, and we have a responsibility to communicate what the data says.</p>
 
     <section id="methodology">
-      <h2>Pollutant Specific AQIs</h2>
-      <p>Individual scores are calculated for every pollutant at a site using local hardware:</p>
+      <h2>How is Air Quality Measured?</h2>
+      <p>Individual scores are calculated for every pollutant at a site using local hardware deployed across the town:</p>
       
       <div class="info-box">
         <strong>PurpleAir Sensors</strong>
@@ -72,7 +71,7 @@
     </section>
 
     <section id="health">
-      <h2>Air Quality Categories</h2>
+      <h2>What do the categories mean?</h2>
       <table>
         <thead>
           <tr>
@@ -112,13 +111,13 @@
     </section>
 
     <section id="action">
-      <h2>Taking Part & Contact Info</h2>
+      <h2>How can I get involved?</h2>
       <p>The EJAT Network is a community-driven initiative. Your involvement helps ensure Cheverly remains a healthy place to live and work.</p>
       
       <div class="contact-card">
         <p><strong>Town of Cheverly</strong><br>
         6401 Forest Road, Cheverly, MD 20785<br>
-        <em>Working in partnership with the UMD Mesoterps Team.</em></p>
+        <em>Community-led Environmental Justice Action Team (EJAT).</em></p>
       </div>
     </section>
   </main>
