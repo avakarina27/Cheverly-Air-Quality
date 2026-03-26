@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Community Insights | EJAT Network</title>
+  <title>Community Insights</title>
   <link rel="stylesheet" href="style.css" />
   <style>
     :root { --brand-navy: #1a305e; --search-blue: #4477ce; }
@@ -11,12 +11,22 @@
     .container { max-width: 900px; margin: 40px auto; padding: 0 20px; }
     .topbar { background: var(--brand-navy); color: white; padding: 0 25px; display: flex; justify-content: space-between; align-items: center; height: 60px; }
     .nav a { color: white; text-decoration: none; margin-left: 20px; font-size: 0.9rem; }
-    h2 { color: var(--brand-navy); border-bottom: 2px solid #eee; padding-bottom: 10px; margin-top: 40px; text-transform: uppercase; font-size: 1.2rem; }
+    
+    h1 { color: var(--brand-navy); font-size: 2.2rem; margin-bottom: 10px; }
+    h2 { color: var(--brand-navy); border-bottom: 2px solid #eee; padding-bottom: 10px; margin-top: 40px; text-transform: uppercase; font-size: 1.2rem; letter-spacing: 0.5px; }
     h3 { color: var(--search-blue); margin-top: 25px; font-size: 1.1rem; }
-    .info-box { background: #f8fafc; border-left: 5px solid var(--search-blue); padding: 20px; margin: 20px 0; border-radius: 4px; }
-    table { width: 100%; border-collapse: collapse; margin: 25px 0; font-size: 0.9rem; }
-    th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
-    th { background: #f2f2f2; }
+    
+    .intro-text { font-size: 1.1rem; color: #555; margin-bottom: 30px; }
+    .info-box { background: #f8fafc; border-left: 5px solid var(--search-blue); padding: 20px; margin: 20px 0; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+    .info-box strong { color: var(--brand-navy); display: block; margin-bottom: 10px; font-size: 1.05rem; }
+    .info-box ul { margin: 0; padding-left: 20px; }
+    .info-box li { margin-bottom: 5px; }
+    
+    table { width: 100%; border-collapse: collapse; margin: 25px 0; font-size: 0.95rem; }
+    th, td { border: 1px solid #ddd; padding: 15px; text-align: left; }
+    th { background: #f2f2f2; color: var(--brand-navy); text-transform: uppercase; font-size: 0.85rem; }
+    
+    .contact-card { background: #f4f6f8; padding: 25px; border-radius: 8px; border: 1px solid #ddd; margin-top: 20px; }
     .footer { text-align: center; padding: 40px; color: #666; font-size: 0.8rem; border-top: 1px solid #eee; margin-top: 50px; }
   </style>
 </head>
@@ -32,7 +42,7 @@
 
   <main class="container">
     <h1>Understanding the CE-AQI Concept</h1>
-    <p>The EJAT Network uses a "Cumulative Exposure - Air Quality Index" (CE-AQI) to communicate the health risks of multiple pollutants simultaneously. Cumulative exposure is real and significant, and we have a responsibility to communicate what the data says.</p>
+    <p class="intro-text">The EJAT Network uses a "Cumulative Exposure - Air Quality Index" (CE-AQI) to communicate the health risks of multiple pollutants simultaneously. Cumulative exposure is real and significant, and we have a responsibility to communicate what the data says.</p>
 
     <section id="methodology">
       <h2>Pollutant Specific AQIs</h2>
@@ -41,40 +51,62 @@
       <div class="info-box">
         <strong>PurpleAir Sensors</strong>
         <ul>
-          <li><strong>PM2.5:</strong></li>
-          <li><strong>Annual Average:</strong></li>
+          <li><strong>PM2.5:</strong> Fine particulate matter from combustion, smoke, and dust.</li>
+          <li><strong>Annual Average:</strong> Long-term exposure tracking for local health trends.</li>
         </ul>
       </div>
 
       <div class="info-box">
         <strong>Quant-AQ Modulair</strong>
         <ul>
-          <li><strong>Ozone:</strong></li>
-          <li><strong>CO & NO2:</strong></li>
-          <li><strong>Fugitive Dust:</strong></li>
+          <li><strong>Ozone:</strong> Ground-level gas formed by sunlight and vehicle emissions.</li>
+          <li><strong>CO & NO2:</strong> Primary indicators of heavy traffic and industrial exhaust.</li>
+          <li><strong>Fugitive Dust:</strong> Larger particles from construction or industrial sites.</li>
         </ul>
       </div>
 
       <div class="info-box">
         <strong>Diesel Particulate Matter (DPM)</strong>
-        <p></p>
+        <p>Specific tracking of soot and toxic components released by diesel engines in high-traffic corridors.</p>
       </div>
     </section>
 
-
-    
     <section id="health">
       <h2>Air Quality Categories</h2>
       <table>
         <thead>
-          <tr><th>Category</th><th>AQI Value</th><th>Health Description</th></tr>
+          <tr>
+            <th>Category</th>
+            <th>AQI Value</th>
+            <th>Health Description</th>
+          </tr>
         </thead>
         <tbody>
-          <tr style="background-color: #f0fff0;"><td><strong>Good</strong></td><td>0 to 50</td><td>Satisfactory; little or no risk.</td></tr>
-          <tr style="background-color: #ffffef;"><td><strong>Moderate</strong></td><td>51 to 100</td><td>Acceptable; risk for unusually sensitive people.</td></tr>
-          <tr style="background-color: #fff5e6;"><td><strong>Unhealthy (Sensitive)</strong></td><td>101 to 150</td><td>Sensitive groups may experience health effects.</td></tr>
-          <tr style="background-color: #ffe6e6;"><td><strong>Unhealthy</strong></td><td>151 to 200</td><td>Public may experience health effects.</td></tr>
-          <tr style="background-color: #f5e6ff;"><td><strong>Very Unhealthy</strong></td><td>201 to 300</td><td>Increased health risk for everyone.</td></tr>
+          <tr style="background-color: #f0fff0;">
+            <td><strong>Good</strong></td>
+            <td>0 to 50</td>
+            <td>Satisfactory; little or no risk.</td>
+          </tr>
+          <tr style="background-color: #ffffef;">
+            <td><strong>Moderate</strong></td>
+            <td>51 to 100</td>
+            <td>Acceptable; risk for unusually sensitive people.</td>
+          </tr>
+          <tr style="background-color: #fff5e6;">
+            <td><strong>Unhealthy (Sensitive)</strong></td>
+            <td>101 to 150</td>
+            <td>Sensitive groups may experience health effects.</td>
+          </tr>
+          <tr style="background-color: #ffe6e6;">
+            <td><strong>Unhealthy</strong></td>
+            <td>151 to 200</td>
+            <td>Public may experience health effects.</td>
+          </tr>
+          <tr style="background-color: #f5e6ff;">
+            <td><strong>Very Unhealthy</strong></td>
+            <td>201 to 300</td>
+            <td>Increased health risk for everyone.</td>
+          </tr>
         </tbody>
       </table>
     </section>
@@ -83,8 +115,10 @@
       <h2>Taking Part & Contact Info</h2>
       <p>The EJAT Network is a community-driven initiative. Your involvement helps ensure Cheverly remains a healthy place to live and work.</p>
       
-      <div style="background: #f4f6f8; padding: 20px; border-radius: 8px; border: 1px solid #ddd;">
+      <div class="contact-card">
         <p><strong>Town of Cheverly</strong><br>
+        6401 Forest Road, Cheverly, MD 20785<br>
+        <em>Working in partnership with the UMD Mesoterps Team.</em></p>
       </div>
     </section>
   </main>
