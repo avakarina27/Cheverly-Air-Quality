@@ -37,6 +37,7 @@
 
     .container { max-width: 1200px; margin: 0 auto; padding: 0 1.5rem 3rem; }
 
+    /* 4-Column Grid Layout */
     .tiles--grid { 
       display: grid; 
       gap: 20px; 
@@ -61,6 +62,7 @@
       box-sizing: border-box;
     }
 
+    /* Main Blue Action Button spans all 4 columns */
     .tile-main { 
       grid-column: span 4; 
       background-color: var(--search-blue); 
@@ -77,6 +79,7 @@
     .tile h3 { margin: 0 0 10px; font-size: 1.1rem; font-weight: 700; line-height: 1.2; }
     .tile p { font-size: 0.9rem; opacity: 0.9; margin: 0; line-height: 1.4; }
 
+    /* Responsive adjustments */
     @media (max-width: 950px) {
       .tiles--grid { grid-template-columns: repeat(2, 1fr); }
       .tile-main { grid-column: span 2; }
@@ -125,7 +128,7 @@
     <section class="tiles--grid">
       <a class="tile tile-main" href="dashboard.html">
         <h3>Is the air at my house safe to breathe?</h3>
-        <p>View air pollution readings and how those levels are affecting your health.</p>
+        <p>View real-time readings and how those levels are affecting your health.</p>
       </a>
 
       <a class="tile tile-2" href="dashboard.html">
@@ -152,7 +155,7 @@
     <section class="info-section">
       <div class="info-text">
         <h2>Why Cumulative Exposure Matters</h2>
-        <p>Traditional maps often only show one pollutant at a time. Our <strong>CE-AQI (Cumulative Exposure Air Quality Index)</strong> combines fine particulate matter (PM2.5) and Black Carbon to show the true combined health impact.</p>
+        <p>Traditional maps often only show one pollutant at a time. Our <strong>CE-AQI (Cumulative Exposure Air Quality Index)</strong> combines PM2.5 and Black Carbon to show the true combined health impact.</p>
         <p>By factoring in localized environmental data, we ensure that community members can make safe choices for their families.</p>
       </div>
       
@@ -181,41 +184,74 @@
     }).addTo(miniMap);
 
     const API_PROXY = "/api/aq";
-    // Consolidated sensor list
     const SENSORS = ["53677", "57777", "203601", "207729", "54293", "203577", "57841", "211993", "57811", "52823", "54239", "57783", "57955", "185085", "203597", "181253"];
 
+    const BP_PM25_24H = [ 
+      { cLow: 0.0, cHigh: 12.0, iLow: 0, iHigh: 50 }, 
+      { cLow: 12.1, cHigh: 35.4, iLow: 51, iHigh: 100 }, 
+      { cLow: 35.5, cHigh: 55.4, iLow: 101, iHigh: 150 }, 
+      { cLow: 55.5, cHigh: 150.4, iLow: 151, iHigh: 200 } 
+    ];
+
     function getAQIColor(aqi) {
-      if (!aqi || aqi === 0) return "#999"; // Gray if no data
       if (aqi <= 50) return "#00e400";
       if (aqi <= 100) return "#ffff00";
       if (aqi <= 150) return "#ff7e00";
-      return "#ff0000";
+      if (aqi <= 200) return "#ff0000";
+      if (aqi > 200) return "#8f3f97";
+      return "#999"; 
+    }
+
+    function aqiFromBreakpoints(C, table) {
+      if (C === null || !Number.isFinite(Number(C))) return null;
+      const c = Number(C);
+      for (const bp of table) { 
+        if (c >= bp.cLow && c <= bp.cHigh) return Math.round(((bp.iHigh - bp.iLow) / (bp.cHigh - bp.cLow)) * (c - bp.cLow) + bp.iLow); 
+      }
+      return c > 150.4 ? 201 : null;
+    }
+
+    function computeCEAQI(aqis) {
+      const list = aqis.filter(v => Number.isFinite(v));
+      if (!list.length) return 0;
+      const base = Math.max(...list);
+      let adders = 0;
+      list.forEach(a => { 
+        if (a !== base) { 
+          const pct = a >= 120 ? 0.03 : (a >= 100 ? 0.02 : (a >= 80 ? 0.01 : 0)); 
+          adders += base * pct; 
+        }
+      });
+      return Math.round(base + adders);
     }
 
     async function loadPreviewDots() {
       try {
         const boxRes = await fetch(API_PROXY + "?action=purpleair_box");
         const paBox = await boxRes.json();
-        
-        // Handle both array and object responses from proxy
+        const start = Math.floor(Date.now()/1000) - 86400;
+
         const sensorData = Array.isArray(paBox.data) ? paBox.data : Object.values(paBox.data);
 
-        sensorData.forEach(r => {
+        for (const r of sensorData) {
           const id = String(r[0]);
           if (SENSORS.includes(id)) {
-            // Leaflet uses [Lat, Lng]
+            const hRes = await fetch(`${API_PROXY}?action=purpleair_history&id=${id}&start=${start}`);
+            const history = await hRes.json();
+            
+            const aqis = (history?.data || []).map(x => aqiFromBreakpoints(Number(x[1]), BP_PM25_24H));
+            const ce = computeCEAQI(aqis);
+            
             L.circleMarker([r[1], r[2]], {
-              radius: 8,
-              fillColor: "#4477ce", // Standard blue indicator
-              color: "#fff",
-              weight: 2,
+              radius: 9,
+              fillColor: getAQIColor(ce),
+              color: "#333",
+              weight: 1.5,
               fillOpacity: 0.9
             }).addTo(miniMap);
           }
-        });
-      } catch (e) { 
-        console.error("Mini-map load error:", e); 
-      }
+        }
+      } catch (e) { console.error("Mini-map error:", e); }
     }
 
     loadPreviewDots();
