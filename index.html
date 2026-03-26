@@ -37,11 +37,10 @@
 
     .container { max-width: 1200px; margin: 0 auto; padding: 0 1.5rem 3rem; }
 
-    /* Updated Grid Layout for 4 side-by-side buttons */
     .tiles--grid { 
       display: grid; 
       gap: 20px; 
-      grid-template-columns: repeat(4, 1fr); /* 4 equal columns */
+      grid-template-columns: repeat(4, 1fr); 
       margin-top: -80px; 
       position: relative; 
       z-index: 10; 
@@ -62,7 +61,6 @@
       box-sizing: border-box;
     }
 
-    /* Main Action Button - spans all 4 columns */
     .tile-main { 
       grid-column: span 4; 
       background-color: var(--search-blue); 
@@ -79,7 +77,6 @@
     .tile h3 { margin: 0 0 10px; font-size: 1.1rem; font-weight: 700; line-height: 1.2; }
     .tile p { font-size: 0.9rem; opacity: 0.9; margin: 0; line-height: 1.4; }
 
-    /* Responsive adjustments */
     @media (max-width: 950px) {
       .tiles--grid { grid-template-columns: repeat(2, 1fr); }
       .tile-main { grid-column: span 2; }
@@ -128,7 +125,7 @@
     <section class="tiles--grid">
       <a class="tile tile-main" href="dashboard.html">
         <h3>Is the air at my house safe to breathe?</h3>
-        <p>View real-time pollution readings and how those levels are affecting your health.</p>
+        <p>View air pollution readings and how those levels are affecting your health.</p>
       </a>
 
       <a class="tile tile-2" href="dashboard.html">
@@ -183,7 +180,45 @@
       opacity: 0.7
     }).addTo(miniMap);
 
-    // [The rest of the JS remains identical to your previous version]
+    const API_PROXY = "/api/aq";
+    // Consolidated sensor list
+    const SENSORS = ["53677", "57777", "203601", "207729", "54293", "203577", "57841", "211993", "57811", "52823", "54239", "57783", "57955", "185085", "203597", "181253"];
+
+    function getAQIColor(aqi) {
+      if (!aqi || aqi === 0) return "#999"; // Gray if no data
+      if (aqi <= 50) return "#00e400";
+      if (aqi <= 100) return "#ffff00";
+      if (aqi <= 150) return "#ff7e00";
+      return "#ff0000";
+    }
+
+    async function loadPreviewDots() {
+      try {
+        const boxRes = await fetch(API_PROXY + "?action=purpleair_box");
+        const paBox = await boxRes.json();
+        
+        // Handle both array and object responses from proxy
+        const sensorData = Array.isArray(paBox.data) ? paBox.data : Object.values(paBox.data);
+
+        sensorData.forEach(r => {
+          const id = String(r[0]);
+          if (SENSORS.includes(id)) {
+            // Leaflet uses [Lat, Lng]
+            L.circleMarker([r[1], r[2]], {
+              radius: 8,
+              fillColor: "#4477ce", // Standard blue indicator
+              color: "#fff",
+              weight: 2,
+              fillOpacity: 0.9
+            }).addTo(miniMap);
+          }
+        });
+      } catch (e) { 
+        console.error("Mini-map load error:", e); 
+      }
+    }
+
+    loadPreviewDots();
   </script>
 </body>
 </html>
