@@ -3,51 +3,40 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Cheverly Air Quality | FAQs & Health Risks</title>
+  <title>Cheverly Air Quality | FAQs & History</title>
   <style>
     :root { 
         --brand-navy: #1a305e; 
         --search-blue: #4477ce; 
+        --aqi-orange: #ff7e00;
+        --aqi-red: #ff0000;
+        --aqi-purple: #8f3f97;
+        --success-green: #28a745;
         --bg-light: #f8fafc;
     }
-
-    /* Smooth scrolling for anchor links */
     html { scroll-behavior: smooth; }
-
-    body { margin: 0; font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; background: #fff; line-height: 1.6; color: #333; }
+    body { margin: 0; font-family: "Segoe UI", Roboto, sans-serif; line-height: 1.6; color: #333; background-color: #fff; }
     
-    .topbar { background: var(--brand-navy); color: white; padding: 0 25px; display: flex; justify-content: space-between; align-items: center; height: 60px; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-    .brand { font-weight: bold; font-size: 1.2rem; }
-    .nav a { color: white; text-decoration: none; margin-left: 20px; font-size: 0.9rem; opacity: 0.8; transition: 0.3s; }
-    .nav a:hover, .nav a.active { opacity: 1; border-bottom: 2px solid white; padding-bottom: 4px; }
-
+    .topbar { background: var(--brand-navy); color: white; padding: 0 2rem; display: flex; justify-content: space-between; align-items: center; height: 64px; position: sticky; top: 0; z-index: 1000; }
+    .nav a { color: white; text-decoration: none; margin-left: 20px; font-weight: 500; }
+    
     .container { max-width: 900px; margin: 40px auto; padding: 0 20px; }
     
-    /* Jump-to Menu */
-    .jump-menu { background: var(--bg-light); border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-bottom: 40px; display: flex; flex-wrap: wrap; gap: 15px; align-items: center; }
-    .jump-menu strong { color: var(--brand-navy); flex-basis: 100%; margin-bottom: 5px; }
-    .jump-menu a { color: var(--search-blue); text-decoration: none; font-weight: 600; font-size: 0.9rem; background: white; padding: 5px 12px; border-radius: 20px; border: 1px solid #cbd5e1; transition: 0.2s; }
-    .jump-menu a:hover { background: var(--search-blue); color: white; border-color: var(--search-blue); }
+    .jump-menu { background: var(--bg-light); border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-bottom: 40px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    .jump-menu a { color: var(--search-blue); text-decoration: none; font-weight: 600; background: white; padding: 6px 15px; border-radius: 20px; border: 1px solid #cbd5e1; font-size: 0.85rem; transition: 0.2s; }
+    .jump-menu a:hover { background: var(--search-blue); color: white; }
 
-    h1 { color: var(--brand-navy); font-size: 2.5rem; margin-bottom: 15px; }
-    h2 { color: var(--brand-navy); border-bottom: 2px solid #eee; padding-bottom: 10px; margin-top: 60px; text-transform: uppercase; font-size: 1.3rem; letter-spacing: 1px; }
+    section { scroll-margin-top: 80px; margin-bottom: 70px; }
+    h2 { color: var(--brand-navy); border-bottom: 2px solid #eee; padding-bottom: 10px; margin-top: 0; text-transform: uppercase; font-size: 1.3rem; }
     
-    /* Ensures headers aren't hidden by the sticky topbar when jumping */
-    section { scroll-margin-top: 80px; }
-
-    .intro-text { font-size: 1.2rem; color: #475569; margin-bottom: 40px; }
+    .info-box { border-left: 5px solid var(--brand-navy); padding: 25px; margin: 25px 0; background: #fff; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-radius: 4px; }
+    .info-box strong { display: block; margin-bottom: 8px; color: var(--brand-navy); font-size: 1.1rem; }
     
-    .info-box { background: white; border-left: 5px solid var(--search-blue); padding: 25px; margin: 25px 0; border-radius: 4px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-    .info-box strong { color: var(--brand-navy); display: block; margin-bottom: 8px; font-size: 1.1rem; }
+    table { width: 100%; border-collapse: collapse; margin: 25px 0; }
+    th, td { padding: 15px; border: 1px solid #edf2f7; text-align: left; }
+    th { background: #f8fafc; color: var(--brand-navy); font-size: 0.9rem; }
     
-    table { width: 100%; border-collapse: collapse; margin: 30px 0; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-    th, td { padding: 18px; text-align: left; border-bottom: 1px solid #edf2f7; }
-    th { background: #f1f5f9; color: var(--brand-navy); text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.5px; }
-    
-    .footer { text-align: center; padding: 60px 20px; color: #64748b; font-size: 0.9rem; border-top: 1px solid #f1f5f9; margin-top: 80px; }
-    
-    /* Back to top button */
-    .back-top { display: inline-block; margin-top: 20px; font-size: 0.85rem; color: var(--search-blue); text-decoration: none; font-weight: bold; }
+    .back-top { display: inline-block; margin-top: 15px; color: var(--search-blue); text-decoration: none; font-size: 0.8rem; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -57,106 +46,72 @@
     <nav class="nav">
       <a href="index.html">Home</a>
       <a href="dashboard.html">Map & Data</a>
-      <a href="writeup.html" class="active">FAQs</a>
+      <a href="writeup.html">FAQs</a>
     </nav>
   </header>
 
   <main class="container">
-    <section id="top">
-        <h1>Health & Air Quality FAQs</h1>
-        <p class="intro-text">This guide explains the <strong>Cumulative Exposure Air Quality Index (CE-AQI)</strong>, a pilot tool developed by the Cheverly EJAT to track the combined health risks of multiple pollutants.</p>
-    </section>
-
+    <h1>Project Documentation</h1>
+    <p style="font-size: 1.1rem; color: #64748b; margin-bottom: 30px;">DRAFT - JANUARY 2026</p>
+    
     <nav class="jump-menu">
-        <strong>Jump to a Section:</strong>
-        <a href="#about-ceaqi">What is CE-AQI?</a>
-        <a href="#pollutants">Pollutants Tracked</a>
+        <span style="font-weight: bold; margin-right: 10px;">Quick Links:</span>
+        <a href="#network">Sensor Network</a>
+        <a href="#methodology">Methodology</a>
         <a href="#health-table">Risk Categories</a>
-        <a href="#resources">External Links</a>
+        <a href="#action">Take Action</a>
     </nav>
 
-    <section id="about-ceaqi">
-      <h2>The CE-AQI Explained</h2>
-      <p>The primary difference between the <strong>CE-AQI</strong> and the traditional EPA index is that the CE-AQI covers high-priority pollutants for overburdened areas like Cheverly. It accounts for cumulative exposure from mobile, stationary, and industrial sources across the region.</p>
-      <p>The CE-AQI is built on solid science, adapting the traditional index to include toxic components like Black Carbon and Diesel Particulate Matter (DPM).</p>
-      <a href="#top" class="back-top">↑ Back to Top</a>
+    <section id="network">
+      <h2>Building the Network</h2>
+      <p>Since 2018, the Cheverly community has worked with the <strong>University of Maryland (CEEJH)</strong> to build a hyper-local monitoring network. This was born from concerns regarding diesel traffic, concrete industries, and metal recycling plants.</p>
+      <div class="info-box" style="border-left-color: var(--aqi-orange);">
+        <strong>Hyper-Local Monitoring</strong>
+        <p>Unlike regional EPA stations, our ~30 sensors are located directly in neighborhoods. We use PurpleAir (PM2.5), C-12 (Black Carbon), and Quant-AQ (Gases) to get a full picture of street-level air quality.</p>
+      </div>
+      <a href="#" class="back-top">↑ Back to Top</a>
     </section>
 
-    <section id="pollutants">
-      <h2>What pollutants are measured?</h2>
-      <div class="info-box">
-        <strong>Diesel Particulate Matter (DPM) & Black Carbon</strong>
-        <p>Commonly known as "soot," these are fine particles released by diesel engines (trucks, buses, trains). These particles are small enough to enter the bloodstream and are linked to significant respiratory and cardiovascular risks.</p>
+    <section id="methodology">
+      <h2>The CE-AQI Methodology</h2>
+      <p>The Cumulative Exposure Air Quality Index (CE-AQI) is a pilot effort to fix the "misleading" nature of standard reporting. Traditional AQI tells people the air is healthy because it ignores high-risk pollutants like Black Carbon.</p>
+      <div class="info-box" style="border-left-color: var(--aqi-red);">
+        <strong>The "Base + Adder" Formula</strong>
+        <p>We calculate specific risks for each pollutant. We start with the highest score (Base) and then add 1% to 3% "adders" for every other pollutant present. This ensures we account for the total health burden of the "complex mixture" in our air.</p>
       </div>
-
-      <div class="info-box">
-        <strong>PM2.5 (Particulate Matter)</strong>
-        <p>Extremely small particles (2.5 microns or smaller) from smoke, dust, and industrial exhaust. PM2.5 is the most widely tracked indicator of poor air quality.</p>
-      </div>
-
-      <div class="info-box">
-        <strong>Ozone, NO2 & CO</strong>
-        <p>Gaseous pollutants primarily generated by vehicle traffic and chemical reactions in sunlight. These can irritate the lungs and trigger asthma attacks.</p>
-      </div>
-      <a href="#top" class="back-top">↑ Back to Top</a>
+      <a href="#" class="back-top">↑ Back to Top</a>
     </section>
 
     <section id="health-table">
-      <h2>CE-AQI Health Risk Categories</h2>
+      <h2>Health Risk Categories</h2>
       <table>
         <thead>
-          <tr>
-            <th>Category</th>
-            <th>Index Value</th>
-            <th>Health Description</th>
-          </tr>
+          <tr><th>Category</th><th>Value</th><th>Health Impact</th></tr>
         </thead>
         <tbody>
-          <tr style="background-color: #ecfdf5;">
-            <td><strong style="color: #065f46;">Good</strong></td>
-            <td>0 to 50</td>
-            <td>Air quality is satisfactory; little or no risk.</td>
-          </tr>
-          <tr style="background-color: #fefce8;">
-            <td><strong style="color: #854d0e;">Moderate</strong></td>
-            <td>51 to 100</td>
-            <td>Acceptable; risk for unusually sensitive people.</td>
-          </tr>
-          <tr style="background-color: #fff7ed;">
-            <td><strong style="color: #9a3412;">Unhealthy (Sensitive Groups)</strong></td>
-            <td>101 to 150</td>
-            <td>Sensitive groups (children, elderly, asthmatics) may experience health effects.</td>
-          </tr>
-          <tr style="background-color: #fef2f2;">
-            <td><strong style="color: #991b1b;">Unhealthy</strong></td>
-            <td>151 to 200</td>
-            <td>The general public may begin to experience health effects.</td>
-          </tr>
-          <tr style="background-color: #faf5ff;">
-            <td><strong style="color: #6b21a8;">Very Unhealthy</strong></td>
-            <td>201 to 300</td>
-            <td>Health alert: increased risk for everyone.</td>
-          </tr>
+          <tr style="background:#ecfdf5"><td>Good</td><td>0-50</td><td>Satisfactory; little or no risk.</td></tr>
+          <tr style="background:#fefce8"><td>Moderate</td><td>51-100</td><td>Acceptable; risk for sensitive groups.</td></tr>
+          <tr style="background:#fff7ed"><td>Unhealthy (Sensitive)</td><td>101-150</td><td>Children and asthmatics may feel effects.</td></tr>
+          <tr style="background:#fef2f2"><td>Unhealthy</td><td>151-200</td><td>General public may experience health effects.</td></tr>
+          <tr style="background:#faf5ff"><td>Very Unhealthy</td><td>201-300</td><td>Health alert: increased risk for everyone.</td></tr>
         </tbody>
       </table>
-      <a href="#top" class="back-top">↑ Back to Top</a>
+      <a href="#" class="back-top">↑ Back to Top</a>
     </section>
 
-    <section id="resources">
-      <h2>External Resources</h2>
-      <p>For more information on the specific pollutants included in the CE-AQI, visit these official sources:</p>
-      <ul>
-        <li><a href="https://ww2.arb.ca.gov/resources/summary-diesel-particulate-matter-health-impacts" target="_blank">Diesel PM Health Impacts (CARB)</a></li>
-        <li><a href="https://www.epa.gov/pm-pollution" target="_blank">EPA: Fine Particulate Matter Pollution</a></li>
-        <li><a href="https://www.epa.gov/ground-level-ozone-pollution" target="_blank">EPA: Ground-level Ozone Effects</a></li>
-      </ul>
-      <a href="#top" class="back-top">↑ Back to Top</a>
+    <section id="action">
+      <h2>Who Is Taking Action?</h2>
+      <p>Cheverly is currently the leading community in Maryland for reporting potential air violations to the <strong>Maryland Department of the Environment (MDE)</strong>. This partnership helps focus state inspectors on the most critical local problems.</p>
+      <div class="info-box" style="border-left-color: var(--success-green); background: #f0fdf4;">
+        <strong>See Something, Say Something</strong>
+        <p>Report dust, smoke, or unusual smells to the MDE Hotline: <strong>(410) 537-3215</strong>. Your 5-minute report directly influences how state resources are assigned to our neighborhood.</p>
+      </div>
+      <a href="#" class="back-top">↑ Back to Top</a>
     </section>
   </main>
 
-  <footer class="footer">
-    <p>© 2026 EJAT Network | Cheverly, MD<br>
-    Monitoring Environmental Justice through Community Science.</p>
+  <footer style="text-align:center; padding:60px; color:#94a3b8; font-size:0.9rem;">
+    <p>© 2026 Environmental Justice Action Team (EJAT) | Cheverly, MD</p>
   </footer>
 
 </body>
