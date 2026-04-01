@@ -15,28 +15,22 @@
         --bg-light: #f8fafc;
     }
     html { scroll-behavior: smooth; }
-    body { margin: 0; font-family: "Segoe UI", Roboto, sans-serif; line-height: 1.6; color: #333; background-color: #fff; }
-    
+    body { margin: 0; font-family: "Segoe UI", Roboto, sans-serif; line-height: 1.6; color: #333; background: #fff; }
     .topbar { background: var(--brand-navy); color: white; padding: 0 2rem; display: flex; justify-content: space-between; align-items: center; height: 64px; position: sticky; top: 0; z-index: 1000; }
     .nav a { color: white; text-decoration: none; margin-left: 20px; font-weight: 500; }
-    
     .container { max-width: 900px; margin: 40px auto; padding: 0 20px; }
     
-    .jump-menu { background: var(--bg-light); border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-bottom: 40px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
-    .jump-menu a { color: var(--search-blue); text-decoration: none; font-weight: 600; background: white; padding: 6px 15px; border-radius: 20px; border: 1px solid #cbd5e1; font-size: 0.85rem; transition: 0.2s; }
-    .jump-menu a:hover { background: var(--search-blue); color: white; }
+    .jump-menu { background: var(--bg-light); border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-bottom: 40px; display: flex; flex-wrap: wrap; gap: 10px; }
+    .jump-menu a { color: var(--search-blue); text-decoration: none; font-weight: 600; background: white; padding: 5px 15px; border-radius: 20px; border: 1px solid #cbd5e1; font-size: 0.9rem; }
 
-    section { scroll-margin-top: 80px; margin-bottom: 70px; }
-    h2 { color: var(--brand-navy); border-bottom: 2px solid #eee; padding-bottom: 10px; margin-top: 0; text-transform: uppercase; font-size: 1.3rem; }
+    section { scroll-margin-top: 80px; margin-bottom: 60px; }
+    h2 { color: var(--brand-navy); border-bottom: 2px solid #eee; padding-bottom: 10px; }
+    .info-box { border-left: 5px solid var(--brand-navy); padding: 20px; margin: 20px 0; background: var(--bg-light); border-radius: 0 8px 8px 0; }
     
-    .info-box { border-left: 5px solid var(--brand-navy); padding: 25px; margin: 25px 0; background: #fff; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-radius: 4px; }
-    .info-box strong { display: block; margin-bottom: 8px; color: var(--brand-navy); font-size: 1.1rem; }
-    
-    table { width: 100%; border-collapse: collapse; margin: 25px 0; }
-    th, td { padding: 15px; border: 1px solid #edf2f7; text-align: left; }
-    th { background: #f8fafc; color: var(--brand-navy); font-size: 0.9rem; }
-    
-    .back-top { display: inline-block; margin-top: 15px; color: var(--search-blue); text-decoration: none; font-size: 0.8rem; font-weight: bold; }
+    table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 0.95rem; }
+    th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }
+    th { background: #f1f5f9; color: var(--brand-navy); }
+    .back-top { display: block; margin-top: 10px; color: var(--search-blue); text-decoration: none; font-size: 0.8rem; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -51,49 +45,54 @@
   </header>
 
   <main class="container">
-    <h1>Project Documentation</h1>
-    <p style="font-size: 1.1rem; color: #64748b; margin-bottom: 30px;">DRAFT - JANUARY 2026</p>
+    <h1>Project Documentation & History</h1>
+    <p><em>DRAFT - JANUARY 2026</em></p>
     
     <nav class="jump-menu">
-        <span style="font-weight: bold; margin-right: 10px;">Quick Links:</span>
-        <a href="#network">Sensor Network</a>
-        <a href="#methodology">Methodology</a>
-        <a href="#health-table">Risk Categories</a>
-        <a href="#action">Take Action</a>
+        <a href="#network">Network History</a>
+        <a href="#methodology">The Methodology</a>
+        <a href="#health">Health Risks</a>
+        <a href="#action">Taking Action</a>
     </nav>
 
     <section id="network">
-      <h2>Building the Network</h2>
-      <p>Since 2018, the Cheverly community has worked with the <strong>University of Maryland (CEEJH)</strong> to build a hyper-local monitoring network. This was born from concerns regarding diesel traffic, concrete industries, and metal recycling plants.</p>
+      <h2>Building the Hyper-Local Network</h2>
+      <p>Since 2007, community members from Cheverly, Fairmount Heights, Seat Pleasant, and Cedar Heights have been concerned about health risks from heavy diesel traffic and neighboring industries (concrete batching, recycling, and warehouse distribution).</p>
       <div class="info-box" style="border-left-color: var(--aqi-orange);">
-        <strong>Hyper-Local Monitoring</strong>
-        <p>Unlike regional EPA stations, our ~30 sensors are located directly in neighborhoods. We use PurpleAir (PM2.5), C-12 (Black Carbon), and Quant-AQ (Gases) to get a full picture of street-level air quality.</p>
+        <strong>The Partners:</strong>
+        <p>In 2018, the Center for Community Engagement, Environmental Justice, and Health (CEEJH) at UMD established the first PurpleAir sensors. In 2021, the Maryland Department of the Environment (MDE) began using this hyper-local data for the Cheverly Targeted Inspection Initiative.</p>
+        <p><strong>The Equipment:</strong> Approximately 30 monitors, including PurpleAir (PM2.5), C-12 (Black Carbon), and Quant-AQ Modulair (Ozone, NOX, CO) sensors.</p>
       </div>
       <a href="#" class="back-top">↑ Back to Top</a>
     </section>
 
     <section id="methodology">
-      <h2>The CE-AQI Methodology</h2>
-      <p>The Cumulative Exposure Air Quality Index (CE-AQI) is a pilot effort to fix the "misleading" nature of standard reporting. Traditional AQI tells people the air is healthy because it ignores high-risk pollutants like Black Carbon.</p>
+      <h2>The CE-AQI Methodology: Why it Matters</h2>
+      <p>Traditional AQIs ignore several high-risk pollutants. The EJAT feels strongly that continuing to tell people the air is "healthy" when cumulative risks are ignored is both misleading and irresponsible.</p>
+      
       <div class="info-box" style="border-left-color: var(--aqi-red);">
-        <strong>The "Base + Adder" Formula</strong>
-        <p>We calculate specific risks for each pollutant. We start with the highest score (Base) and then add 1% to 3% "adders" for every other pollutant present. This ensures we account for the total health burden of the "complex mixture" in our air.</p>
+        <strong>How we calculate the CE-AQI:</strong>
+        <p>1. <strong>Pollutant Specifics:</strong> We calculate individual AQIs for PM2.5 (24-hour and annual) and Black Carbon (C-12).<br>
+           2. <strong>Identify the Base:</strong> The pollutant with the highest AQI score becomes our "Base Value."<br>
+           3. <strong>The Adders:</strong> Instead of ignoring other pollutants, we add "adders" (1% to 3% conservative increases) for each additional pollutant detected. This reflects the <em>cumulative burden</em> on the lungs.</p>
+        <p><em>"Perfection should not be the enemy of the good."</em> — Pilot Program, March 2026.</p>
       </div>
       <a href="#" class="back-top">↑ Back to Top</a>
     </section>
 
-    <section id="health-table">
+    <section id="health">
       <h2>Health Risk Categories</h2>
       <table>
         <thead>
-          <tr><th>Category</th><th>Value</th><th>Health Impact</th></tr>
+          <tr><th>Category</th><th>Index Value</th><th>Health Statement</th></tr>
         </thead>
         <tbody>
-          <tr style="background:#ecfdf5"><td>Good</td><td>0-50</td><td>Satisfactory; little or no risk.</td></tr>
-          <tr style="background:#fefce8"><td>Moderate</td><td>51-100</td><td>Acceptable; risk for sensitive groups.</td></tr>
-          <tr style="background:#fff7ed"><td>Unhealthy (Sensitive)</td><td>101-150</td><td>Children and asthmatics may feel effects.</td></tr>
-          <tr style="background:#fef2f2"><td>Unhealthy</td><td>151-200</td><td>General public may experience health effects.</td></tr>
-          <tr style="background:#faf5ff"><td>Very Unhealthy</td><td>201-300</td><td>Health alert: increased risk for everyone.</td></tr>
+          <tr style="background:#f0fff4"><td>Good</td><td>0 - 50</td><td>Satisfactory; little to no risk.</td></tr>
+          <tr style="background:#ffffea"><td>Moderate</td><td>51 - 100</td><td>Acceptable; risk for unusually sensitive groups.</td></tr>
+          <tr style="background:#fff7ed"><td>Unhealthy (Sensitive)</td><td>101 - 150</td><td>Children and asthmatics may feel effects.</td></tr>
+          <tr style="background:#fff1f1"><td>Unhealthy</td><td>151 - 200</td><td>General public may experience health effects.</td></tr>
+          <tr style="background:#f5f3ff"><td>Very Unhealthy</td><td>201 - 300</td><td>Health alert: increased risk for everyone.</td></tr>
+          <tr style="background:#fff1f1"><td>Hazardous</td><td>301+</td><td>Emergency health conditions.</td></tr>
         </tbody>
       </table>
       <a href="#" class="back-top">↑ Back to Top</a>
@@ -101,17 +100,18 @@
 
     <section id="action">
       <h2>Who Is Taking Action?</h2>
-      <p>Cheverly is currently the leading community in Maryland for reporting potential air violations to the <strong>Maryland Department of the Environment (MDE)</strong>. This partnership helps focus state inspectors on the most critical local problems.</p>
+      <p>The community has established a bi-weekly workgroup with assistance from UMCP and MDE to review air monitoring data and industrial compliance.</p>
       <div class="info-box" style="border-left-color: var(--success-green); background: #f0fdf4;">
         <strong>See Something, Say Something</strong>
-        <p>Report dust, smoke, or unusual smells to the MDE Hotline: <strong>(410) 537-3215</strong>. Your 5-minute report directly influences how state resources are assigned to our neighborhood.</p>
+        <p>MDE has ~30 inspectors for 10,000 sources in Maryland. They need your help. If you see dust, smell odors, or see heavy smoke: <strong>Call the MDE Air Pollution Hotline: (410) 537-3215</strong> or email <em>mde.webmaster@maryland.gov</em>.</p>
+        <p>Cheverly is currently the top reporter of potential air violations in the state, directly influencing where inspectors are sent.</p>
       </div>
       <a href="#" class="back-top">↑ Back to Top</a>
     </section>
   </main>
 
-  <footer style="text-align:center; padding:60px; color:#94a3b8; font-size:0.9rem;">
-    <p>© 2026 Environmental Justice Action Team (EJAT) | Cheverly, MD</p>
+  <footer style="text-align:center; padding:40px; color:#666;">
+    <p>© 2026 EJAT Network | Cheverly, MD</p>
   </footer>
 
 </body>
