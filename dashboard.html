@@ -168,6 +168,7 @@
   });
 
   function getAQIColor(aqi) {
+    if (!aqi || isNaN(aqi)) return "#ccc";
     if (aqi <= 50) return "#00e400";
     if (aqi <= 100) return "#ffff00";
     if (aqi <= 150) return "#ff7e00";
@@ -176,7 +177,7 @@
 
   function getAQIValue(C, type) {
     const table = BREAKPOINTS[type];
-    if (C === null || !Number.isFinite(Number(C))) return null;
+    if (C === null || C === undefined || !Number.isFinite(Number(C))) return null;
     const c = Number(C);
     for (const b of table) { if (c >= b.cL && c <= b.cH) return Math.round(((b.iH - b.iL) / (b.cH - b.cL)) * (c - b.cL) + b.iL); }
     return c > table[table.length-1].cH ? 201 : null;
@@ -229,7 +230,7 @@
       const cur = dpm ? Math.round((dpm / 600) * 100) : 0;
       
       document.getElementById("statName").innerText = C12S.find(x => x.compId === compId).name;
-      document.getElementById("statAQI").innerText = cur;
+      document.getElementById("statAQI").innerText = cur || "--";
       document.getElementById("statAQI").style.color = getAQIColor(cur);
       document.getElementById("statCE").innerText = "--"; 
       extraLabel.innerText = "DPM Estimate:"; extraVal.innerText = dpm ? `${dpm.toFixed(1)} ng/m³` : "--";
@@ -248,12 +249,11 @@
         };
         const finalCE = computeCEAQIFromMap(aqis);
         
-        // Calculate 24H Average for PM2.5
-        const series = (resA.data || []).map(r => getAQIValue(r.pm25, 'pm25')).filter(v => v !== null);
-        const avg24 = series.length ? Math.round(series.reduce((a,b)=>a+b,0)/series.length) : "--";
+        const aqiSeries = (resA.data || []).map(r => getAQIValue(r.pm25, 'pm25')).filter(v => v !== null);
+        const avg24 = aqiSeries.length ? Math.round(aqiSeries.reduce((a,b)=>a+b,0)/aqiSeries.length) : "--";
 
         document.getElementById("statName").innerText = SPODS.find(s=>s.sn===id).name;
-        document.getElementById("statAQI").innerText = finalCE;
+        document.getElementById("statAQI").innerText = finalCE || "--";
         document.getElementById("statAQI").style.color = getAQIColor(finalCE);
         document.getElementById("statCE").innerText = avg24;
         document.getElementById("statCE").style.color = getAQIColor(avg24);
@@ -268,11 +268,11 @@
       const json = await proxyGet({ action: "purpleair_history", id, start });
       if (json && json.data) {
         const series = json.data.map(r => ({ x: r[0]*1000, y: getAQIValue(safeNum(r[1]), 'pm25') || 0 })).sort((a,b) => a.x - b.x);
-        const cur = series[series.length-1]?.y || 0;
-        const avg24 = series.length ? Math.round(series.reduce((a,b)=>a+a.y,0)/series.length) : cur;
+        const cur = series.length ? series[series.length-1].y : 0;
+        const avg24 = series.length ? Math.round(series.reduce((sum, pt) => sum + pt.y, 0) / series.length) : "--";
         
         document.getElementById("statName").innerText = SENSORS[id];
-        document.getElementById("statAQI").innerText = cur;
+        document.getElementById("statAQI").innerText = cur || "--";
         document.getElementById("statAQI").style.color = getAQIColor(cur);
         document.getElementById("statCE").innerText = avg24;
         document.getElementById("statCE").style.color = getAQIColor(avg24);
@@ -285,7 +285,7 @@
 
   function createInteractiveMarker(id, lat, lon, displayAQI) {
     const m = L.circleMarker([lat, lon], { radius: 11, fillColor: getAQIColor(displayAQI), color: "#000", weight: 2, fillOpacity: 0.9 }).addTo(map);
-    m.bindTooltip(`AQI: ${displayAQI}`, { permanent: false, direction: 'top', className: 'leaflet-tooltip-own' });
+    m.bindTooltip(`AQI: ${displayAQI || '--'}`, { permanent: false, direction: 'top', className: 'leaflet-tooltip-own' });
     m.on("click", () => { document.getElementById("devSel").value = id; handleDropdownChange(id); });
     markerMap[id] = m;
   }
