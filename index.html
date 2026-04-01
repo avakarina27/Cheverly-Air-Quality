@@ -27,8 +27,9 @@
       position: relative;
       color: #fff;
       text-align: center;
-      background: linear-gradient(180deg, rgba(26,48,94,0.85), rgba(26,48,94,0.6)), 
-                  url('image_4f129c.jpg') 
+      /* Restored your cloudy sky background */
+      background: linear-gradient(180deg, rgba(26,48,94,0.7), rgba(26,48,94,0.4)), 
+                  url('cloudy sky.jpg') 
                   center/cover no-repeat;
       padding: 6rem 1rem 9rem;
     }
@@ -180,18 +181,18 @@
 
     const API_PROXY = "/api/aq";
     
-    // Kept sensors matching dashboard.html
+    // Kept sensors only
     const SENSORS = { "284362": "EJAT.PG.1.284362", "52823": "EJAT.CV.6.52823", "53677": "EJAT.CV.1.53677", "54239": "EJAT.CV.6.54239", "54293": "EJAT.CV.2.54293", "57777": "EJAT.CV.1.57777", "57783": "EJAT.CV.6.57783", "57841": "EJAT.CV.3.57841", "57955": "EJAT.FH.1.57955", "160037": "EJAT.PG.1.160037", "175563": "EJAT.PG.1.175563", "178169": "EJAT.PG.1.178169", "184191": "EJAT.PG.1.184191", "197937": "EJAT.PG.1.197937", "203577": "EJAT.CV.2.203577", "203601": "EJAT.CV.1.203601", "207729": "EJAT.CV.1.207729", "211993": "EJAT.CV.3.211993", "218227": "EJAT.PG.1.218227", "218237": "EJAT.PG.1.218237", "218273": "EJAT.PG.1.218273" };
 
     const SPODS = [ 
-      { sn: "MOD-00745", name: "QuantAQ MOD-00745", lat: 38.905100, lon: -76.910000 }, 
-      { sn: "MOD-00746", name: "QuantAQ MOD-00746", lat: 39.143200, lon: -76.846000 }, 
-      { sn: "MOD-00747", name: "QuantAQ MOD-00747", lat: 39.233944, lon: -76.504501 }, 
-      { sn: "MOD-00748", name: "QuantAQ MOD-00748", lat: 38.969685, lon: -76.542290 }, 
-      { sn: "MOD-00749", name: "QuantAQ MOD-00749", lat: 39.055400, lon: -76.878800 } 
+      { sn: "MOD-00745", lat: 38.9051, lon: -76.9100 }, 
+      { sn: "MOD-00746", lat: 39.1432, lon: -76.8460 }, 
+      { sn: "MOD-00747", lat: 39.2339, lon: -76.5045 }, 
+      { sn: "MOD-00748", lat: 38.9696, lon: -76.5422 }, 
+      { sn: "MOD-00749", lat: 39.0554, lon: -76.8788 } 
     ];
 
-    const C12S = [ { compId: "D14781", name: "C-12 D14781" }, { compId: "D14645", name: "C-12 D14645" }, { compId: "D17615", name: "C-12 D17615" }, { compId: "E10588", name: "C-12 E10588" }, { compId: "D14646", name: "C-12 D14646" } ];
+    const C12S = [ { compId: "D14781" }, { compId: "D14645" }, { compId: "D17615" }, { compId: "E10588" }, { compId: "D14646" } ];
 
     const BP_PM25_24H = [ 
       { cLow: 0.0, cHigh: 12.0, iLow: 0, iHigh: 50 }, 
@@ -223,39 +224,44 @@
     }
 
     async function loadPreviewDots() {
-      // 1. PurpleAir
-      const paBox = await proxyGet({ action: "purpleair_box" });
       const start = Math.floor(Date.now()/1000) - 86400;
+
+      // 1. PurpleAir (24h Average)
+      const paBox = await proxyGet({ action: "purpleair_box" });
       if (paBox?.data) {
         for (const r of paBox.data) {
           const id = String(r[0]);
           if (id in SENSORS) {
             const h = await proxyGet({ action: "purpleair_history", id, start });
-            const historyData = h?.data || [];
-            const lastVal = historyData.length > 0 ? Number(historyData[historyData.length - 1][1]) : 0;
-            const aqi = aqiFromBreakpoints(lastVal, BP_PM25_24H);
+            const vals = (h?.data || []).map(x => Number(x[1])).filter(v => !isNaN(v));
+            const avg = vals.length > 0 ? vals.reduce((a,b)=>a+b,0)/vals.length : 0;
+            const aqi = aqiFromBreakpoints(avg, BP_PM25_24H);
             L.circleMarker([r[1], r[2]], { radius: 8, fillColor: getAQIColor(aqi), color: "#333", weight: 1, fillOpacity: 0.8 }).addTo(miniMap);
           }
         }
       }
 
-      // 2. QuantAQ
+      // 2. QuantAQ (24h Average)
       for (const s of SPODS) {
         const res = await proxyGet({ action: "quantaq_by_date", sn: s.sn, date: new Date().toISOString().split('T')[0] });
-        const last = (res?.data || []).slice(-1)[0];
-        const val = last ? Number(last.pm25 || last.pm2_5) : 0;
-        const aqi = aqiFromBreakpoints(val, BP_PM25_24H);
+        const vals = (res?.data || []).map(p => Number(p.pm25 || p.pm2_5)).filter(v => !isNaN(v));
+        const avg = vals.length > 0 ? vals.reduce((a,b)=>a+b,0)/vals.length : 0;
+        const aqi = aqiFromBreakpoints(avg, BP_PM25_24H);
         L.circleMarker([s.lat, s.lon], { radius: 8, fillColor: getAQIColor(aqi), color: "#333", weight: 1, fillOpacity: 0.8 }).addTo(miniMap);
       }
 
-      // 3. C-12s
+      // 3. C-12s (24h Average)
       for (const c of C12S) {
-        const res = await proxyGet({ action: "grove_last", compId: c.compId });
+        const res = await proxyGet({ action: "grove_history", compId: c.compId, start: start });
         const rows = Array.isArray(res) ? res : (res?.data || []);
-        const lat = Number(rows.find(r=>r.streamId==="lat")?.data);
-        const lon = Number(rows.find(r=>r.streamId==="long")?.data);
-        const bc = Number(rows.find(r=>r.streamId==="880nm")?.data);
-        const aqi = bc ? Math.round((bc / 600) * 100) : 0;
+        const bcVals = rows.filter(r => r.streamId === "880nm").map(r => Number(r.data)).filter(v => !isNaN(v));
+        const avgBC = bcVals.length > 0 ? bcVals.reduce((a,b)=>a+b,0)/bcVals.length : 0;
+        
+        const last = await proxyGet({ action: "grove_last", compId: c.compId });
+        const lat = Number((Array.isArray(last) ? last : []).find(r=>r.streamId==="lat")?.data);
+        const lon = Number((Array.isArray(last) ? last : []).find(r=>r.streamId==="long")?.data);
+        
+        const aqi = avgBC ? Math.round((avgBC / 600) * 100) : 0;
         if (lat && lon) {
            L.circleMarker([lat, lon], { radius: 8, fillColor: getAQIColor(aqi), color: "#333", weight: 1, fillOpacity: 0.8 }).addTo(miniMap);
         }
