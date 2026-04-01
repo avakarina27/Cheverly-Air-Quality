@@ -14,9 +14,14 @@
     :root { 
       --brand-navy: #1a305e; 
       --search-blue: #4477ce; 
+      
+      /* FULL VIBRANT COLOR PALETTE */
+      --aqi-green: #00e400;
+      --aqi-yellow: #ffff00;
       --aqi-orange: #ff7e00;
       --aqi-red: #ff0000;
       --aqi-purple: #8f3f97;
+      --aqi-maroon: #7e0023;
     }
 
     html, body { margin: 0; padding: 0; height: 100%; width: 100%; font-family: "Segoe UI", Roboto, sans-serif; overflow: hidden; background: #fdfdfd; }
@@ -112,10 +117,12 @@
     <div id="map"></div>
     <div class="map-legend">
       <div class="legend-title">Air Quality Index</div>
-      <div class="legend-item"><span class="dot" style="background-color:#00e400;"></span> Good (0-50)</div>
-      <div class="legend-item"><span class="dot" style="background-color:#ffff00;"></span> Moderate (51-100)</div>
-      <div class="legend-item"><span class="dot" style="background-color:#ff7e00;"></span> Sensitive (101-150)</div>
-      <div class="legend-item"><span class="dot" style="background-color:#ff0000;"></span> Unhealthy (151+)</div>
+      <div class="legend-item"><span class="dot" style="background-color:var(--aqi-green);"></span> Good (0-50)</div>
+      <div class="legend-item"><span class="dot" style="background-color:var(--aqi-yellow);"></span> Moderate (51-100)</div>
+      <div class="legend-item"><span class="dot" style="background-color:var(--aqi-orange);"></span> Sensitive (101-150)</div>
+      <div class="legend-item"><span class="dot" style="background-color:var(--aqi-red);"></span> Unhealthy (151-200)</div>
+      <div class="legend-item"><span class="dot" style="background-color:var(--aqi-purple);"></span> Very Unhealthy (201-300)</div>
+      <div class="legend-item"><span class="dot" style="background-color:var(--aqi-maroon);"></span> Hazardous (301+)</div>
     </div>
     <div id="chart-box"><canvas id="airChart"></canvas></div>
   </div>
@@ -138,7 +145,6 @@
   let markerMap = {};
   let userMarker = null;
 
-  // UPDATED: Initial focus on the EJAT.CV.1.203601 area
   const map = L.map("map").setView([38.9213, -76.9175], 14);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 
@@ -162,17 +168,21 @@
   const BP_PM25_24H = [ { cLow: 0.0, cHigh: 12.0, iLow: 0, iHigh: 50 }, { cLow: 12.1, cHigh: 35.4, iLow: 51, iHigh: 100 }, { cLow: 35.5, cHigh: 55.4, iLow: 101, iHigh: 150 }, { cLow: 55.5, cHigh: 150.4, iLow: 151, iHigh: 200 } ];
 
   function getAQIColor(aqi) {
-    if (aqi <= 50) return "#00e400";
-    if (aqi <= 100) return "#ffff00";
-    if (aqi <= 150) return "#ff7e00";
-    return "#ff0000";
+    if (aqi <= 50) return "#00e400"; // Good
+    if (aqi <= 100) return "#ffff00"; // Moderate
+    if (aqi <= 150) return "#ff7e00"; // Sensitive
+    if (aqi <= 200) return "#ff0000"; // Unhealthy
+    if (aqi <= 300) return "#8f3f97"; // Very Unhealthy
+    return "#7e0023"; // Hazardous
   }
 
   function aqiFromBreakpoints(C, table) {
     if (C === null || !Number.isFinite(Number(C))) return null;
     const c = Number(C);
     for (const bp of table) { if (c >= bp.cLow && c <= bp.cHigh) return Math.round(((bp.iHigh - bp.iLow) / (bp.cHigh - bp.cLow)) * (c - bp.cLow) + bp.iLow); }
-    return c > 150.4 ? 201 : null;
+    if (c > 150.4 && c <= 250.4) return Math.round(((300 - 201) / (250.4 - 150.5)) * (c - 150.5) + 201);
+    if (c > 250.4) return 301;
+    return null;
   }
 
   function computeCEAQIFromAQIs(aqis) {
@@ -261,15 +271,11 @@
 
   async function init() {
     const sel = document.getElementById("devSel");
-    
-    // Load QuantAQ
     for (const s of SPODS) {
       const res = await proxyGet({ action: "quantaq_by_date", sn: s.sn, date: new Date().toISOString().split('T')[0] });
       const ce = computeCEAQIFromAQIs((res?.data || []).map(p => aqiFromBreakpoints(safeNum(p.pm25 || p.pm2_5), BP_PM25_24H)));
       createInteractiveMarker(s.sn, s.lat, s.lon, ce); sel.add(new Option(s.name, s.sn));
     }
-    
-    // Load PurpleAir
     const pa = await proxyGet({ action: "purpleair_box" });
     if (pa?.data) {
       for (const r of pa.data) {
@@ -279,8 +285,6 @@
         createInteractiveMarker(id, r[1], r[2], ce); sel.add(new Option(SENSORS[id], id));
       }
     }
-
-    // Load C-12s
     for (const c of C12S) {
       const res = await proxyGet({ action: "grove_last", compId: c.compId });
       const rows = Array.isArray(res) ? res : (res?.data || []);
@@ -293,8 +297,6 @@
         sel.add(new Option(c.name, `C12-${c.compId}`)); 
       }
     }
-
-    // UPDATED: Default to 203601 upon loading
     if (sel.options.length) {
       const target = markerMap["203601"] ? "203601" : sel.options[0].value;
       sel.value = target;
