@@ -19,7 +19,7 @@
     html { scroll-behavior: smooth; }
     body { margin: 0; font-family: "Segoe UI", Roboto, sans-serif; background: #fdfdfd; color: #333; }
 
-    .topbar { background: var(--brand-navy); color: #fff; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; }
+    .topbar { background: var(--brand-navy); color: #fff; padding: 0 2rem; display: flex; justify-content: space-between; align-items: center; height: 64px; position: sticky; top: 0; z-index: 1000; }
     .topbar .nav a { color: #fff; text-decoration: none; margin-left: 1.5rem; font-weight: 500; opacity: 0.8; transition: opacity 0.2s; }
     .topbar .nav a:hover { opacity: 1; }
 
@@ -61,13 +61,7 @@
       box-sizing: border-box;
     }
 
-    .tile-main { 
-      grid-column: span 4; 
-      background-color: var(--search-blue); 
-      min-height: 150px;
-      padding: 2rem;
-    }
-    
+    .tile-main { grid-column: span 4; background-color: var(--search-blue); min-height: 150px; padding: 2rem; }
     .tile-2 { background-color: var(--aqi-orange); }
     .tile-3 { background-color: var(--aqi-red); }
     .tile-4 { background-color: var(--aqi-purple); }
@@ -77,14 +71,8 @@
     .tile h3 { margin: 0 0 10px; font-size: 1.1rem; font-weight: 700; line-height: 1.2; }
     .tile p { font-size: 0.9rem; opacity: 0.9; margin: 0; line-height: 1.4; }
 
-    @media (max-width: 950px) {
-      .tiles--grid { grid-template-columns: repeat(2, 1fr); }
-      .tile-main { grid-column: span 2; }
-    }
-    @media (max-width: 600px) {
-      .tiles--grid { grid-template-columns: 1fr; }
-      .tile-main { grid-column: span 1; }
-    }
+    @media (max-width: 950px) { .tiles--grid { grid-template-columns: repeat(2, 1fr); } .tile-main { grid-column: span 2; } }
+    @media (max-width: 600px) { .tiles--grid { grid-template-columns: 1fr; } .tile-main { grid-column: span 1; } }
 
     .info-section { margin-top: 6rem; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: start; }
     @media (max-width: 850px) { .info-section { grid-template-columns: 1fr; } }
@@ -127,22 +115,18 @@
         <h3>Is the air at my house safe to breathe?</h3>
         <p>View real-time readings and how those levels are affecting your health.</p>
       </a>
-
       <a class="tile tile-2" href="dashboard.html">
         <h3>Neighborhood Map</h3>
         <p>Take a look at the community air quality network and the history of its development.</p>
       </a>
-      
       <a class="tile tile-3" href="writeup.html#methodology">
         <h3>The Methodology</h3>
         <p>Understand why CE-AQI is a better communication tool for Cheverly than the standard EPA AQI.</p>
       </a>      
-      
       <a class="tile tile-4" href="writeup.html#health">
         <h3>Health Risks</h3>
         <p>Understand the health risks linked to the specific pollutants detected in our air.</p>
       </a>
-
       <a class="tile tile-5" href="writeup.html#action">
         <h3>Get Involved</h3>
         <p>Learn about who is taking action and how you can play a critical role in local environmental justice.</p>
@@ -155,7 +139,6 @@
         <p>Traditional maps often only show one pollutant at a time. Our <strong>CE-AQI (Cumulative Exposure Air Quality Index)</strong> combines PM2.5 and Black Carbon to show the true combined health impact.</p>
         <p>By factoring in localized environmental data, we ensure that community members can make safe choices for their families.</p>
       </div>
-      
       <div id="mini-map"></div>
     </section>
   </main>
@@ -192,13 +175,9 @@
 
     const C12S = [ { compId: "D14781" }, { compId: "D14645" }, { compId: "D17615" }, { compId: "E10588" }, { compId: "D14646" } ];
 
-    const BP_PM25_24H = [ 
-      { cLow: 0.0, cHigh: 12.0, iLow: 0, iHigh: 50 }, 
-      { cLow: 12.1, cHigh: 35.4, iLow: 51, iHigh: 100 }, 
-      { cLow: 35.5, cHigh: 55.4, iLow: 101, iHigh: 150 }, 
-      { cLow: 55.5, cHigh: 150.4, iLow: 151, iHigh: 200 } 
-    ];
+    const BP_PM25_24H = [ { cLow: 0.0, cHigh: 12.0, iLow: 0, iHigh: 50 }, { cLow: 12.1, cHigh: 35.4, iLow: 51, iHigh: 100 }, { cLow: 35.5, cHigh: 55.4, iLow: 101, iHigh: 150 }, { cLow: 55.5, cHigh: 150.4, iLow: 151, iHigh: 200 } ];
 
+    // MATCHING DASHBOARD MATH
     function getAQIColor(aqi) {
       if (aqi <= 50) return "#00e400";
       if (aqi <= 100) return "#ffff00";
@@ -209,10 +188,17 @@
     function aqiFromBreakpoints(C, table) {
       if (C === null || !Number.isFinite(Number(C))) return null;
       const c = Number(C);
-      for (const bp of table) { 
-        if (c >= bp.cLow && c <= bp.cHigh) return Math.round(((bp.iHigh - bp.iLow) / (bp.cHigh - bp.cLow)) * (c - bp.cLow) + bp.iLow); 
-      }
+      for (const bp of table) { if (c >= bp.cLow && c <= bp.cHigh) return Math.round(((bp.iHigh - bp.iLow) / (bp.cHigh - bp.cLow)) * (c - bp.cLow) + bp.iLow); }
       return c > 150.4 ? 201 : null;
+    }
+
+    function computeCEAQIFromAQIs(aqis) {
+      const list = aqis.filter(v => Number.isFinite(v));
+      if (!list.length) return 0;
+      const base = Math.max(...list);
+      let adders = 0;
+      list.forEach(a => { if (a !== base) { const pct = a >= 120 ? 0.03 : (a >= 100 ? 0.02 : (a >= 80 ? 0.01 : 0)); adders += base * pct; }});
+      return Math.round(base + adders);
     }
 
     async function proxyGet(params) {
@@ -222,8 +208,7 @@
     }
 
     async function loadPreviewDots() {
-      const now = Math.floor(Date.now()/1000);
-      const start = now - 86400; 
+      const start = Math.floor(Date.now()/1000) - 86400;
 
       // 1. PurpleAir
       const paBox = await proxyGet({ action: "purpleair_box" });
@@ -232,52 +217,36 @@
           const id = String(r[0]);
           if (id in SENSORS) {
             const h = await proxyGet({ action: "purpleair_history", id, start });
-            const vals = (h?.data || []).map(x => Number(x[1])).filter(v => !isNaN(v));
+            const aqis = (h?.data || []).map(x => aqiFromBreakpoints(Number(x[1]), BP_PM25_24H)).filter(v => v !== null);
             
-            // Average calculation with live fallback
-            let finalVal = vals.length > 0 ? vals.reduce((a,b)=>a+b,0)/vals.length : Number(r[4]);
+            // USE CE-AQI LOGIC
+            const finalAQI = aqis.length > 0 ? computeCEAQIFromAQIs(aqis) : aqiFromBreakpoints(Number(r[4]), BP_PM25_24H);
             
-            const aqi = aqiFromBreakpoints(finalVal, BP_PM25_24H);
-            L.circleMarker([r[1], r[2]], { radius: 8, fillColor: getAQIColor(aqi), color: "#333", weight: 1, fillOpacity: 0.8 }).addTo(miniMap);
+            L.circleMarker([r[1], r[2]], { radius: 8, fillColor: getAQIColor(finalAQI), color: "#333", weight: 1, fillOpacity: 0.8 }).addTo(miniMap);
           }
         }
       }
 
-      // 2. QuantAQ (SPODS)
+      // 2. QuantAQ
       for (const s of SPODS) {
         const res = await proxyGet({ action: "quantaq_by_date", sn: s.sn, date: new Date().toISOString().split('T')[0] });
-        const dataArr = res?.data || [];
-        const vals = dataArr.map(p => Number(p.pm25 || p.pm2_5)).filter(v => !isNaN(v));
+        const aqis = (res?.data || []).map(p => aqiFromBreakpoints(Number(p.pm25 || p.pm2_5), BP_PM25_24H)).filter(v => v !== null);
         
-        let finalVal = vals.length > 0 ? vals.reduce((a,b)=>a+b,0)/vals.length : 0;
-        if (finalVal === 0 && dataArr.length > 0) {
-            finalVal = Number(dataArr[dataArr.length - 1].pm25 || 0);
-        }
-
-        const aqi = aqiFromBreakpoints(finalVal, BP_PM25_24H);
-        L.circleMarker([s.lat, s.lon], { radius: 8, fillColor: getAQIColor(aqi), color: "#333", weight: 1, fillOpacity: 0.8 }).addTo(miniMap);
+        const finalAQI = aqis.length > 0 ? computeCEAQIFromAQIs(aqis) : 0;
+        L.circleMarker([s.lat, s.lon], { radius: 8, fillColor: getAQIColor(finalAQI), color: "#333", weight: 1, fillOpacity: 0.8 }).addTo(miniMap);
       }
 
       // 3. C-12s
       for (const c of C12S) {
-        const res = await proxyGet({ action: "grove_history", compId: c.compId, start: start });
-        const rows = Array.isArray(res) ? res : (res?.data || []);
-        const bcVals = rows.filter(r => r.streamId === "880nm").map(r => Number(r.data)).filter(v => !isNaN(v));
-        
         const last = await proxyGet({ action: "grove_last", compId: c.compId });
         const lastData = Array.isArray(last) ? last : [];
-        
-        let avgBC = bcVals.length > 0 ? bcVals.reduce((a,b)=>a+b,0)/bcVals.length : 0;
-        if (avgBC === 0) {
-            avgBC = Number(lastData.find(r=>r.streamId==="880nm")?.data || 0);
-        }
-
+        const bcVal = Number(lastData.find(r=>r.streamId==="880nm")?.data || 0);
         const lat = Number(lastData.find(r=>r.streamId==="lat")?.data);
         const lon = Number(lastData.find(r=>r.streamId==="long")?.data);
         
-        const aqi = avgBC ? Math.round((avgBC / 600) * 100) : 0;
+        const finalAQI = bcVal ? Math.round((bcVal / 600) * 100) : 0;
         if (lat && lon) {
-           L.circleMarker([lat, lon], { radius: 8, fillColor: getAQIColor(aqi), color: "#333", weight: 1, fillOpacity: 0.8 }).addTo(miniMap);
+           L.circleMarker([lat, lon], { radius: 8, fillColor: getAQIColor(finalAQI), color: "#333", weight: 1, fillOpacity: 0.8 }).addTo(miniMap);
         }
       }
     }
