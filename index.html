@@ -27,7 +27,6 @@
       position: relative;
       color: #fff;
       text-align: center;
-      /* Restored your cloudy sky background */
       background: linear-gradient(180deg, rgba(26,48,94,0.7), rgba(26,48,94,0.4)), 
                   url('cloudy sky.jpg') 
                   center/cover no-repeat;
@@ -181,7 +180,6 @@
 
     const API_PROXY = "/api/aq";
     
-    // Kept sensors only
     const SENSORS = { "284362": "EJAT.PG.1.284362", "52823": "EJAT.CV.6.52823", "53677": "EJAT.CV.1.53677", "54239": "EJAT.CV.6.54239", "54293": "EJAT.CV.2.54293", "57777": "EJAT.CV.1.57777", "57783": "EJAT.CV.6.57783", "57841": "EJAT.CV.3.57841", "57955": "EJAT.FH.1.57955", "160037": "EJAT.PG.1.160037", "175563": "EJAT.PG.1.175563", "178169": "EJAT.PG.1.178169", "184191": "EJAT.PG.1.184191", "197937": "EJAT.PG.1.197937", "203577": "EJAT.CV.2.203577", "203601": "EJAT.CV.1.203601", "207729": "EJAT.CV.1.207729", "211993": "EJAT.CV.3.211993", "218227": "EJAT.PG.1.218227", "218237": "EJAT.PG.1.218237", "218273": "EJAT.PG.1.218273" };
 
     const SPODS = [ 
@@ -224,9 +222,10 @@
     }
 
     async function loadPreviewDots() {
-      const start = Math.floor(Date.now()/1000) - 86400;
+      const now = Math.floor(Date.now()/1000);
+      const start = now - 86400; 
 
-      // 1. PurpleAir (24h Average)
+      // 1. PurpleAir
       const paBox = await proxyGet({ action: "purpleair_box" });
       if (paBox?.data) {
         for (const r of paBox.data) {
@@ -234,32 +233,47 @@
           if (id in SENSORS) {
             const h = await proxyGet({ action: "purpleair_history", id, start });
             const vals = (h?.data || []).map(x => Number(x[1])).filter(v => !isNaN(v));
-            const avg = vals.length > 0 ? vals.reduce((a,b)=>a+b,0)/vals.length : 0;
-            const aqi = aqiFromBreakpoints(avg, BP_PM25_24H);
+            
+            // Average calculation with live fallback
+            let finalVal = vals.length > 0 ? vals.reduce((a,b)=>a+b,0)/vals.length : Number(r[4]);
+            
+            const aqi = aqiFromBreakpoints(finalVal, BP_PM25_24H);
             L.circleMarker([r[1], r[2]], { radius: 8, fillColor: getAQIColor(aqi), color: "#333", weight: 1, fillOpacity: 0.8 }).addTo(miniMap);
           }
         }
       }
 
-      // 2. QuantAQ (24h Average)
+      // 2. QuantAQ (SPODS)
       for (const s of SPODS) {
         const res = await proxyGet({ action: "quantaq_by_date", sn: s.sn, date: new Date().toISOString().split('T')[0] });
-        const vals = (res?.data || []).map(p => Number(p.pm25 || p.pm2_5)).filter(v => !isNaN(v));
-        const avg = vals.length > 0 ? vals.reduce((a,b)=>a+b,0)/vals.length : 0;
-        const aqi = aqiFromBreakpoints(avg, BP_PM25_24H);
+        const dataArr = res?.data || [];
+        const vals = dataArr.map(p => Number(p.pm25 || p.pm2_5)).filter(v => !isNaN(v));
+        
+        let finalVal = vals.length > 0 ? vals.reduce((a,b)=>a+b,0)/vals.length : 0;
+        if (finalVal === 0 && dataArr.length > 0) {
+            finalVal = Number(dataArr[dataArr.length - 1].pm25 || 0);
+        }
+
+        const aqi = aqiFromBreakpoints(finalVal, BP_PM25_24H);
         L.circleMarker([s.lat, s.lon], { radius: 8, fillColor: getAQIColor(aqi), color: "#333", weight: 1, fillOpacity: 0.8 }).addTo(miniMap);
       }
 
-      // 3. C-12s (24h Average)
+      // 3. C-12s
       for (const c of C12S) {
         const res = await proxyGet({ action: "grove_history", compId: c.compId, start: start });
         const rows = Array.isArray(res) ? res : (res?.data || []);
         const bcVals = rows.filter(r => r.streamId === "880nm").map(r => Number(r.data)).filter(v => !isNaN(v));
-        const avgBC = bcVals.length > 0 ? bcVals.reduce((a,b)=>a+b,0)/bcVals.length : 0;
         
         const last = await proxyGet({ action: "grove_last", compId: c.compId });
-        const lat = Number((Array.isArray(last) ? last : []).find(r=>r.streamId==="lat")?.data);
-        const lon = Number((Array.isArray(last) ? last : []).find(r=>r.streamId==="long")?.data);
+        const lastData = Array.isArray(last) ? last : [];
+        
+        let avgBC = bcVals.length > 0 ? bcVals.reduce((a,b)=>a+b,0)/bcVals.length : 0;
+        if (avgBC === 0) {
+            avgBC = Number(lastData.find(r=>r.streamId==="880nm")?.data || 0);
+        }
+
+        const lat = Number(lastData.find(r=>r.streamId==="lat")?.data);
+        const lon = Number(lastData.find(r=>r.streamId==="long")?.data);
         
         const aqi = avgBC ? Math.round((avgBC / 600) * 100) : 0;
         if (lat && lon) {
