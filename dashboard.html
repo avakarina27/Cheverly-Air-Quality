@@ -100,7 +100,7 @@
         <div class="sublabel" style="color:var(--brand-navy)">Current CE-AQI</div>
         
         <div id="statCE" class="subval" style="color:#ccc;">--</div>
-        <div class="sublabel">EPA Baseline (PM2.5)</div>
+        <div class="sublabel">24 Hour AQI Average</div>
         <div id="extraDetails" class="kv">
           <div class="k" id="label_param">Concentration:</div>
           <div class="v" id="val_param">--</div>
@@ -127,17 +127,17 @@
   const SENSORS = { "284362": "EJAT.PG.1.284362", "52823": "EJAT.CV.6.52823", "53677": "EJAT.CV.1.53677", "54239": "EJAT.CV.6.54239", "54293": "EJAT.CV.2.54293", "57777": "EJAT.CV.1.57777", "57783": "EJAT.CV.6.57783", "57841": "EJAT.CV.3.57841", "57955": "EJAT.FH.1.57955", "160037": "EJAT.PG.1.160037", "175563": "EJAT.PG.1.175563", "178169": "EJAT.PG.1.178169", "184191": "EJAT.PG.1.184191", "197937": "EJAT.PG.1.197937", "203577": "EJAT.CV.2.203577", "203601": "EJAT.CV.1.203601", "207729": "EJAT.CV.1.207729", "211993": "EJAT.CV.3.211993", "218227": "EJAT.PG.1.218227", "218237": "EJAT.PG.1.218237", "218273": "EJAT.PG.1.218273" };
 
   const SPODS = [ 
-    { sn: "MOD-00745", name: "QuantAQ MOD-00745", lat: 38.905100, lon: -76.910000 }, 
-    { sn: "MOD-00746", name: "QuantAQ MOD-00746", lat: 39.143200, lon: -76.846000 }, 
-    { sn: "MOD-00747", name: "QuantAQ MOD-00747", lat: 39.233944, lon: -76.504501 }, 
-    { sn: "MOD-00748", name: "QuantAQ MOD-00748", lat: 38.969685, lon: -76.542290 }, 
-    { sn: "MOD-00749", name: "QuantAQ MOD-00749", lat: 39.055400, lon: -76.878800 } 
+    { sn: "MOD-00745", name: "QuantAQ MOD-00745", lat: 38.9051, lon: -76.9100 }, 
+    { sn: "MOD-00746", name: "QuantAQ MOD-00746", lat: 39.1432, lon: -76.8460 }, 
+    { sn: "MOD-00747", name: "QuantAQ MOD-00747", lat: 39.2339, lon: -76.5045 }, 
+    { sn: "MOD-00748", name: "QuantAQ MOD-00748", lat: 38.9696, lon: -76.5422 }, 
+    { sn: "MOD-00749", name: "QuantAQ MOD-00749", lat: 39.0554, lon: -76.8788 } 
   ];
 
   const C12S = [ { compId: "D14781", name: "C-12 D14781" }, { compId: "D14645", name: "C-12 D14645" }, { compId: "D17615", name: "C-12 D17615" }, { compId: "E10588", name: "C-12 E10588" }, { compId: "D14646", name: "C-12 D14646" } ];
 
   const BREAKPOINTS = {
-    pm25: [ { cL: 0.0, cH: 12.0, iL: 0, iH: 50 }, { cL: 12.1, cH: 35.4, iL: 51, iH: 100 }, { cL: 35.5, cH: 55.4, iL: 101, iH: 150 }, { cL: 55.5, cH: 150.4, iL: 151, iH: 200 } ],
+    pm25: [ { cL: 0, cH: 12, iL: 0, iH: 50 }, { cL: 12.1, cH: 35.4, iL: 51, iH: 100 }, { cL: 35.5, cH: 55.4, iL: 101, iH: 150 }, { cL: 55.5, cH: 150.4, iL: 151, iH: 200 } ],
     pm10: [ { cL: 0, cH: 54, iL: 0, iH: 50 }, { cL: 55, cH: 154, iL: 51, iH: 100 }, { cL: 155, cH: 254, iL: 101, iH: 150 } ],
     o3:   [ { cL: 0, cH: 54, iL: 0, iH: 50 }, { cL: 55, cH: 70, iL: 51, iH: 100 }, { cL: 71, cH: 85, iL: 101, iH: 150 } ],
     no2:  [ { cL: 0, cH: 53, iL: 0, iH: 50 }, { cL: 54, cH: 100, iL: 51, iH: 100 }, { cL: 101, cH: 360, iL: 101, iH: 150 } ],
@@ -182,7 +182,6 @@
     return c > table[table.length-1].cH ? 201 : null;
   }
 
-  // VERSION 2 ENGINE: Multi-pollutant adders
   function computeCEAQIFromMap(aqiMap) {
     const vals = Object.values(aqiMap).filter(v => v !== null && v > 0);
     if (!vals.length) return 0;
@@ -190,8 +189,8 @@
     let adders = 0;
     for (const aqi of vals) {
       if (aqi === base) continue;
-      let pct = aqi >= 120 ? 0.03 : (aqi >= 100 ? 0.02 : (aqi >= 80 ? 0.01 : 0));
-      adders += base * pct;
+      let weight = aqi >= 120 ? 0.03 : (aqi >= 100 ? 0.02 : (aqi >= 80 ? 0.01 : 0));
+      adders += base * weight;
     }
     return Math.round(base + adders);
   }
@@ -226,13 +225,14 @@
       const res = await proxyGet({ action: "grove_last", compId });
       const rows = Array.isArray(res) ? res : (res?.data || []);
       const bc = safeNum(rows.find(r => r.streamId === "880nm")?.data);
-      // V2 Logic: 125% Multiplier for Diesel PM
-      const cur = bc ? Math.round(((bc * 1.25) / 600) * 100) : 0;
+      const dpm = bc ? bc * 1.25 : 0;
+      const cur = dpm ? Math.round((dpm / 600) * 100) : 0;
+      
       document.getElementById("statName").innerText = C12S.find(x => x.compId === compId).name;
       document.getElementById("statAQI").innerText = cur;
       document.getElementById("statAQI").style.color = getAQIColor(cur);
-      document.getElementById("statCE").innerText = "--";
-      extraLabel.innerText = "BC Black Carbon:"; extraVal.innerText = bc ? `${bc} ng/m³` : "--";
+      document.getElementById("statCE").innerText = "--"; 
+      extraLabel.innerText = "DPM Estimate:"; extraVal.innerText = dpm ? `${dpm.toFixed(1)} ng/m³` : "--";
       chart.data.datasets[0].data = [];
     } else if (id.startsWith("MOD-")) {
       const resA = await proxyGet({ action: "quantaq_by_date", sn: id, date: new Date().toISOString().split('T')[0] });
@@ -247,10 +247,16 @@
           co:   getAQIValue(latest.co / 1000, 'co')
         };
         const finalCE = computeCEAQIFromMap(aqis);
+        
+        // Calculate 24H Average for PM2.5
+        const series = (resA.data || []).map(r => getAQIValue(r.pm25, 'pm25')).filter(v => v !== null);
+        const avg24 = series.length ? Math.round(series.reduce((a,b)=>a+b,0)/series.length) : "--";
+
         document.getElementById("statName").innerText = SPODS.find(s=>s.sn===id).name;
         document.getElementById("statAQI").innerText = finalCE;
         document.getElementById("statAQI").style.color = getAQIColor(finalCE);
-        document.getElementById("statCE").innerText = aqis.pm25 || "--";
+        document.getElementById("statCE").innerText = avg24;
+        document.getElementById("statCE").style.color = getAQIColor(avg24);
         extraLabel.innerText = "PM2.5 Conc:"; extraVal.innerText = `${safeNum(latest.pm25)} µg/m³`;
         
         chart.data.datasets[0].data = (resA.data || []).map(r => ({
@@ -263,10 +269,13 @@
       if (json && json.data) {
         const series = json.data.map(r => ({ x: r[0]*1000, y: getAQIValue(safeNum(r[1]), 'pm25') || 0 })).sort((a,b) => a.x - b.x);
         const cur = series[series.length-1]?.y || 0;
+        const avg24 = series.length ? Math.round(series.reduce((a,b)=>a+a.y,0)/series.length) : cur;
+        
         document.getElementById("statName").innerText = SENSORS[id];
         document.getElementById("statAQI").innerText = cur;
         document.getElementById("statAQI").style.color = getAQIColor(cur);
-        document.getElementById("statCE").innerText = cur;
+        document.getElementById("statCE").innerText = avg24;
+        document.getElementById("statCE").style.color = getAQIColor(avg24);
         extraLabel.innerText = "PM2.5 Conc:"; extraVal.innerText = (json.data[json.data.length-1]?.[1] || "--") + " µg/m³";
         chart.data.datasets[0].data = series;
       }
@@ -284,7 +293,6 @@
   async function init() {
     const sel = document.getElementById("devSel");
     
-    // Load QuantAQ (Multi-pollutant)
     for (const s of SPODS) {
       const res = await proxyGet({ action: "quantaq_by_date", sn: s.sn, date: new Date().toISOString().split('T')[0] });
       const latest = (res?.data || []).slice(-1)[0];
@@ -301,7 +309,6 @@
       createInteractiveMarker(s.sn, s.lat, s.lon, displayAQI); sel.add(new Option(s.name, s.sn));
     }
     
-    // Load PurpleAir
     const pa = await proxyGet({ action: "purpleair_box" });
     if (pa?.data) {
       for (const r of pa.data) {
@@ -311,7 +318,6 @@
       }
     }
 
-    // Load C-12s
     for (const c of C12S) {
       const res = await proxyGet({ action: "grove_last", compId: c.compId });
       const rows = Array.isArray(res) ? res : (res?.data || []);
