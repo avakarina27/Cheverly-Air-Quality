@@ -12,9 +12,9 @@
       --brand-navy: #1a305e;
       --search-blue: #4477ce;
       --aqi-orange: #ff7e00;
-      --aqi-red: #c62828; /* Slightly deeper red for better text contrast */
-      --aqi-purple: #6a1b9a; /* Matches the 'Very Unhealthy' purple in writeup */
-      --success-green: #2e7d32;
+      --aqi-red: #ff0000;
+      --aqi-purple: #8f3f97;
+      --success-green: #28a745;
     }
     html { scroll-behavior: smooth; }
     body { margin: 0; font-family: "Segoe UI", Roboto, sans-serif; background: #fdfdfd; color: #333; }
@@ -32,8 +32,8 @@
                   center/cover no-repeat;
       padding: 6rem 1rem 9rem;
     }
-    .hero h1 { font-size: 3.5rem; margin-bottom: 0.5rem; text-shadow: 0 2px 10px rgba(0,0,0,0.3); }
-    .hero p { font-size: 1.3rem; max-width: 850px; margin: 0 auto 2rem; opacity: 0.95; line-height: 1.4; }
+    .hero h1 { font-size: 3rem; margin-bottom: 0.5rem; text-shadow: 0 2px 10px rgba(0,0,0,0.3); }
+    .hero p { font-size: 1.25rem; max-width: 800px; margin: 0 auto 2rem; opacity: 0.95; }
 
     .container { max-width: 1200px; margin: 0 auto; padding: 0 1.5rem 3rem; }
 
@@ -47,7 +47,7 @@
     }
 
     .tile { 
-      padding: 1.8rem 1.2rem; 
+      padding: 1.5rem 1rem; 
       border-radius: 12px; 
       text-decoration: none; 
       text-align: center;
@@ -57,19 +57,19 @@
       display: flex;
       flex-direction: column;
       justify-content: center;
-      min-height: 200px;
+      min-height: 180px;
       box-sizing: border-box;
     }
 
     .tile-main { grid-column: span 4; background-color: var(--search-blue); min-height: 150px; padding: 2rem; }
     .tile-2 { background-color: var(--aqi-orange); }
-    .tile-3 { background-color: #546e7a; } /* Slate blue for methodology */
-    .tile-4 { background-color: var(--aqi-red); }
+    .tile-3 { background-color: var(--aqi-red); }
+    .tile-4 { background-color: var(--aqi-purple); }
     .tile-5 { background-color: var(--success-green); } 
 
     .tile:hover { transform: translateY(-8px); box-shadow: 0 20px 40px rgba(0,0,0,0.25); filter: brightness(1.1); }
-    .tile h3 { margin: 0 0 12px; font-size: 1.2rem; font-weight: 700; line-height: 1.2; }
-    .tile p { font-size: 0.95rem; opacity: 0.9; margin: 0; line-height: 1.4; }
+    .tile h3 { margin: 0 0 10px; font-size: 1.1rem; font-weight: 700; line-height: 1.2; }
+    .tile p { font-size: 0.9rem; opacity: 0.9; margin: 0; line-height: 1.4; }
 
     @media (max-width: 950px) { .tiles--grid { grid-template-columns: repeat(2, 1fr); } .tile-main { grid-column: span 2; } }
     @media (max-width: 600px) { .tiles--grid { grid-template-columns: 1fr; } .tile-main { grid-column: span 1; } }
@@ -78,17 +78,17 @@
     @media (max-width: 850px) { .info-section { grid-template-columns: 1fr; } }
 
     .info-text h2 { color: var(--brand-navy); font-size: 2.2rem; margin-top: 0; }
-    .info-text p { font-size: 1.15rem; line-height: 1.7; color: #444; }
+    .info-text p { font-size: 1.1rem; line-height: 1.7; color: #555; }
     
     #mini-map { 
-      height: 450px; 
+      height: 400px; 
       border-radius: 16px; 
       border: 1px solid #ddd; 
       box-shadow: 0 4px 20px rgba(0,0,0,0.08);
       z-index: 1; 
     }
 
-    .footer { background: var(--brand-navy); color: #fff; text-align: center; padding: 3rem; margin-top: 5rem; border-top: 4px solid var(--search-blue); }
+    .footer { background: var(--brand-navy); color: #fff; text-align: center; padding: 3rem; margin-top: 5rem; }
   </style>
 </head>
 
@@ -112,24 +112,28 @@
   <main class="container">
     <section class="tiles--grid">
       <a class="tile tile-main" href="dashboard.html">
-        <h3>Live Air Quality Map</h3>
-        <p>Check the current CE-AQI levels at your home, school, or workplace in real-time.</p>
+        <h3>Is the air at my house safe to breathe?</h3>
+        <p>View real-time readings and how those levels are affecting your health.</p>
       </a>
-      <a class="tile tile-2" href="dashboard.html">
-        <h3>Interactive Dashboard</h3>
-        <p>Compare sensors across town and view historical trends for PM2.5 and Black Carbon.</p>
+      
+      <a class="tile tile-2" href="writeup.html#network">
+        <h3>Our Sensor Network</h3>
+        <p>Explore the history of our hyper-local network and how we monitor air quality at the street level.</p>
       </a>
+
       <a class="tile tile-3" href="writeup.html#methodology">
-        <h3>Why CE-AQI?</h3>
-        <p>Learn how our custom index accounts for overlapping pollutants that standard maps ignore.</p>
+        <h3>The Methodology</h3>
+        <p>Understand why CE-AQI is a better communication tool for Cheverly than the standard EPA AQI.</p>
       </a>      
+
       <a class="tile tile-4" href="writeup.html#health-table">
         <h3>Health Risks</h3>
-        <p>See exactly what the "Orange" and "Red" categories mean for your family's health.</p>
+        <p>Understand the health risks linked to the specific pollutants detected in our air.</p>
       </a>
+
       <a class="tile tile-5" href="writeup.html#action">
-        <h3>Take Action</h3>
-        <p>Get involved with the EJAT Network and help shape environmental justice in Cheverly.</p>
+        <h3>Get Involved</h3>
+        <p>Learn about who is taking action and how you can play a critical role in local environmental justice.</p>
       </a>
     </section>
 
@@ -150,7 +154,7 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
-    // [Mini-map Logic remains consistent with your previous dashboard math]
+    // --- MINI-MAP LOGIC ---
     const miniMap = L.map('mini-map', {
       center: [38.9213, -76.9175], 
       zoom: 13,
@@ -159,9 +163,48 @@
       scrollWheelZoom: false
     });
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { opacity: 0.6 }).addTo(miniMap);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { 
+        opacity: 0.6,
+        attribution: '&copy; OpenStreetMap' 
+    }).addTo(miniMap);
 
-    // ... (rest of your API_PROXY and SENSORS logic as provided)
+    // --- FETCHING LOGIC ---
+    const API_PROXY = "https://api.purpleair.com/v1/sensors";
+    const READ_KEY = "6571587D-973A-11EF-8637-42010A80000D"; // Replace with your actual key if needed
+
+    const SENSORS = [
+      { id: 181253, name: "EJAT.CH.1.181253" },
+      { id: 203577, name: "EJAT.CV.2.203577" },
+      { id: 185085, name: "EJAT.FH.1.185085" }
+    ];
+
+    async function fetchMiniMapData() {
+      try {
+        const sensorIds = SENSORS.map(s => s.id).join(',');
+        const response = await fetch(`${API_PROXY}?show_only=${sensorIds}`, {
+          headers: { "X-API-Key": READ_KEY }
+        });
+        const data = await response.json();
+
+        data.data.forEach(sensorData => {
+          const lat = sensorData[4]; // Adjust index based on PurpleAir API response structure
+          const lon = sensorData[5];
+          const pm25 = sensorData[1]; 
+          
+          L.circleMarker([lat, lon], {
+            radius: 8,
+            fillColor: pm25 > 50 ? 'orange' : 'green',
+            color: '#fff',
+            weight: 1,
+            fillOpacity: 0.8
+          }).addTo(miniMap);
+        });
+      } catch (error) {
+        console.error("Error loading mini-map sensors:", error);
+      }
+    }
+
+    fetchMiniMapData();
   </script>
 </body>
 </html>
