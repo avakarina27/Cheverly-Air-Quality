@@ -23,12 +23,12 @@
     .topbar .nav a { color: #fff; text-decoration: none; margin-left: 1.5rem; font-weight: 500; opacity: 0.8; transition: opacity 0.2s; }
     .topbar .nav a:hover { opacity: 1; }
 
-   .hero {
+    .hero {
       position: relative;
       color: #fff;
       text-align: center;
       background: linear-gradient(180deg, rgba(26,48,94,0.85), rgba(26,48,94,0.6)), 
-                  url('cloudy sky.jpg') 
+                  url('image_4f129c.jpg') 
                   center/cover no-repeat;
       padding: 6rem 1rem 9rem;
     }
@@ -37,7 +37,6 @@
 
     .container { max-width: 1200px; margin: 0 auto; padding: 0 1.5rem 3rem; }
 
-    /* 4-Column Grid Layout */
     .tiles--grid { 
       display: grid; 
       gap: 20px; 
@@ -62,7 +61,6 @@
       box-sizing: border-box;
     }
 
-    /* Main Blue Action Button spans all 4 columns */
     .tile-main { 
       grid-column: span 4; 
       background-color: var(--search-blue); 
@@ -79,7 +77,6 @@
     .tile h3 { margin: 0 0 10px; font-size: 1.1rem; font-weight: 700; line-height: 1.2; }
     .tile p { font-size: 0.9rem; opacity: 0.9; margin: 0; line-height: 1.4; }
 
-    /* Responsive adjustments */
     @media (max-width: 950px) {
       .tiles--grid { grid-template-columns: repeat(2, 1fr); }
       .tile-main { grid-column: span 2; }
@@ -170,8 +167,8 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
     const miniMap = L.map('mini-map', {
-      center: [38.924, -76.915], 
-      zoom: 13,
+      center: [38.9213, -76.9175], 
+      zoom: 14,
       dragging: false,
       zoomControl: false,
       scrollWheelZoom: false,
@@ -179,12 +176,22 @@
       touchZoom: false
     });
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      opacity: 0.7
-    }).addTo(miniMap);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { opacity: 0.7 }).addTo(miniMap);
 
     const API_PROXY = "/api/aq";
-    const SENSORS = ["53677", "57777", "203601", "207729", "54293", "203577", "57841", "211993", "57811", "52823", "54239", "57783", "57955", "185085", "203597", "181253"];
+    
+    // Kept sensors matching dashboard.html
+    const SENSORS = { "284362": "EJAT.PG.1.284362", "52823": "EJAT.CV.6.52823", "53677": "EJAT.CV.1.53677", "54239": "EJAT.CV.6.54239", "54293": "EJAT.CV.2.54293", "57777": "EJAT.CV.1.57777", "57783": "EJAT.CV.6.57783", "57841": "EJAT.CV.3.57841", "57955": "EJAT.FH.1.57955", "160037": "EJAT.PG.1.160037", "175563": "EJAT.PG.1.175563", "178169": "EJAT.PG.1.178169", "184191": "EJAT.PG.1.184191", "197937": "EJAT.PG.1.197937", "203577": "EJAT.CV.2.203577", "203601": "EJAT.CV.1.203601", "207729": "EJAT.CV.1.207729", "211993": "EJAT.CV.3.211993", "218227": "EJAT.PG.1.218227", "218237": "EJAT.PG.1.218237", "218273": "EJAT.PG.1.218273" };
+
+    const SPODS = [ 
+      { sn: "MOD-00745", name: "QuantAQ MOD-00745", lat: 38.905100, lon: -76.910000 }, 
+      { sn: "MOD-00746", name: "QuantAQ MOD-00746", lat: 39.143200, lon: -76.846000 }, 
+      { sn: "MOD-00747", name: "QuantAQ MOD-00747", lat: 39.233944, lon: -76.504501 }, 
+      { sn: "MOD-00748", name: "QuantAQ MOD-00748", lat: 38.969685, lon: -76.542290 }, 
+      { sn: "MOD-00749", name: "QuantAQ MOD-00749", lat: 39.055400, lon: -76.878800 } 
+    ];
+
+    const C12S = [ { compId: "D14781", name: "C-12 D14781" }, { compId: "D14645", name: "C-12 D14645" }, { compId: "D17615", name: "C-12 D17615" }, { compId: "E10588", name: "C-12 E10588" }, { compId: "D14646", name: "C-12 D14646" } ];
 
     const BP_PM25_24H = [ 
       { cLow: 0.0, cHigh: 12.0, iLow: 0, iHigh: 50 }, 
@@ -197,9 +204,7 @@
       if (aqi <= 50) return "#00e400";
       if (aqi <= 100) return "#ffff00";
       if (aqi <= 150) return "#ff7e00";
-      if (aqi <= 200) return "#ff0000";
-      if (aqi > 200) return "#8f3f97";
-      return "#999"; 
+      return "#ff0000";
     }
 
     function aqiFromBreakpoints(C, table) {
@@ -211,47 +216,50 @@
       return c > 150.4 ? 201 : null;
     }
 
-    function computeCEAQI(aqis) {
-      const list = aqis.filter(v => Number.isFinite(v));
-      if (!list.length) return 0;
-      const base = Math.max(...list);
-      let adders = 0;
-      list.forEach(a => { 
-        if (a !== base) { 
-          const pct = a >= 120 ? 0.03 : (a >= 100 ? 0.02 : (a >= 80 ? 0.01 : 0)); 
-          adders += base * pct; 
-        }
-      });
-      return Math.round(base + adders);
+    async function proxyGet(params) {
+      const url = API_PROXY + "?" + new URLSearchParams(params).toString();
+      const res = await fetch(url);
+      return res.ok ? await res.json() : null;
     }
 
     async function loadPreviewDots() {
-      try {
-        const boxRes = await fetch(API_PROXY + "?action=purpleair_box");
-        const paBox = await boxRes.json();
-        const start = Math.floor(Date.now()/1000) - 86400;
-
-        const sensorData = Array.isArray(paBox.data) ? paBox.data : Object.values(paBox.data);
-
-        for (const r of sensorData) {
+      // 1. PurpleAir
+      const paBox = await proxyGet({ action: "purpleair_box" });
+      const start = Math.floor(Date.now()/1000) - 86400;
+      if (paBox?.data) {
+        for (const r of paBox.data) {
           const id = String(r[0]);
-          if (SENSORS.includes(id)) {
-            const hRes = await fetch(`${API_PROXY}?action=purpleair_history&id=${id}&start=${start}`);
-            const history = await hRes.json();
-            
-            const aqis = (history?.data || []).map(x => aqiFromBreakpoints(Number(x[1]), BP_PM25_24H));
-            const ce = computeCEAQI(aqis);
-            
-            L.circleMarker([r[1], r[2]], {
-              radius: 9,
-              fillColor: getAQIColor(ce),
-              color: "#333",
-              weight: 1.5,
-              fillOpacity: 0.9
-            }).addTo(miniMap);
+          if (id in SENSORS) {
+            const h = await proxyGet({ action: "purpleair_history", id, start });
+            const historyData = h?.data || [];
+            const lastVal = historyData.length > 0 ? Number(historyData[historyData.length - 1][1]) : 0;
+            const aqi = aqiFromBreakpoints(lastVal, BP_PM25_24H);
+            L.circleMarker([r[1], r[2]], { radius: 8, fillColor: getAQIColor(aqi), color: "#333", weight: 1, fillOpacity: 0.8 }).addTo(miniMap);
           }
         }
-      } catch (e) { console.error("Mini-map error:", e); }
+      }
+
+      // 2. QuantAQ
+      for (const s of SPODS) {
+        const res = await proxyGet({ action: "quantaq_by_date", sn: s.sn, date: new Date().toISOString().split('T')[0] });
+        const last = (res?.data || []).slice(-1)[0];
+        const val = last ? Number(last.pm25 || last.pm2_5) : 0;
+        const aqi = aqiFromBreakpoints(val, BP_PM25_24H);
+        L.circleMarker([s.lat, s.lon], { radius: 8, fillColor: getAQIColor(aqi), color: "#333", weight: 1, fillOpacity: 0.8 }).addTo(miniMap);
+      }
+
+      // 3. C-12s
+      for (const c of C12S) {
+        const res = await proxyGet({ action: "grove_last", compId: c.compId });
+        const rows = Array.isArray(res) ? res : (res?.data || []);
+        const lat = Number(rows.find(r=>r.streamId==="lat")?.data);
+        const lon = Number(rows.find(r=>r.streamId==="long")?.data);
+        const bc = Number(rows.find(r=>r.streamId==="880nm")?.data);
+        const aqi = bc ? Math.round((bc / 600) * 100) : 0;
+        if (lat && lon) {
+           L.circleMarker([lat, lon], { radius: 8, fillColor: getAQIColor(aqi), color: "#333", weight: 1, fillOpacity: 0.8 }).addTo(miniMap);
+        }
+      }
     }
 
     loadPreviewDots();
