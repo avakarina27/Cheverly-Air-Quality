@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Cheverly Air Quality | FAQs & History</title>
+  <title>Cheverly Air Quality | Full Documentation</title>
   <style>
     :root { 
         --brand-navy: #1a305e; 
@@ -23,14 +23,18 @@
     .jump-menu { background: var(--bg-light); border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-bottom: 40px; display: flex; flex-wrap: wrap; gap: 10px; }
     .jump-menu a { color: var(--search-blue); text-decoration: none; font-weight: 600; background: white; padding: 5px 15px; border-radius: 20px; border: 1px solid #cbd5e1; font-size: 0.9rem; }
 
-    section { scroll-margin-top: 80px; margin-bottom: 60px; }
-    h2 { color: var(--brand-navy); border-bottom: 2px solid #eee; padding-bottom: 10px; }
-    .info-box { border-left: 5px solid var(--brand-navy); padding: 20px; margin: 20px 0; background: var(--bg-light); border-radius: 0 8px 8px 0; }
+    section { scroll-margin-top: 80px; margin-bottom: 80px; border-bottom: 1px solid #eee; padding-bottom: 40px; }
+    h2 { color: var(--brand-navy); font-size: 1.8rem; margin-bottom: 1rem; }
+    h3 { color: var(--search-blue); margin-top: 1.5rem; }
     
-    table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 0.95rem; }
+    .info-box { border-left: 5px solid var(--brand-navy); padding: 25px; margin: 25px 0; background: var(--bg-light); border-radius: 0 8px 8px 0; }
+    .quote { font-style: italic; color: #555; border-left: 3px solid #ccc; padding-left: 15px; margin: 20px 0; }
+    
+    table { width: 100%; border-collapse: collapse; margin: 25px 0; font-size: 0.95rem; }
     th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }
-    th { background: #f1f5f9; color: var(--brand-navy); }
-    .back-top { display: block; margin-top: 10px; color: var(--search-blue); text-decoration: none; font-size: 0.8rem; font-weight: bold; }
+    th { background: #f1f5f9; }
+    
+    .back-top { display: inline-block; margin-top: 20px; color: var(--search-blue); text-decoration: none; font-weight: bold; font-size: 0.85rem; }
   </style>
 </head>
 <body>
@@ -45,37 +49,66 @@
   </header>
 
   <main class="container">
-    <h1>Project Documentation & History</h1>
-    <p><em>DRAFT - JANUARY 2026</em></p>
+    <p style="color: #ef4444; font-weight: bold;">DRAFT - FOR DISCUSSION DURING MARCH 2026 CALLS</p>
+    <h1>The EJAT Cumulative Exposure Pilot</h1>
     
     <nav class="jump-menu">
-        <a href="#network">Network History</a>
-        <a href="#methodology">The Methodology</a>
+        <a href="#history">Network History</a>
+        <a href="#why">Why the CE-AQI?</a>
+        <a href="#calc">Calculation Steps</a>
         <a href="#health">Health Risks</a>
         <a href="#action">Taking Action</a>
     </nav>
 
-    <section id="network">
-      <h2>Building the Hyper-Local Network</h2>
-      <p>Since 2007, community members from Cheverly, Fairmount Heights, Seat Pleasant, and Cedar Heights have been concerned about health risks from heavy diesel traffic and neighboring industries (concrete batching, recycling, and warehouse distribution).</p>
+    <section id="history">
+      <h2>How the Network Was Built</h2>
+      <p>Since 2007, community members from Cheverly, Fairmount Heights, Seat Pleasant, and Cedar Heights have been concerned about health risks due to heavy diesel traffic and neighboring industries. These include diesel bus maintenance, concrete batching, metal shredding, and recycling operations.</p>
+      
+      <p>Beginning in 2018, the Center for Community Engagement, Environmental Justice, and Health (CEEJH) at UMD established the PurpleAir sensor network. By 2024, the addition of five C-12 monitors began detecting very high Black Carbon emissions. In 2025, Quant-AQ Modulair sensors were added to measure Ozone, NOX, and Volatile Organic Compounds (VOCs).</p>
+      
       <div class="info-box" style="border-left-color: var(--aqi-orange);">
-        <strong>The Partners:</strong>
-        <p>In 2018, the Center for Community Engagement, Environmental Justice, and Health (CEEJH) at UMD established the first PurpleAir sensors. In 2021, the Maryland Department of the Environment (MDE) began using this hyper-local data for the Cheverly Targeted Inspection Initiative.</p>
-        <p><strong>The Equipment:</strong> Approximately 30 monitors, including PurpleAir (PM2.5), C-12 (Black Carbon), and Quant-AQ Modulair (Ozone, NOX, CO) sensors.</p>
+        <strong>Current Network Stats:</strong>
+        <ul>
+            <li>~30 PurpleAir Monitors (PM2.5)</li>
+            <li>5 Black Carbon C-12 Monitors</li>
+            <li>5 Quant-AQ Modulair Sensors (Ozone, CO, NOX)</li>
+            <li>Deployed strategically with UMD Center for Atmospheric and Oceanic Sciences</li>
+        </ul>
       </div>
       <a href="#" class="back-top">↑ Back to Top</a>
     </section>
 
-    <section id="methodology">
-      <h2>The CE-AQI Methodology: Why it Matters</h2>
-      <p>Traditional AQIs ignore several high-risk pollutants. The EJAT feels strongly that continuing to tell people the air is "healthy" when cumulative risks are ignored is both misleading and irresponsible.</p>
+    <section id="why">
+      <h2>Why the CE-AQI?</h2>
+      <p>After years of frustration being told by the EPA that air quality was "Good" because only a small set of pollutants were considered, the EJAT developed its own technique. Traditional AQI tells people the air is healthy when, because the highest-risk pollutants (like Black Carbon) are ignored, it is most likely unhealthy.</p>
       
+      <div class="quote">
+        "Perfection should not be the enemy of the good. Say nothing is irresponsible. EJAT believes using the traditional AQI to communicate health risks in overburdened communities is inappropriate."
+      </div>
+      
+      <p>The CE-AQI is a creative tool that uses solid science to communicate the <strong>complex mixture</strong> of pollutants being measured in our community.</p>
+      <a href="#" class="back-top">↑ Back to Top</a>
+    </section>
+
+    <section id="calc">
+      <h2>Step-by-Step Calculations</h2>
+      <h3>1. Calculate Pollutant-Specific AQIs</h3>
+      <ul>
+        <li><strong>PurpleAir:</strong> Calculate 24-hour AQI for PM2.5 using the 24-hour NAAQS. Also calculate an Annual AQI using the long-term average.</li>
+        <li><strong>Quant-AQ:</strong> Calculate AQIs for Ozone, NOX, and CO where available.</li>
+        <li><strong>C-12:</strong> Calculate a Black Carbon AQI (Pilot index).</li>
+      </ul>
+
+      <h3>2. Identify the Base & Adders</h3>
+      <p>We use a "Base + Adder" approach to account for cumulative burden:</p>
       <div class="info-box" style="border-left-color: var(--aqi-red);">
-        <strong>How we calculate the CE-AQI:</strong>
-        <p>1. <strong>Pollutant Specifics:</strong> We calculate individual AQIs for PM2.5 (24-hour and annual) and Black Carbon (C-12).<br>
-           2. <strong>Identify the Base:</strong> The pollutant with the highest AQI score becomes our "Base Value."<br>
-           3. <strong>The Adders:</strong> Instead of ignoring other pollutants, we add "adders" (1% to 3% conservative increases) for each additional pollutant detected. This reflects the <em>cumulative burden</em> on the lungs.</p>
-        <p><em>"Perfection should not be the enemy of the good."</em> — Pilot Program, March 2026.</p>
+        <p><strong>Step A:</strong> The pollutant with the highest score becomes the <strong>Base Value</strong>.</p>
+        <p><strong>Step B:</strong> Add conservative percentages ("Adders") for each additional pollutant:</p>
+        <ul>
+            <li>AQI 80-99: Add 1% of Base</li>
+            <li>AQI 100-119: Add 2% of Base</li>
+            <li>AQI 120+: Add 3% of Base</li>
+        </ul>
       </div>
       <a href="#" class="back-top">↑ Back to Top</a>
     </section>
@@ -84,15 +117,15 @@
       <h2>Health Risk Categories</h2>
       <table>
         <thead>
-          <tr><th>Category</th><th>Index Value</th><th>Health Statement</th></tr>
+          <tr><th>Category</th><th>Value</th><th>Cautionary Statement</th></tr>
         </thead>
         <tbody>
-          <tr style="background:#f0fff4"><td>Good</td><td>0 - 50</td><td>Satisfactory; little to no risk.</td></tr>
-          <tr style="background:#ffffea"><td>Moderate</td><td>51 - 100</td><td>Acceptable; risk for unusually sensitive groups.</td></tr>
-          <tr style="background:#fff7ed"><td>Unhealthy (Sensitive)</td><td>101 - 150</td><td>Children and asthmatics may feel effects.</td></tr>
-          <tr style="background:#fff1f1"><td>Unhealthy</td><td>151 - 200</td><td>General public may experience health effects.</td></tr>
-          <tr style="background:#f5f3ff"><td>Very Unhealthy</td><td>201 - 300</td><td>Health alert: increased risk for everyone.</td></tr>
-          <tr style="background:#fff1f1"><td>Hazardous</td><td>301+</td><td>Emergency health conditions.</td></tr>
+          <tr style="background:#00e40022"><td>Good</td><td>0-50</td><td>Satisfactory; little or no risk.</td></tr>
+          <tr style="background:#ffff0022"><td>Moderate</td><td>51-100</td><td>Acceptable; risk for unusually sensitive groups.</td></tr>
+          <tr style="background:#ff7e0022"><td>Unhealthy (Sensitive)</td><td>101-150</td><td>Children and asthmatics may feel effects.</td></tr>
+          <tr style="background:#ff000022"><td>Unhealthy</td><td>151-200</td><td>General public may experience health effects.</td></tr>
+          <tr style="background:#8f3f9722"><td>Very Unhealthy</td><td>201-300</td><td>Health alert: increased risk for everyone.</td></tr>
+          <tr style="background:#7e002322; color:white"><td>Hazardous</td><td>301+</td><td>Emergency health conditions; everyone likely affected.</td></tr>
         </tbody>
       </table>
       <a href="#" class="back-top">↑ Back to Top</a>
@@ -100,18 +133,20 @@
 
     <section id="action">
       <h2>Who Is Taking Action?</h2>
-      <p>The community has established a bi-weekly workgroup with assistance from UMCP and MDE to review air monitoring data and industrial compliance.</p>
+      <p>The community, with assistance from UMCP and MDE, has established a community-based workgroup that meets every two weeks to address air pollution sources like Sheriff Road, Route 50, and Kenilworth Avenue.</p>
+      
       <div class="info-box" style="border-left-color: var(--success-green); background: #f0fdf4;">
-        <strong>See Something, Say Something</strong>
-        <p>MDE has ~30 inspectors for 10,000 sources in Maryland. They need your help. If you see dust, smell odors, or see heavy smoke: <strong>Call the MDE Air Pollution Hotline: (410) 537-3215</strong> or email <em>mde.webmaster@maryland.gov</em>.</p>
-        <p>Cheverly is currently the top reporter of potential air violations in the state, directly influencing where inspectors are sent.</p>
+        <strong>See Something? Say Something.</strong>
+        <p>MDE has only ~30 inspectors for 10,000 sources. Your 5-minute report identifies potential violations. Cheverly is now the #1 reporter of air problems in Maryland.</p>
+        <p><strong>Call MDE Air Pollution Hotline: (410) 537-3215</strong></p>
+        <p>Email: <em>mde.webmaster@maryland.gov</em></p>
       </div>
       <a href="#" class="back-top">↑ Back to Top</a>
     </section>
   </main>
 
-  <footer style="text-align:center; padding:40px; color:#666;">
-    <p>© 2026 EJAT Network | Cheverly, MD</p>
+  <footer style="text-align:center; padding:60px; color:#94a3b8; font-size:0.9rem;">
+    <p>© 2026 Environmental Justice Action Team (EJAT) | Cheverly, MD</p>
   </footer>
 
 </body>
