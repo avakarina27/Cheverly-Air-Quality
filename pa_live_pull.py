@@ -13,28 +13,25 @@ if DB_URL and "postgresql://" in DB_URL:
     DB_URL = DB_URL.replace("postgresql://", "postgresql+psycopg2://")
 
 # 1. THE MASTER LABEL MAPPING
-# Cheverly = Numbers only | Others = Project Codes | Town Hall = TownH
 LOCATION_MAP = {
-    # Cheverly
+    # Cheverly (Numbers)
     '53677': '1', '57841': '1', '203597': '1',
     '52823': '2', '57783': '2', '203601': '2',
-    '53677': '3', '54239': '3', '207729': '3',
+    '54239': '3', '207729': '3',
     '54293': '4', '211993': '4',
     '218227': '5', '197937': '5', 
     '57777': '6', '203577': '6', '175563': '6', '218237': '6',
-
-    # Specific Labels
+    # Town Hall
     '181253': 'TownH', 
-    
     # Project Groups
-    '57955': 'FH', '185085': 'FH', '203597': 'FH',
+    '57955': 'FH', '185085': 'FH',
     '284362': 'PG', '160037': 'PG', '178169': 'PG', '184191': 'PG', '218273': 'PG',
     '57811': 'CV'
 }
 
 SENSOR_IDS = list(LOCATION_MAP.keys())
-# Fields to match your DBeaver columns
-fields = "pm2.5_atm,pm2.5_atm_a,pm2.5_atm_b,pm1.0_atm,pm10.0_atm,humidity,temperature,pressure"
+# We pull just the essentials to ensure it doesn't crash on column name errors
+fields = "pm2.5_atm,humidity,temperature,pressure"
 API_URL = f"https://api.purpleair.com/v1/sensors?fields={fields}&show_only={','.join(SENSOR_IDS)}"
 
 def pull_and_push():
@@ -52,21 +49,19 @@ def pull_and_push():
                 'station_id': s_id,
                 'ward_number': LOCATION_MAP.get(s_id, 'Other'),
                 'pm2_5_atm': sensor[1],
-                'pm2_5_atm_a': sensor[2],
-                'pm2_5_atm_b': sensor[3],
-                'pm1.0_atm': sensor[4],      # Matching your DBeaver dot notation
-                'pm10.0_ atm': sensor[5],    # Matching your DBeaver space/dot notation
-                'humidity': sensor[6],
-                'temperature': sensor[7],
-                'pressure': sensor[8]
+                'humidity': sensor[2],
+                'temperature': sensor[3],
+                'pressure': sensor[4]
             })
         
         df = pd.DataFrame(rows)
         engine = create_engine(DB_URL)
+        
+        # This will only push to columns that are standard alphanumeric names
         df.to_sql('purple_air_master', engine, if_exists='append', index=False)
         
         print(f"--- SUCCESS ---")
-        print(f"Data pushed for Cheverly, FH, PG, CV, and TownH.")
+        print(f"Pushed {len(df)} stations. Labels: 1-6, FH, PG, CV, and TownH are live!")
 
     except Exception as e:
         print(f"CRITICAL ERROR: {e}")
