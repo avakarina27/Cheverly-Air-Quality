@@ -24,8 +24,8 @@ LOCATION_MAP = {
 }
 
 SENSOR_IDS = list(LOCATION_MAP.keys())
-# We pull specifically in this order: PM2.5, PM1.0, PM10, Humidity, Temp, Pressure
-fields = "pm2.5_atm,pm1.0_atm,pm10.0_atm,humidity,temperature,pressure"
+# Pulling specific fields. The order here matches the 'sensor[x]' numbers below.
+fields = "pm2.5_atm,humidity,temperature,pressure"
 API_URL = f"https://api.purpleair.com/v1/sensors?fields={fields}&show_only={','.join(SENSOR_IDS)}"
 
 def pull_and_push():
@@ -39,30 +39,27 @@ def pull_and_push():
         for sensor in data['data']:
             s_id = str(sensor[0])
             
-            # THE FIX: PurpleAir sends Temp in F, but we ensure it's not shifted
-            # If the value is still > 200, it's definitely the Pressure field
-            raw_temp = sensor[5] 
-            
+            # THE FIX: Assigning variables to indices to prevent "Value Shifting"
+            # sensor[0] = id, [1] = pm2.5, [2] = humidity, [3] = temp, [4] = pressure
             rows.append({
                 'time_stamp': datetime.now(),
                 'station_id': s_id,
                 'ward_number': LOCATION_MAP.get(s_id, 'Other'),
                 'pm2_5_atm': sensor[1],
-                'pm1.0_atm': sensor[2],      # Forced mapping to your DBeaver name
-                'pm10.0_ atm': sensor[3],    # Forced mapping to your DBeaver name (with space)
-                'humidity': sensor[4],
-                'temperature': raw_temp,     # Corrected index
-                'pressure': sensor[6]        # Corrected index
+                'humidity': sensor[2],
+                'temperature': sensor[3], # Should be ~60-80F
+                'pressure': sensor[4]     # Should be ~1000+
             })
         
         df = pd.DataFrame(rows)
         engine = create_engine(DB_URL)
         
-        # We wrap the column names in quotes internally to handle the dots/spaces
+        # WE ONLY SEND STABLE COLUMNS
+        # This prevents the "pm10.0_ atm does not exist" crash.
         df.to_sql('purple_air_master', engine, if_exists='append', index=False)
         
         print(f"--- SUCCESS ---")
-        print(f"Check DBeaver! Temp should be normal and PM1.0/10.0 should be in.")
+        print(f"Synced {len(df)} stations. Labels and basic weather are live.")
 
     except Exception as e:
         print(f"CRITICAL ERROR: {e}")
