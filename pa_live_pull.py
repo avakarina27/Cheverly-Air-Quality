@@ -5,18 +5,16 @@ from sqlalchemy import create_engine
 from datetime import datetime
 from dotenv import load_dotenv
 
-# Looks for .env locally (for your laptop); ignored on GitHub
+# 1. SETUP & CREDENTIALS
 load_dotenv()
-
-# 1. GET CREDENTIALS FROM CLOUD SECRETS
 API_KEY = os.getenv('PURPLE_AIR_API_KEY')
 DB_URL = os.getenv('DB_URL')
 
-# Fix for SQLAlchemy/Postgres compatibility in Linux environments
+# Fix for SQLAlchemy/Postgres compatibility
 if DB_URL and "postgresql://" in DB_URL:
     DB_URL = DB_URL.replace("postgresql://", "postgresql+psycopg2://")
 
-# 2. THE FULL CHEVERLY STATION LIST (25 IDs)
+# 2. STATION LIST & API SETTINGS
 SENSOR_IDS = [
     '284362', '52823', '53677', '54239', '54293', 
     '57777', '57783', '57811', '57841', '57955', 
@@ -26,13 +24,14 @@ SENSOR_IDS = [
 ] 
 
 sensor_string = ','.join(SENSOR_IDS)
-# We pull sensor_index and the PM2.5 atmospheric value
-API_URL = f"https://api.purpleair.com/v1/sensors?fields=pm2.5_atm&show_only={sensor_string}"
+# We match these fields to your DBeaver column names
+fields = "pm2.5_atm,humidity,temperature"
+API_URL = f"https://api.purpleair.com/v1/sensors?fields={fields}&show_only={sensor_string}"
 
 def pull_and_push():
     try:
         if not API_KEY or not DB_URL:
-            print("Error: Missing API_KEY or DB_URL environment variables.")
+            print("Error: Missing API_KEY or DB_URL secrets in GitHub.")
             return
 
         headers = {'X-API-Key': API_KEY}
@@ -40,30 +39,26 @@ def pull_and_push():
         response.raise_for_status()
         data = response.json()
         
-        # 3. DATA PROCESSING
+        # 3. DATA PROCESSING (Matching DBeaver exactly)
         rows = []
-        # data['data'] is a list of lists: [[index, pm2.5], [index, pm2.5], ...]
         for sensor in data['data']:
             rows.append({
-                'sensor_index': sensor[0],
-                'pm2_5': sensor[1],
-                'time_stamp': datetime.now()
+                'station_id': sensor[0],      # Matches your station_id column
+                'pm2_5_atm': sensor[1],       # Matches your pm2.5_atm column
+                'humidity': sensor[2],        # Matches your humidity column
+                'temperature': sensor[3],     # Matches your temperature column
+                'time_stamp': datetime.now()  # Matches your time_stamp column
             })
         
         df = pd.DataFrame(rows)
         
-        if df.empty:
-            print("Warning: No data found for the provided Sensor IDs.")
-            return
-
-        # 4. PUSH TO AIVEN POSTGRES
+        # 4. PUSH TO AIVEN
         engine = create_engine(DB_URL)
+        # We use 'append' so we don't delete your old data work!
         df.to_sql('purple_air_master', engine, if_exists='append', index=False)
         
         print(f"--- SUCCESS ---")
-        print(f"Time: {datetime.now()}")
-        print(f"Stations Synced: {len(df)}")
-        print(f"Sent to: {DB_URL.split('@')[1]}") # Prints DB host for confirmation
+        print(f"Synced {len(df)} stations to Aiven at {datetime.now()}")
 
     except Exception as e:
         print(f"CRITICAL ERROR: {e}")
