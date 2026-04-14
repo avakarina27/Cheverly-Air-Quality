@@ -24,7 +24,7 @@ LOCATION_MAP = {
 }
 
 SENSOR_IDS = list(LOCATION_MAP.keys())
-# EXPLICIT ORDER: [0]=id, [1]=pm2.5, [2]=pm1.0, [3]=pm10.0, [4]=humidity, [5]=temp, [6]=pressure
+# Order: [0]id, [1]pm2.5_atm, [2]pm1.0_atm, [3]pm10.0_atm, [4]humidity, [5]temp, [6]pressure
 fields = "pm2.5_atm,pm1.0_atm,pm10.0_atm,humidity,temperature,pressure"
 API_URL = f"https://api.purpleair.com/v1/sensors?fields={fields}&show_only={','.join(SENSOR_IDS)}"
 
@@ -38,28 +38,26 @@ def pull_and_push():
         rows = []
         for sensor in data['data']:
             s_id = str(sensor[0])
-            
-            # MAPPING BY EXACT INDEX TO PREVENT "1000 degree" ERRORS
             rows.append({
                 'time_stamp': datetime.now(),
                 'station_id': s_id,
                 'ward_number': LOCATION_MAP.get(s_id, 'Other'),
-                'pm2_5_atm': sensor[1],
-                'pm1_0_atm': sensor[2],     # Ensure DBeaver column is pm1_0_atm
-                'pm10_0_atm': sensor[3],    # Ensure DBeaver column is pm10_0_atm
+                'pm2.5_atm': sensor[1],
+                'pm1.0_atm': sensor[2],
+                'pm10.0_atm': sensor[3],   # Removed the space here
                 'humidity': sensor[4],
-                'temperature': sensor[5],   # Fixed: Grabbing index 5 for Temp
-                'pressure': sensor[6]       # Fixed: Grabbing index 6 for Pressure
+                'temperature': sensor[5],
+                'pressure': sensor[6]
             })
         
         df = pd.DataFrame(rows)
         engine = create_engine(DB_URL)
         
-        # This will now push to the database
-        df.to_sql('purple_air_master', engine, if_exists='append', index=False)
+        # Use 'method=multi' to ensure all columns are treated as part of one big transaction
+        df.to_sql('purple_air_master', engine, if_exists='append', index=False, method='multi')
         
         print(f"--- SUCCESS ---")
-        print(f"Synced {len(df)} stations. Temp and PM should now be aligned.")
+        print(f"Pushed {len(df)} stations. PM values should finally be in the table!")
 
     except Exception as e:
         print(f"CRITICAL ERROR: {e}")
