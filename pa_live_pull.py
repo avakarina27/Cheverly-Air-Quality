@@ -12,23 +12,29 @@ DB_URL = os.getenv('DB_URL')
 if DB_URL and "postgresql://" in DB_URL:
     DB_URL = DB_URL.replace("postgresql://", "postgresql+psycopg2://")
 
-# 1. STATION MAPPING (Unified List)
-WARD_MAP = {
-    # Cheverly & FH
-    '53677': 1, '57777': 2, '203601': 3, '207729': 4, '54293': 5, '203577': 6,
-    '57841': 1, '52823': 2, '54239': 3, '57783': 4, '57811': 6,
-    '57955': 7, '185085': 7, '203597': 7,
-    # PG Stations
-    '284362': 8, '160037': 8, '175563': 8, '178169': 8, '184191': 8, 
-    '197937': 8, '218227': 8, '218237': 8, '218273': 8,
-    # CV Stations
-    '52823': 9, '203577': 9, '203601': 9, '207729': 9, '181253': 9, '211993': 9
+# 1. THE MASTER LABEL MAPPING
+# Cheverly = Numbers only | Others = Project Codes | Town Hall = TownH
+LOCATION_MAP = {
+    # Cheverly
+    '53677': '1', '57841': '1', '203597': '1',
+    '52823': '2', '57783': '2', '203601': '2',
+    '53677': '3', '54239': '3', '207729': '3',
+    '54293': '4', '211993': '4',
+    '218227': '5', '197937': '5', 
+    '57777': '6', '203577': '6', '175563': '6', '218237': '6',
+
+    # Specific Labels
+    '181253': 'TownH', 
+    
+    # Project Groups
+    '57955': 'FH', '185085': 'FH', '203597': 'FH',
+    '284362': 'PG', '160037': 'PG', '178169': 'PG', '184191': 'PG', '218273': 'PG',
+    '57811': 'CV'
 }
 
-SENSOR_IDS = list(WARD_MAP.keys())
-# We pull the specific fields that match your DBeaver columns
-# Note: PurpleAir provides 'a' and 'b' channel data separately
-fields = "pm2.5_atm,pm2.5_atm_a,pm2.5_atm_b,humidity,temperature,pressure"
+SENSOR_IDS = list(LOCATION_MAP.keys())
+# Fields to match your DBeaver columns
+fields = "pm2.5_atm,pm2.5_atm_a,pm2.5_atm_b,pm1.0_atm,pm10.0_atm,humidity,temperature,pressure"
 API_URL = f"https://api.purpleair.com/v1/sensors?fields={fields}&show_only={','.join(SENSOR_IDS)}"
 
 def pull_and_push():
@@ -44,23 +50,23 @@ def pull_and_push():
             rows.append({
                 'time_stamp': datetime.now(),
                 'station_id': s_id,
-                'ward_number': WARD_MAP.get(s_id, 0),
-                'pm2_5_atm': sensor[1],   # Main PM2.5
-                'pm2_5_atm_a': sensor[2], # Channel A
-                'pm2_5_atm_b': sensor[3], # Channel B
-                'humidity': sensor[4],
-                'temperature': sensor[5],
-                'pressure': sensor[6]
+                'ward_number': LOCATION_MAP.get(s_id, 'Other'),
+                'pm2_5_atm': sensor[1],
+                'pm2_5_atm_a': sensor[2],
+                'pm2_5_atm_b': sensor[3],
+                'pm1.0_atm': sensor[4],      # Matching your DBeaver dot notation
+                'pm10.0_ atm': sensor[5],    # Matching your DBeaver space/dot notation
+                'humidity': sensor[6],
+                'temperature': sensor[7],
+                'pressure': sensor[8]
             })
         
         df = pd.DataFrame(rows)
         engine = create_engine(DB_URL)
-        
-        # We only send columns that exist in your DBeaver list to avoid errors
         df.to_sql('purple_air_master', engine, if_exists='append', index=False)
         
         print(f"--- SUCCESS ---")
-        print(f"Synced {len(df)} stations to Aiven.")
+        print(f"Data pushed for Cheverly, FH, PG, CV, and TownH.")
 
     except Exception as e:
         print(f"CRITICAL ERROR: {e}")
