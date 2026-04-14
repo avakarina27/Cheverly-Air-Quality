@@ -24,8 +24,8 @@ LOCATION_MAP = {
 }
 
 SENSOR_IDS = list(LOCATION_MAP.keys())
-# Pulling specific fields. The order here matches the 'sensor[x]' numbers below.
-fields = "pm2.5_atm,humidity,temperature,pressure"
+# EXPLICIT ORDER: [0]=id, [1]=pm2.5, [2]=pm1.0, [3]=pm10.0, [4]=humidity, [5]=temp, [6]=pressure
+fields = "pm2.5_atm,pm1.0_atm,pm10.0_atm,humidity,temperature,pressure"
 API_URL = f"https://api.purpleair.com/v1/sensors?fields={fields}&show_only={','.join(SENSOR_IDS)}"
 
 def pull_and_push():
@@ -39,27 +39,27 @@ def pull_and_push():
         for sensor in data['data']:
             s_id = str(sensor[0])
             
-            # THE FIX: Assigning variables to indices to prevent "Value Shifting"
-            # sensor[0] = id, [1] = pm2.5, [2] = humidity, [3] = temp, [4] = pressure
+            # MAPPING BY EXACT INDEX TO PREVENT "1000 degree" ERRORS
             rows.append({
                 'time_stamp': datetime.now(),
                 'station_id': s_id,
                 'ward_number': LOCATION_MAP.get(s_id, 'Other'),
                 'pm2_5_atm': sensor[1],
-                'humidity': sensor[2],
-                'temperature': sensor[3], # Should be ~60-80F
-                'pressure': sensor[4]     # Should be ~1000+
+                'pm1_0_atm': sensor[2],     # Ensure DBeaver column is pm1_0_atm
+                'pm10_0_atm': sensor[3],    # Ensure DBeaver column is pm10_0_atm
+                'humidity': sensor[4],
+                'temperature': sensor[5],   # Fixed: Grabbing index 5 for Temp
+                'pressure': sensor[6]       # Fixed: Grabbing index 6 for Pressure
             })
         
         df = pd.DataFrame(rows)
         engine = create_engine(DB_URL)
         
-        # WE ONLY SEND STABLE COLUMNS
-        # This prevents the "pm10.0_ atm does not exist" crash.
+        # This will now push to the database
         df.to_sql('purple_air_master', engine, if_exists='append', index=False)
         
         print(f"--- SUCCESS ---")
-        print(f"Synced {len(df)} stations. Labels and basic weather are live.")
+        print(f"Synced {len(df)} stations. Temp and PM should now be aligned.")
 
     except Exception as e:
         print(f"CRITICAL ERROR: {e}")
