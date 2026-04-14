@@ -1,0 +1,27 @@
+name: Hourly Air Quality Update
+
+on:
+  schedule:
+    - cron: '0 * * * *'  # Top of every hour
+  workflow_dispatch:      # Adds a "Run Now" button
+
+jobs:
+  run-pull-script:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install Dependencies
+        run: pip install -r requirements.txt
+
+      - name: Execute Python Script
+        env:
+          PURPLE_AIR_API_KEY: ${{ secrets.PURPLE_AIR_API_KEY }}
+          DB_URL: ${{ secrets.DB_URL }}
+        run: python pa_live_pull.py
