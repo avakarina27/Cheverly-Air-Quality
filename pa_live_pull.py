@@ -5,60 +5,62 @@ from sqlalchemy import create_engine
 from datetime import datetime
 from dotenv import load_dotenv
 
-# 1. SETUP & CREDENTIALS
 load_dotenv()
 API_KEY = os.getenv('PURPLE_AIR_API_KEY')
 DB_URL = os.getenv('DB_URL')
 
-# Fix for SQLAlchemy/Postgres compatibility
 if DB_URL and "postgresql://" in DB_URL:
     DB_URL = DB_URL.replace("postgresql://", "postgresql+psycopg2://")
 
-# 2. STATION LIST & API SETTINGS
-SENSOR_IDS = [
-    '284362', '52823', '53677', '54239', '54293', 
-    '57777', '57783', '57811', '57841', '57955', 
-    '160037', '175563', '178169', '181253', '184191', 
-    '185085', '197937', '203577', '203597', '203601', 
-    '207729', '211993', '218227', '218237', '218273'
-] 
+# 1. STATION MAPPING (Unified List)
+WARD_MAP = {
+    # Cheverly & FH
+    '53677': 1, '57777': 2, '203601': 3, '207729': 4, '54293': 5, '203577': 6,
+    '57841': 1, '52823': 2, '54239': 3, '57783': 4, '57811': 6,
+    '57955': 7, '185085': 7, '203597': 7,
+    # PG Stations
+    '284362': 8, '160037': 8, '175563': 8, '178169': 8, '184191': 8, 
+    '197937': 8, '218227': 8, '218237': 8, '218273': 8,
+    # CV Stations
+    '52823': 9, '203577': 9, '203601': 9, '207729': 9, '181253': 9, '211993': 9
+}
 
-sensor_string = ','.join(SENSOR_IDS)
-# We match these fields to your DBeaver column names
-fields = "pm2.5_atm,humidity,temperature"
-API_URL = f"https://api.purpleair.com/v1/sensors?fields={fields}&show_only={sensor_string}"
+SENSOR_IDS = list(WARD_MAP.keys())
+# We pull the specific fields that match your DBeaver columns
+# Note: PurpleAir provides 'a' and 'b' channel data separately
+fields = "pm2.5_atm,pm2.5_atm_a,pm2.5_atm_b,humidity,temperature,pressure"
+API_URL = f"https://api.purpleair.com/v1/sensors?fields={fields}&show_only={','.join(SENSOR_IDS)}"
 
 def pull_and_push():
     try:
-        if not API_KEY or not DB_URL:
-            print("Error: Missing API_KEY or DB_URL secrets in GitHub.")
-            return
-
         headers = {'X-API-Key': API_KEY}
         response = requests.get(API_URL, headers=headers)
         response.raise_for_status()
         data = response.json()
         
-        # 3. DATA PROCESSING (Matching DBeaver exactly)
         rows = []
         for sensor in data['data']:
+            s_id = str(sensor[0])
             rows.append({
-                'station_id': sensor[0],      # Matches your station_id column
-                'pm2_5_atm': sensor[1],       # Matches your pm2.5_atm column
-                'humidity': sensor[2],        # Matches your humidity column
-                'temperature': sensor[3],     # Matches your temperature column
-                'time_stamp': datetime.now()  # Matches your time_stamp column
+                'time_stamp': datetime.now(),
+                'station_id': s_id,
+                'ward_number': WARD_MAP.get(s_id, 0),
+                'pm2_5_atm': sensor[1],   # Main PM2.5
+                'pm2_5_atm_a': sensor[2], # Channel A
+                'pm2_5_atm_b': sensor[3], # Channel B
+                'humidity': sensor[4],
+                'temperature': sensor[5],
+                'pressure': sensor[6]
             })
         
         df = pd.DataFrame(rows)
-        
-        # 4. PUSH TO AIVEN
         engine = create_engine(DB_URL)
-        # We use 'append' so we don't delete your old data work!
+        
+        # We only send columns that exist in your DBeaver list to avoid errors
         df.to_sql('purple_air_master', engine, if_exists='append', index=False)
         
         print(f"--- SUCCESS ---")
-        print(f"Synced {len(df)} stations to Aiven at {datetime.now()}")
+        print(f"Synced {len(df)} stations to Aiven.")
 
     except Exception as e:
         print(f"CRITICAL ERROR: {e}")
