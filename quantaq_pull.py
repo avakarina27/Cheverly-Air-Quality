@@ -3,39 +3,62 @@ import requests
 import pandas as pd
 from sqlalchemy import create_engine
 from datetime import datetime
-from dotenv import load_dotenv
 
-load_dotenv()
-API_KEY = os.getenv('QUANTAQ_API_KEY')
-DB_URL = os.getenv('DB_URL').replace("postgresql://", "postgresql+psycopg2://")
-
-# Your specific QuantAQ SNs
-SNS = ["MOD-00745", "MOD-00746", "MOD-00747", "MOD-00748", "MOD-00749"]
+# --- Settings ---
+# Add all your MOD serial numbers here
+DEVICES = ["MOD-00745"] 
+BASE_URL = "https://cheverly-air-quality.vercel.app/api/aq"
+DB_URL = os.getenv("DB_URL")
 
 def pull_quantaq():
+    if not DB_URL:
+        return
+
     engine = create_engine(DB_URL)
-    auth = (API_KEY, '')
     rows = []
 
-    for sn in SNS:
-        url = f"https://api.quant-aq.com/device-api/v1/devices/{sn}/data/raw/?limit=1"
-        res = requests.get(url, auth=auth)
-        if res.status_code == 200:
-            data = res.json().get('data', [])
-            if data:
-                latest = data[0]
-                rows.append({
-                    'time_stamp': latest['timestamp'],
-                    'sensor_sn': sn,
+    for sn in DEVICES:
+        # Note: adjust params based on how your Vercel proxy handles QuantAQ
+        params = {"action": "quantaq_last", "sn": sn} 
+        
+        try:
+            res = requests.get(BASE_URL, params=params, timeout=15)
+            if res.status_code == 200:
+                full_response = res.json()
+                
+                # CRITICAL: QuantAQ puts data in a list called 'data'
+                # We usually only want the most recent entry (index 0)
+                data_list = full_response.get('data', [])
+                
+                if not data_list:
+                    print(f"No data returned for {sn}")
+                    continue
+                
+                latest = data_list[0] 
+
+                data_point = {
+                    'device_id': latest.get('sn'),
                     'pm25': latest.get('pm25'),
                     'pm10': latest.get('pm10'),
-                    'lat': latest.get('geo', {}).get('lat'),
-                    'lon': latest.get('geo', {}).get('lon')
-                })
-    
+                    'no2': latest.get('no2'),
+                    'co': latest.get('co'),
+                    'temp': latest.get('temp'),
+                    'humidity': latest.get('rh'),
+                    # Using 'timestamp_local' because it's already in our timezone!
+                    'time_stamp': latest.get('timestamp_local') 
+                }
+                
+                rows.append(data_point)
+                print(f"✅ Captured {sn} at {data_point['time_stamp']}")
+                
+        except Exception as e:
+            print(f"❌ Error pulling {sn}: {e}")
+
     if rows:
-        pd.DataFrame(rows).to_sql('quantaq_master', engine, if_exists='append', index=False)
-        print(f"Pushed {len(rows)} QuantAQ readings.")
+        df = pd.DataFrame(rows)
+        with engine.begin() as conn:
+            df.to_sql('quantaq_master', conn, if_exists='append', index=False)
+        print(f"--- Pushed {len(rows)} QuantAQ rows ---")
 
 if __name__ == "__main__":
     pull_quantaq()
