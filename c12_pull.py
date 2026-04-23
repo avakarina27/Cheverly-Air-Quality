@@ -6,7 +6,7 @@ from datetime import datetime
 
 # --- Configuration ---
 DEVICES = ["D14781", "D14645", "D17615", "E10588", "D14646"]
-# We use your Vercel proxy URL which we know works
+# We hit the Vercel API directly now
 BASE_URL = "https://cheverly-air-quality.vercel.app/api/aq"
 DB_URL = os.getenv("DB_URL")
 
@@ -19,7 +19,7 @@ def pull_c12_from_grove():
     rows = []
 
     for dev in DEVICES:
-        # Match the exact parameters used by your dashboard
+        # Match the exact URL parameters from your browser inspection
         params = {
             "action": "grove_last",
             "compId": dev
@@ -33,12 +33,11 @@ def pull_c12_from_grove():
                 bc_val, lat, lon, sensor_time = None, None, None, None
                 
                 for s in streams:
-                    # The proxy uses these exact keys
                     s_id = str(s.get('streamId', '')).strip()
                     raw_val = s.get('data')
                     
                     try:
-                        # Convert values like 38.989616 but ignore "#UNKNOWN_EXCEPTION"
+                        # Ensures we catch 38.920612 and skip "#UNKNOWN_EXCEPTION"
                         val = float(raw_val)
                     except (ValueError, TypeError):
                         val = None
@@ -46,6 +45,7 @@ def pull_c12_from_grove():
                     if s_id == "880nm":
                         bc_val = val
                         if s.get('time'):
+                            # Vercel seems to return standard milliseconds
                             sensor_time = datetime.fromtimestamp(s.get('time') / 1000.0)
                     elif s_id == "lat":
                         lat = val
@@ -62,7 +62,7 @@ def pull_c12_from_grove():
                     })
                     print(f"✅ Captured {dev}: BC={bc_val}")
                 else:
-                    print(f"⚠️ {dev}: No BC data found (Current: {bc_val})")
+                    print(f"⚠️ {dev}: No BC data found at this moment.")
             else:
                 print(f"❌ {dev} API Error: {res.status_code}")
 
@@ -71,10 +71,10 @@ def pull_c12_from_grove():
 
     if rows:
         df = pd.DataFrame(rows)
-        # Using a transaction block to ensure data lands in Aiven
+        # Using begin() ensures a clean commit to Aiven
         with engine.begin() as conn:
             df.to_sql('c12_master', conn, if_exists='append', index=False)
-        print(f"--- SUCCESS --- Pushed {len(rows)} rows to Aiven.")
+        print(f"--- SUCCESS --- Pushed {len(rows)} rows to DBeaver.")
     else:
         print("--- NO DATA TO PUSH ---")
 
