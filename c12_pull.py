@@ -5,7 +5,6 @@ from sqlalchemy import create_engine
 from datetime import datetime
 
 # --- Configuration ---
-# I added E10589 just in case E10588 was a typo (the spreadsheet shows 589)
 DEVICES = ["D14781", "D14645", "D17615", "E10588", "D14646", "E10589"]
 GS_API_KEY = "40685f12-d3e5-316e-a274-e0a628c20c97"
 ORG_ID = "23e37932-cc5d-350d-af25-38ae3fe54c3d"
@@ -26,44 +25,34 @@ def pull_c12_from_grove():
         try:
             res = requests.get(url, params=params, timeout=15)
             if res.status_code == 200:
-                data = res.json()
+                streams = res.json()
                 
-                # DIAGNOSTIC: Handle cases where the list might be inside a 'stream' key
-                streams = data if isinstance(data, list) else data.get('stream', [])
-                
-                if not streams:
-                    print(f"Empty data for {dev}. Check if Device ID is correct.")
-                    continue
-
                 bc_val, lat, lon, sensor_time = None, None, None, None
                 
-                # Let's see what keys are actually coming back for the first device
-                if dev == DEVICES[0]:
-                    available_ids = [str(s.get('streamId')) for s in streams]
-                    print(f"Diagnostic for {dev}: Found stream names: {available_ids}")
-
                 for s in streams:
-                    s_id = str(s.get('streamId', '')).strip().lower()
-                    # Check 'data', 'lastValue', and 'value' just in case
-                    raw_val = s.get('data') if s.get('data') is not None else s.get('lastValue')
+                    # BRUTE FORCE: Check every key in the dictionary for the ID
+                    # Some versions of the API use 'id', 'streamId', or 'uid'
+                    s_id = str(next((s[k] for k in ['streamId', 'id', 'uid'] if k in s), '')).strip().lower()
+                    
+                    # Same for the data value: could be 'data', 'lastValue', or 'val'
+                    raw_val = next((s[k] for k in ['data', 'lastValue', 'value', 'v'] if k in s), None)
                     
                     try:
                         val = float(raw_val)
                     except (ValueError, TypeError):
                         val = None
 
-                    # CASE-INSENSITIVE MAPPING
                     if s_id == "880nm":
                         bc_val = val
-                        if s.get('time'):
-                            sensor_time = datetime.fromtimestamp(s.get('time') / 1000.0)
+                        # Pull time from any key that looks like 'time' or 't'
+                        t_val = next((s[k] for k in ['time', 't', 'lastValueTime'] if k in s), None)
+                        if t_val:
+                            sensor_time = datetime.fromtimestamp(t_val / 1000.0)
                     elif s_id == "lat":
                         lat = val
-                    elif s_id == "long":
+                    elif s_id in ["long", "lon"]:
                         lon = val
 
-                # Even if BC is 0, we want to capture it. 
-                # We only skip if it's truly None (missing from the API).
                 if bc_val is not None:
                     rows.append({
                         'time_stamp': sensor_time if sensor_time else datetime.now(),
@@ -72,22 +61,24 @@ def pull_c12_from_grove():
                         'latitude': lat,
                         'longitude': lon
                     })
-                    print(f"✅ {dev}: BC={bc_val}")
+                    print(f"✅ {dev} Success: BC={bc_val}")
                 else:
-                    print(f"⚠️ {dev}: No '880nm' data found in current streams.")
+                    # If it still fails, print the whole dictionary for the first failure
+                    if dev == DEVICES[0]:
+                        print(f"DEBUG {dev} Raw Data: {streams[0] if streams else 'Empty'}")
             else:
                 print(f"❌ {dev} Error: {res.status_code}")
 
         except Exception as e:
-            print(f"❌ {dev} Request failed: {e}")
+            print(f"❌ {dev} Error: {e}")
 
     if rows:
         df = pd.DataFrame(rows)
-        # Ensure the column names match your DBeaver exactly
-        df.to_sql('c12_master', engine, if_exists='append', index=False)
-        print(f"--- SUCCESS --- Pushed {len(rows)} rows to Aiven.")
+        with engine.begin() as conn:
+            df.to_sql('c12_master', conn, if_exists='append', index=False)
+        print(f"--- SUCCESS --- Pushed {len(rows)} rows.")
     else:
-        print("--- NO DATA PUSHED --- (Check diagnostic logs above)")
+        print("--- STILL NO DATA --- Check the DEBUG Raw Data line in logs.")
 
 if __name__ == "__main__":
     pull_c12_from_grove()
