@@ -4,7 +4,7 @@ import pandas as pd
 from sqlalchemy import create_engine
 
 # --- Settings ---
-DEVICES = ["MOD-00745"] 
+DEVICES = ["MOD-00745", "MOD-00746", "MOD-00747", "MOD-00748", "MOD-00749"] 
 BASE_URL = "https://cheverly-air-quality.vercel.app/api/aq"
 DB_URL = os.getenv("DB_URL")
 
@@ -25,36 +25,36 @@ def pull_quantaq():
                 if not data_list:
                     continue
                 
+                # Take the very first entry in the 'data' list
                 latest = data_list[0] 
 
-                # Explicitly pull every field needed for your DBeaver table
+                # Precise mapping based on your JSON snippet
                 data_point = {
                     'time_stamp': latest.get('timestamp_local'),
                     'sensor_sn': latest.get('sn'),
                     'pm25': latest.get('pm25'),
                     'pm10': latest.get('pm10'),
-                    'lat': latest.get('geo', {}).get('lat') if latest.get('geo') else latest.get('lat'),
-                    'lon': latest.get('geo', {}).get('lon') if latest.get('geo') else latest.get('lon')
+                    # Pulling from the "geo" object as seen in your JSON
+                    'lat': latest.get('geo', {}).get('lat') if latest.get('geo') else None,
+                    'lon': latest.get('geo', {}).get('lon') if latest.get('geo') else None
                 }
                 rows.append(data_point)
         except Exception as e:
-            print(f"❌ Error: {e}")
+            print(f"❌ Error pulling {sn}: {e}")
 
     if rows:
         df = pd.DataFrame(rows)
         
-        # --- DEBUG PRINT: Check your console/terminal for this! ---
-        print("--- DEBUG: PREPARING TO PUSH THE FOLLOWING DATA ---")
-        print(df) 
-        print("---------------------------------------------------")
+        # Printing this ensures you see the data BEFORE it goes to the DB
+        print("--- DATA PREVIEW ---")
+        print(df.head()) 
 
         with engine.begin() as conn:
-            # We use 'append' so we don't delete old data, 
-            # but we force the column names to match the DB
+            # Pushing to your 'quantaq_master' table
             df.to_sql('quantaq_master', conn, if_exists='append', index=False)
-        print("✅ Data push complete.")
+        print("✅ Data successfully sent to DBeaver.")
     else:
-        print("⚠️ No data was collected. Check if the API is actually returning values.")
+        print("⚠️ No data was processed.")
 
 if __name__ == "__main__":
     pull_quantaq()
