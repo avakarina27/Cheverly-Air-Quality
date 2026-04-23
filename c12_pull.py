@@ -4,75 +4,70 @@ import pandas as pd
 from sqlalchemy import create_engine
 from datetime import datetime
 
-# --- Configuration ---
+# --- Settings ---
+# These IDs match the ones currently showing data on your dashboard
 DEVICES = ["D14781", "D14645", "D17615", "E10588", "D14646"]
-# Using the live version of your team's API proxy
+# This is the Vercel URL that your team's dashboard uses
 BASE_URL = "https://cheverly-air-quality.vercel.app/api/aq"
 DB_URL = os.getenv("DB_URL")
 
 def pull_c12_from_grove():
     if not DB_URL:
-        print("Missing DB_URL environment variable.")
+        print("Missing DB_URL")
         return
 
     engine = create_engine(DB_URL)
     rows = []
 
     for dev in DEVICES:
-        # These parameters trigger the logic in your api/aq folder
         params = {"action": "grove_last", "compId": dev}
         
         try:
+            # We hit the proxy because it already cleaned the data for us
             res = requests.get(BASE_URL, params=params, timeout=15)
             if res.status_code == 200:
                 streams = res.json()
                 
-                bc_val, lat, lon, sensor_time = None, None, None, None
+                # These are our target buckets
+                data_point = {'device_id': dev, 'bc_880nm': None, 'latitude': None, 'longitude': None, 'time_stamp': datetime.now()}
                 
-                # Your API returns a list of streams with 'streamId' and 'data'
                 for s in streams:
-                    s_id = str(s.get('streamId', '')).strip()
-                    raw_val = s.get('data')
+                    s_id = str(s.get('streamId', ''))
+                    val = s.get('data')
                     
+                    # Convert to number, but ignore text like "#EXCEPTION"
                     try:
-                        val = float(raw_val)
-                    except (ValueError, TypeError):
-                        val = None
+                        clean_val = float(val)
+                    except:
+                        clean_val = None
 
+                    # Direct matching based on your dashboard's keys
                     if s_id == "880nm":
-                        bc_val = val
+                        data_point['bc_880nm'] = clean_val
                         if s.get('time'):
-                            sensor_time = datetime.fromtimestamp(s.get('time') / 1000.0)
+                            data_point['time_stamp'] = datetime.fromtimestamp(s.get('time') / 1000.0)
                     elif s_id == "lat":
-                        lat = val
+                        data_point['latitude'] = clean_val
                     elif s_id == "long":
-                        lon = val
+                        data_point['longitude'] = clean_val
 
-                if bc_val is not None:
-                    rows.append({
-                        'time_stamp': sensor_time if sensor_time else datetime.now(),
-                        'device_id': dev,
-                        'bc_880nm': bc_val,
-                        'latitude': lat,
-                        'longitude': lon
-                    })
-                    print(f"✅ Captured {dev}: BC={bc_val}")
-                else:
-                    print(f"⚠️ {dev}: API returned data but no BC value found.")
+                # Only add if we actually found a BC value
+                if data_point['bc_880nm'] is not None:
+                    rows.append(data_point)
+                    print(f"✅ Success: {dev} | BC: {data_point['bc_880nm']}")
             else:
-                print(f"❌ {dev} API Error: {res.status_code}")
-
+                print(f"❌ API Error for {dev}: {res.status_code}")
         except Exception as e:
-            print(f"❌ Connection failed for {dev}: {e}")
+            print(f"❌ Connection Error: {e}")
 
     if rows:
         df = pd.DataFrame(rows)
-        # Force the push to the table
+        # We use 'append' so your existing successful rows stay there
         with engine.begin() as conn:
             df.to_sql('c12_master', conn, if_exists='append', index=False)
-        print(f"--- SUCCESS --- Pushed {len(rows)} C12 rows to Aiven.")
+        print(f"--- DATABASE UPDATED: Pushed {len(rows)} rows ---")
     else:
-        print("--- NO DATA PUSHED ---")
+        print("--- STILL NO DATA --- (Check if the Vercel site is down or loading in your browser)")
 
 if __name__ == "__main__":
     pull_c12_from_grove()
