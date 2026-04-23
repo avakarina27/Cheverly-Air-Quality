@@ -5,10 +5,9 @@ from sqlalchemy import create_engine
 from datetime import datetime
 
 # --- Configuration ---
-# I added E10589 just in case E10588 was a typo (the spreadsheet shows 589)
-DEVICES = ["D14781", "D14645", "D17615", "E10588", "D14646", "E10589"]
-GS_API_KEY = "40685f12-d3e5-316e-a274-e0a628c20c97"
-ORG_ID = "23e37932-cc5d-350d-af25-38ae3fe54c3d"
+DEVICES = ["D14781", "D14645", "D17615", "E10588", "D14646"]
+# We hit the Vercel API directly now
+BASE_URL = "https://cheverly-air-quality.vercel.app/api/aq"
 DB_URL = os.getenv("DB_URL")
 
 def pull_c12_from_grove():
@@ -20,50 +19,39 @@ def pull_c12_from_grove():
     rows = []
 
     for dev in DEVICES:
-        url = f"https://grovestreams.com/api/comp/{dev}/last_value"
-        params = {"api_key": GS_API_KEY, "org": ORG_ID}
+        # Match the exact URL parameters from your browser inspection
+        params = {
+            "action": "grove_last",
+            "compId": dev
+        }
         
         try:
-            res = requests.get(url, params=params, timeout=15)
+            res = requests.get(BASE_URL, params=params, timeout=15)
             if res.status_code == 200:
-                data = res.json()
+                streams = res.json()
                 
-                # DIAGNOSTIC: Handle cases where the list might be inside a 'stream' key
-                streams = data if isinstance(data, list) else data.get('stream', [])
-                
-                if not streams:
-                    print(f"Empty data for {dev}. Check if Device ID is correct.")
-                    continue
-
                 bc_val, lat, lon, sensor_time = None, None, None, None
                 
-                # Let's see what keys are actually coming back for the first device
-                if dev == DEVICES[0]:
-                    available_ids = [str(s.get('streamId')) for s in streams]
-                    print(f"Diagnostic for {dev}: Found stream names: {available_ids}")
-
                 for s in streams:
-                    s_id = str(s.get('streamId', '')).strip().lower()
-                    # Check 'data', 'lastValue', and 'value' just in case
-                    raw_val = s.get('data') if s.get('data') is not None else s.get('lastValue')
+                    s_id = str(s.get('streamId', '')).strip()
+                    raw_val = s.get('data')
                     
                     try:
+                        # Ensures we catch 38.920612 and skip "#UNKNOWN_EXCEPTION"
                         val = float(raw_val)
                     except (ValueError, TypeError):
                         val = None
 
-                    # CASE-INSENSITIVE MAPPING
                     if s_id == "880nm":
                         bc_val = val
                         if s.get('time'):
+                            # Vercel seems to return standard milliseconds
                             sensor_time = datetime.fromtimestamp(s.get('time') / 1000.0)
                     elif s_id == "lat":
                         lat = val
                     elif s_id == "long":
                         lon = val
 
-                # Even if BC is 0, we want to capture it. 
-                # We only skip if it's truly None (missing from the API).
                 if bc_val is not None:
                     rows.append({
                         'time_stamp': sensor_time if sensor_time else datetime.now(),
@@ -72,22 +60,23 @@ def pull_c12_from_grove():
                         'latitude': lat,
                         'longitude': lon
                     })
-                    print(f"✅ {dev}: BC={bc_val}")
+                    print(f"✅ Captured {dev}: BC={bc_val}")
                 else:
-                    print(f"⚠️ {dev}: No '880nm' data found in current streams.")
+                    print(f"⚠️ {dev}: No BC data found at this moment.")
             else:
-                print(f"❌ {dev} Error: {res.status_code}")
+                print(f"❌ {dev} API Error: {res.status_code}")
 
         except Exception as e:
-            print(f"❌ {dev} Request failed: {e}")
+            print(f"❌ {dev} Connection Error: {e}")
 
     if rows:
         df = pd.DataFrame(rows)
-        # Ensure the column names match your DBeaver exactly
-        df.to_sql('c12_master', engine, if_exists='append', index=False)
-        print(f"--- SUCCESS --- Pushed {len(rows)} rows to Aiven.")
+        # Using begin() ensures a clean commit to Aiven
+        with engine.begin() as conn:
+            df.to_sql('c12_master', conn, if_exists='append', index=False)
+        print(f"--- SUCCESS --- Pushed {len(rows)} rows to DBeaver.")
     else:
-        print("--- NO DATA PUSHED --- (Check diagnostic logs above)")
+        print("--- NO DATA TO PUSH ---")
 
 if __name__ == "__main__":
     pull_c12_from_grove()
