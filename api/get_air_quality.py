@@ -1,73 +1,70 @@
-from http.server import BaseHTTPRequestHandler
 import os
 import psycopg2
-import json
-from datetime import datetime
+import requests
+from flask import Flask, jsonify, request
 
-class handler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        db_url = os.environ.get('DATABASE_URL')
-        
+app = Flask(__name__)
+
+# Aiven Service URI from your Vercel Env Vars
+DATABASE_URL = os.environ.get('DATABASE_URL')
+QUANTAQ_KEY = "QC2TTD7QPKL1GXSTHDXAXOC3"
+
+def get_db():
+    return psycopg2.connect(DATABASE_URL)
+
+@app.route('/api/data', methods=['GET'])
+def get_sensor_data():
+    sn = request.args.get('sn')
+    stype = request.args.get('type') # 'quantaq', 'purpleair', or 'c12'
+    
+    # 1. LIVE DATA (For the immediate dashboard display)
+    live_pm = 0
+    if stype == "quantaq":
+        res = requests.get(f"https://api.quantaq.com/v1/devices/{sn}/data/", 
+                           auth=(QUANTAQ_KEY, ""), params={"limit": 1})
+        live_pm = res.json()['data'][0]['pm25'] if res.status_code == 200 else 0
+    elif stype == "purpleair":
+        # Direct API call to PurpleAir for current reading
+        res = requests.get(f"https://api.purpleair.com/v1/sensors/{sn}", 
+                           headers={"X-API-Key": os.environ.get('PA_READ_KEY')})
+        live_pm = res.json()['sensor']['pm2.5'] if res.status_code == 200 else 0
+    elif stype == "c12":
+        # Assuming C12 is live-only pass-through
+        live_pm = pull_c12_live(sn) 
+
+    # 2. HISTORICAL DATA (For CE-AQI and Trend Graph)
+    # Only for PurpleAir and QuantAQ
+    max_24h = live_pm
+    history = []
+    
+    if stype in ["purpleair", "quantaq"]:
+        table = "purple_air_master" if stype == "purpleair" else "quantaq_master"
         try:
-            conn = psycopg2.connect(db_url)
+            conn = get_db()
             cur = conn.cursor()
-
-            # 1. Pull Latest & 24h Max from PurpleAir
-            cur.execute("""
-                SELECT DISTINCT ON (station_id) 
-                    station_id, pm2_5_atm, time_stamp,
-                    (SELECT MAX(pm2_5_atm) FROM purple_air_master p2 WHERE p2.station_id = p1.station_id AND p2.time_stamp > NOW() - INTERVAL '24 hours') as max_24h
-                FROM purple_air_master p1
-                ORDER BY station_id, time_stamp DESC;
-            """)
-            pa_rows = cur.fetchall()
-
-            # 2. Pull Latest & 24h Max from QuantAQ
-            cur.execute("""
-                SELECT DISTINCT ON (sn) 
-                    sn, pm25, timestamp,
-                    (SELECT MAX(pm25) FROM quantaq_master q2 WHERE q2.sn = q1.sn AND q2.timestamp > NOW() - INTERVAL '24 hours') as max_24h
-                FROM quantaq_master q1
-                ORDER BY sn, timestamp DESC;
-            """)
-            qa_rows = cur.fetchall()
-
-            combined_data = []
-
-            # Format PurpleAir
-            for row in pa_rows:
-                live = float(row[1]) if row[1] else 0
-                m24 = float(row[3]) if row[3] else live
-                combined_data.append({
-                    "id": row[0],
-                    "type": "purpleair",
-                    "live_pm25": live,
-                    "ce_aqi": round((live + m24) / 2), # Simplified CE-AQI logic
-                    "time": row[2].strftime("%Y-%m-%d %H:%M:%S")
-                })
-
-            # Format QuantAQ
-            for row in qa_rows:
-                live = float(row[1]) if row[1] else 0
-                m24 = float(row[3]) if row[3] else live
-                combined_data.append({
-                    "id": row[0],
-                    "type": "quantaq",
-                    "live_pm25": live,
-                    "ce_aqi": round((live + m24) / 2),
-                    "time": row[2].strftime("%Y-%m-%d %H:%M:%S")
-                })
-
+            # Pulling max for CE-AQI math and raw data for the trend line
+            cur.execute(f"""
+                SELECT pm25, timestamp FROM {table} 
+                WHERE sn = %s AND timestamp > NOW() - INTERVAL '24 hours'
+                ORDER BY timestamp DESC
+            """, (sn,))
+            rows = cur.fetchall()
+            if rows:
+                history = [{"pm25": r[0], "time": r[1].isoformat()} for r in rows]
+                max_24h = max([r[0] for r in rows])
             cur.close()
             conn.close()
-
-            self.send_response(200)
-            self.send_header('Content-type', 'application/json')
-            self.send_header('Access-Control-Allow-Origin', '*') 
-            self.end_headers()
-            self.wfile.write(json.dumps(combined_data).encode())
-
         except Exception as e:
-            self.send_response(500)
-            self.end_headers()
-            self.wfile.write(str(e).encode())
+            print(f"DB Error: {e}")
+
+    # 3. CE-AQI CALCULATION
+    # Using the live reading and the 24h historical peak from Aiven
+    # (Adjust formula constants as needed for your specific logic)
+    ce_aqi = (live_pm + max_24h) / 2 
+
+    return jsonify({
+        "sn": sn,
+        "live": live_pm,
+        "ce_aqi": round(ce_aqi),
+        "history": history
+    })
