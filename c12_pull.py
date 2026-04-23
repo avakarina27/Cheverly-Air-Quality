@@ -19,6 +19,7 @@ def pull_c12_from_grove():
     rows = []
 
     for dev in DEVICES:
+        # Using the Simple API endpoint with your specific Org ID
         url = f"https://grovestreams.com/api/comp/{dev}/last_value"
         params = {"api_key": GS_API_KEY, "org": ORG_ID}
         
@@ -27,23 +28,26 @@ def pull_c12_from_grove():
             if res.status_code == 200:
                 streams = res.json()
                 
+                # Check if the API actually returned a list of streams
+                if not isinstance(streams, list) or len(streams) == 0:
+                    print(f"Device {dev} returned no data.")
+                    continue
+
                 bc_val, lat, lon = None, None, None
                 
                 for s in streams:
                     s_id = s.get('streamId', '')
-                    # GroveStreams often nests the value in 'lastValue' or 'data'
-                    # We check both and ensure it's not an empty string
-                    raw_val = s.get('lastValue') if s.get('lastValue') is not None else s.get('data')
+                    # Target the 'data' field directly as seen in your inspection
+                    raw_val = s.get('data')
                     
-                    if raw_val is not None:
-                        try:
-                            # Convert to float to ensure it's not a null string
-                            val = float(raw_val)
-                        except (ValueError, TypeError):
-                            val = None
-                    else:
+                    # Convert to float only if it's a number
+                    try:
+                        # This handles 0, 38.989, etc., and fails on "#UNKNOWN_EXCEPTION"
+                        val = float(raw_val)
+                    except (ValueError, TypeError):
                         val = None
 
+                    # Mapping based on your JSON keys
                     if s_id == "880nm":
                         bc_val = val
                     elif s_id == "lat":
@@ -51,6 +55,7 @@ def pull_c12_from_grove():
                     elif s_id == "long":
                         lon = val
 
+                # Only add a row if we at least found a Device ID or some data
                 rows.append({
                     'time_stamp': datetime.now(),
                     'device_id': dev,
@@ -58,7 +63,7 @@ def pull_c12_from_grove():
                     'lat': lat,
                     'lon': lon
                 })
-                print(f"Station {dev} -> BC: {bc_val}, Lat: {lat}, Lon: {lon}")
+                print(f"Found {dev} -> BC: {bc_val}, Lat: {lat}, Lon: {lon}")
             else:
                 print(f"Error {dev}: {res.status_code}")
 
@@ -67,12 +72,12 @@ def pull_c12_from_grove():
 
     if rows:
         df = pd.DataFrame(rows)
-        # Check if we have at least some non-null data before pushing
-        if df['bc_880nm'].isnull().all():
-            print("WARNING: All BC values are null. Check streamId names in GroveStreams.")
-            
+        # Verify the dataframe isn't just full of NaNs before pushing
+        print("Pushing to Aiven:")
+        print(df.head())
+        
         df.to_sql('c12_master', engine, if_exists='append', index=False)
-        print(f"--- SUCCESS --- Pushed {len(rows)} rows to c12_master.")
+        print(f"--- SUCCESS --- Appended {len(rows)} rows to c12_master.")
 
 if __name__ == "__main__":
     pull_c12_from_grove()
