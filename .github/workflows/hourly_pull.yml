@@ -2,8 +2,8 @@ name: Hourly Air Quality Update
 
 on:
   schedule:
-    - cron: '0 * * * *'  # Top of every hour
-  workflow_dispatch:      # Adds a "Run Now" button
+    - cron: '0 * * * *'
+  workflow_dispatch:
 
 jobs:
   run-pull-script:
@@ -20,8 +20,15 @@ jobs:
       - name: Install Dependencies
         run: pip install -r requirements.txt
 
-      - name: Execute Python Script
+      - name: Execute Python Scripts
         env:
+          # Existing Secrets
           PURPLE_AIR_API_KEY: ${{ secrets.PURPLE_AIR_API_KEY }}
           DB_URL: ${{ secrets.DB_URL }}
-        run: python pa_live_pull.py
+          # New Secrets to Add
+          QUANTAQ_API_KEY: ${{ secrets.QUANTAQ_API_KEY }}
+          COMET_API_KEY: ${{ secrets.COMET_API_KEY }}
+        run: |
+          python pa_live_pull.py
+          python quantaq_pull.py
+          python c12_pull.py
