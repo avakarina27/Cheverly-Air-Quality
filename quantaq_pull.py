@@ -3,7 +3,7 @@ import json
 from datetime import datetime, timedelta
 
 # Configuration
-API_KEY = "QC2TTD7QPKL1GXSTHDXAXOC3"  # Replace with your actual key
+API_KEY = "QC2TTD7QPKL1GXSTHDXAXOC3"  # Your provided key
 BASE_URL = "https://api.quantaq.com/v1"
 
 def get_quantaq_data(sn, date_str=None):
@@ -18,6 +18,7 @@ def get_quantaq_data(sn, date_str=None):
         # Expecting date_str in 'YYYY-MM-DD'
         start_time = f"{date_str}T00:00:00Z"
 
+    # The specific endpoint for device data
     endpoint = f"{BASE_URL}/devices/{sn}/data/"
     
     params = {
@@ -27,6 +28,7 @@ def get_quantaq_data(sn, date_str=None):
     }
 
     try:
+        # QuantAQ uses the API Key as the username in Basic Auth with an empty password
         response = requests.get(
             endpoint, 
             auth=(API_KEY, ""), 
@@ -36,12 +38,13 @@ def get_quantaq_data(sn, date_str=None):
         
         if response.status_code == 200:
             raw_data = response.json()
-            # Extracting only the relevant fields for the dashboard
             processed_list = []
             
+            # The data is nested inside a 'data' key in the response JSON
             for entry in raw_data.get("data", []):
-                # Handle cases where keys might be pm25 or pm2_5
-                pm25_val = entry.get("pm25") or entry.get("pm2_5")
+                # Critical fix: QuantAQ oscillates between 'pm25' and 'pm2_5'
+                # This ensures we grab whichever one is populated
+                pm25_val = entry.get("pm25") if entry.get("pm25") is not None else entry.get("pm2_5")
                 
                 processed_list.append({
                     "timestamp": entry.get("timestamp"),
@@ -61,10 +64,11 @@ def get_quantaq_data(sn, date_str=None):
 def compute_aqi(pm25):
     """
     Helper function to calculate AQI from PM2.5 concentration.
-    Matches the breakpoints used in your JavaScript dashboard.
+    Matches the linear interpolation used in your dashboard.
     """
     if pm25 is None: return None
     
+    # EPA PM2.5 Breakpoints
     if pm25 <= 12.0:
         return round(((50 - 0) / (12.0 - 0.0)) * (pm25 - 0.0) + 0)
     elif pm25 <= 35.4:
@@ -74,11 +78,11 @@ def compute_aqi(pm25):
     elif pm25 <= 150.4:
         return round(((200 - 151) / (150.4 - 55.5)) * (pm25 - 55.5) + 151)
     else:
-        # Simple cap for hazardous values
+        # Capping at 301+ for hazardous values
         return 301
 
 if __name__ == "__main__":
-    # Test with one of your known SNs
+    # Testing with one of your QuantAQ serial numbers
     test_sn = "MOD-00745"
     print(f"--- Fetching data for {test_sn} ---")
     
