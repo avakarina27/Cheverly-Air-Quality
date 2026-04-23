@@ -2,17 +2,20 @@ import os
 import requests
 import pandas as pd
 from sqlalchemy import create_engine
-from datetime import datetime, timedelta
+from datetime import datetime
 from dotenv import load_dotenv
+
 
 load_dotenv()
 API_KEY = os.getenv('PURPLE_AIR_API_KEY')
 DB_URL = os.getenv('DB_URL')
 
-# Fix DB URL for SQLAlchemy
+
 if DB_URL and "postgresql://" in DB_URL:
     DB_URL = DB_URL.replace("postgresql://", "postgresql+psycopg2://")
 
+
+# 1. THE MASTER LABEL MAPPING
 LOCATION_MAP = {
     '53677': '1', '57841': '1', '52823': '2', '57783': '2', '203601': '2', '156595': '2',
     '54239': '3', '207729': '3', '54293': '4', '211993': '4',
@@ -23,46 +26,58 @@ LOCATION_MAP = {
     '57811': 'CV'
 }
 
-def backfill_gap():
-    engine = create_engine(DB_URL)
-    headers = {'X-API-Key': API_KEY}
-    
-    # Define the 24-hour window (Start of gap to end of gap)
-    start_ts = int((datetime.now() - timedelta(hours=30)).timestamp())
-    
-    fields = "pm2.5_atm,pm1.0_atm,pm10.0_atm,humidity,temperature,pressure"
-    
-    for s_id in LOCATION_MAP.keys():
-        print(f"Backfilling station {s_id}...")
-        url = f"https://api.purpleair.com/v1/sensors/{s_id}/history?start_timestamp={start_ts}&fields={fields}"
+
+SENSOR_IDS = list(LOCATION_MAP.keys())
+# Order: [0]id, [1]pm2.5_atm, [2]pm1.0_atm, [3]pm10.0_atm, [4]humidity, [5]temp, [6]pressure
+fields = "pm2.5_atm,pm1.0_atm,pm10.0_atm,humidity,temperature,pressure"
+API_URL = f"https://api.purpleair.com/v1/sensors?fields={fields}&show_only={','.join(SENSOR_IDS)}"
+
+
+
+def pull_and_push():
+    try:
+        headers = {'X-API-Key': API_KEY}
+        response = requests.get(API_URL, headers=headers)
+        response.raise_for_status()
+        data = response.json()
+
         
-        try:
-            response = requests.get(url, headers=headers)
-            response.raise_for_status()
-            data = response.json()
-            
-            rows = []
-            for entry in data['data']:
-                # The history endpoint returns time_stamp as entry[0]
-                rows.append({
-                    'time_stamp': datetime.fromtimestamp(entry[0]),
-                    'station_id': s_id,
-                    'ward_number': LOCATION_MAP.get(s_id, 'Other'),
-                    'pm2.5_atm': entry[1],
-                    'pm1.0_atm': entry[2],
-                    'pm10.0_atm': entry[3],
-                    'humidity': entry[4],
-                    'temperature': entry[5],
-                    'pressure': entry[6]
-                })
-            
-            if rows:
-                df = pd.DataFrame(rows)
-                df.to_sql('purple_air_master', engine, if_exists='append', index=False, method='multi')
-                print(f"Done. Added {len(df)} historical rows.")
-                
-        except Exception as e:
-            print(f"Failed for {s_id}: {e}")
+
+        rows = []
+        for sensor in data['data']:
+            s_id = str(sensor[0])
+            rows.append({
+                'time_stamp': datetime.now(),
+                'station_id': s_id,
+                'ward_number': LOCATION_MAP.get(s_id, 'Other'),
+                'pm2.5_atm': sensor[1],
+                'pm1.0_atm': sensor[2],
+                'pm10.0_atm': sensor[3],   # Removed the space here
+                'humidity': sensor[4],
+                'temperature': sensor[5],
+                'pressure': sensor[6]
+            })
+  
+
+        df = pd.DataFrame(rows)
+        engine = create_engine(DB_URL)
+
+        
+
+        # Use 'method=multi' to ensure all columns are treated as part of one big transaction
+        df.to_sql('purple_air_master', engine, if_exists='append', index=False, method='multi')
+
+        
+
+        print(f"--- SUCCESS ---")
+        print(f"Pushed {len(df)} stations. PM values should finally be in the table!")
+
+
+
+    except Exception as e:
+        print(f"CRITICAL ERROR: {e}")
+
+
 
 if __name__ == "__main__":
-    backfill_gap()
+    pull_and_push()
