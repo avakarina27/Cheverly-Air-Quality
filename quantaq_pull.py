@@ -3,7 +3,7 @@ import json
 from datetime import datetime, timedelta
 
 # Configuration
-API_KEY = "YOUR_QUANTAQ_API_KEY"  # Replace with your actual key
+API_KEY = "QC2TTD7QPKL1GXSTHDXAXOC3"  # Replace with your actual key
 BASE_URL = "https://api.quantaq.com/v1"
 
 def get_quantaq_data(sn, date_str=None):
