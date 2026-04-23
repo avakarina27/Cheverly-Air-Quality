@@ -5,11 +5,11 @@ from sqlalchemy import create_engine
 from datetime import datetime
 
 # --- Configuration ---
-# These are the Component IDs from your dashboard/spreadsheet
+# Using the IDs directly from your dashboard HTML
 DEVICES = ["D14781", "D14645", "D17615", "E10588", "D14646"]
-# Your GroveStreams API Key
+# GroveStreams API Key and Org ID from your dashboard link
 GS_API_KEY = "40685f12-d3e5-316e-a274-e0a628c20c97"
-# Your Aiven DB URL from GitHub Secrets
+ORG_ID = "23e37932-cc5d-350d-af25-38ae3fe54c3d"
 DB_URL = os.getenv("DB_URL")
 
 def pull_c12_from_grove():
@@ -21,30 +21,33 @@ def pull_c12_from_grove():
     rows = []
 
     for dev in DEVICES:
-        # GroveStreams API URL to get the latest values for a component
-        url = f"https://grovestreams.com/api/component?compId={dev}"
-        params = {"api_key": GS_API_KEY}
+        # FIXED URL: /api/comp/ is the "Simple API" which allows using the compId
+        url = f"https://grovestreams.com/api/comp/{dev}/last_value"
+        params = {
+            "api_key": GS_API_KEY,
+            "org": ORG_ID
+        }
         
         try:
             res = requests.get(url, params=params, timeout=15)
             if res.status_code == 200:
-                data = res.json()
-                
-                # GroveStreams stores data in "streams"
-                streams = data.get('streams', [])
+                # GroveStreams last_value returns a list of stream objects
+                streams = res.json()
                 
                 bc_val = None
                 lat, lon = None, None
                 
                 for s in streams:
-                    stream_id = s.get('streamId', '')
-                    # Look for the 880nm stream (Black Carbon)
-                    if stream_id == "880nm":
-                        bc_val = s.get('lastValue')
-                    elif stream_id == "lat":
-                        lat = s.get('lastValue')
-                    elif stream_id == "long":
-                        lon = s.get('lastValue')
+                    s_id = s.get('streamId', '')
+                    # The dashboard code looks for 'data', raw API often uses 'lastValue'
+                    val = s.get('data') if s.get('data') is not None else s.get('lastValue')
+                    
+                    if s_id == "880nm":
+                        bc_val = val
+                    elif s_id == "lat":
+                        lat = val
+                    elif s_id == "long": # Note: Dashboard uses 'long' not 'lon'
+                        lon = val
 
                 rows.append({
                     'time_stamp': datetime.now(),
@@ -53,18 +56,19 @@ def pull_c12_from_grove():
                     'lat': lat,
                     'lon': lon
                 })
-                print(f"Fetched GroveStream {dev}: BC={bc_val}")
+                print(f"Fetched {dev}: BC={bc_val} ng/m³")
             else:
-                print(f"GroveStream Error {dev}: {res.status_code}")
+                # Printing the response text helps if there's a permission issue
+                print(f"GroveStream Error {dev}: {res.status_code} - {res.text}")
 
         except Exception as e:
             print(f"Request failed for {dev}: {e}")
 
     if rows:
         df = pd.DataFrame(rows)
-        # Using if_exists='append' to keep your 8-hour window growing
+        # Ensure the table name matches what your dashboard eventually queries
         df.to_sql('c12_master', engine, if_exists='append', index=False)
-        print(f"--- SUCCESS --- Pushed {len(rows)} GroveStream readings to Aiven.")
+        print(f"--- SUCCESS --- Pushed {len(rows)} C-12 readings to Aiven.")
 
 if __name__ == "__main__":
     pull_c12_from_grove()
