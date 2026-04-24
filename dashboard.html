@@ -3,152 +3,85 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Air Quality | Cheverly Community Map</title>
+  <title>Cheverly Air Quality | Community Map</title>
   <link rel="icon" href="data:;base64,iVBORw0KGgo=">
-  
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <style>
-    :root { 
-      --brand-navy: #1a305e; 
-      --search-blue: #4477ce; 
-      --aqi-green: #00e400; 
-      --aqi-yellow: #ffff00; 
-      --aqi-orange: #ff7e00; 
-      --aqi-red: #ff0000; 
-    }
-    
+    :root { --brand-navy: #1a305e; --search-blue: #4477ce; }
     body { margin: 0; font-family: "Segoe UI", sans-serif; background: #fdfdfd; overflow: hidden; }
     
-    /* Tad's Request: "Yesterdays Air Quality" Heading */
-    .topbar { 
-      background: var(--brand-navy); 
-      color: white; 
-      padding: 0 2rem; 
-      display: flex; 
-      justify-content: space-between; 
-      align-items: center; 
-      height: 64px; 
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    
+    .topbar { background: var(--brand-navy); color: white; padding: 0 2rem; display: flex; justify-content: space-between; align-items: center; height: 64px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
     #layout { display: flex; height: calc(100vh - 64px); }
     
-    /* Sidebar: Clean and Residents-First */
-    #sidebar { 
-      width: 380px; 
-      min-width: 380px; 
-      background: #f4f6f8; 
-      border-right: 1px solid #ddd; 
-      padding: 1.5rem; 
-      overflow-y: auto; 
-      box-sizing: border-box; 
-    }
-    
-    .card { 
-      background: white; 
-      padding: 1.5rem; 
-      border-radius: 12px; 
-      border: 1px solid #ddd; 
-      margin-bottom: 1.5rem; 
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05); 
-    }
+    #sidebar { width: 380px; min-width: 380px; background: #f4f6f8; border-right: 1px solid #ddd; padding: 1.5rem; overflow-y: auto; box-sizing: border-box; }
+    .card { background: white; padding: 1.5rem; border-radius: 12px; border: 1px solid #ddd; margin-bottom: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
     
     h2 { font-size: 1.1rem; color: var(--brand-navy); margin-top: 0; margin-bottom: 15px; }
+    input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box; font-size: 1rem; }
     
-    /* Search Box styling */
-    .search-group { margin-bottom: 10px; }
-    input { width: 100%; padding: 14px; border-radius: 8px; border: 2px solid #ddd; box-sizing: border-box; font-size: 1rem; }
-    input:focus { border-color: var(--search-blue); outline: none; }
+    .btn-primary { width: 100%; padding: 14px; margin-top: 10px; border-radius: 8px; border: none; background: var(--search-blue); color: white; font-weight: bold; cursor: pointer; font-size: 1rem; }
+    .btn-outline { width: 100%; padding: 12px; margin-top: 20px; border-radius: 8px; border: 2px solid var(--brand-navy); background: transparent; color: var(--brand-navy); font-weight: bold; cursor: pointer; display: block; text-decoration: none; text-align: center; line-height: 1.4; }
     
-    .btn-primary { 
-      width: 100%; padding: 14px; border-radius: 8px; border: none; 
-      background: var(--search-blue); color: white; font-weight: bold; 
-      cursor: pointer; font-size: 1rem; transition: background 0.2s;
-    }
-    .btn-primary:hover { background: #3563b0; }
-    
-    /* The "More Information" Button Tad requested */
-    .btn-options { 
-      width: 100%; padding: 12px; margin-top: 20px; border-radius: 8px; 
-      border: 2px solid var(--brand-navy); background: transparent; 
-      color: var(--brand-navy); font-weight: bold; cursor: pointer;
-    }
-    .btn-options:hover { background: #eef2f7; }
-    
-    #map { flex: 1; height: 100%; z-index: 1; }
-
+    #map { flex: 1; height: 100%; }
     .aqi-display { text-align: center; padding: 10px 0; }
-    .aqi-num { font-size: 80px; font-weight: 900; line-height: 1; margin: 10px 0; text-shadow: 1px 1px 0 #000; }
-    .aqi-status { font-weight: bold; font-size: 1.2rem; margin-bottom: 10px; }
-    .aqi-label { text-transform: uppercase; font-size: 0.7rem; color: #666; font-weight: bold; letter-spacing: 1px; }
-
-    /* Legend styling */
-    .map-legend { 
-      position: absolute; bottom: 30px; right: 20px; z-index: 1000; 
-      background: white; padding: 10px; border-radius: 8px; border: 1px solid #ddd; font-size: 0.8rem;
-    }
-    .legend-row { display: flex; align-items: center; margin-bottom: 4px; }
-    .dot { width: 12px; height: 12px; border-radius: 50%; margin-right: 8px; border: 1px solid #999; }
+    .aqi-num { font-size: 80px; font-weight: 900; line-height: 1; margin: 10px 0; }
+    .aqi-label { text-transform: uppercase; font-size: 0.75rem; font-weight: bold; color: #666; letter-spacing: 1px; }
+    
+    /* Custom tooltip for the map */
+    .custom-tip { background: #333; color: white; border: none; font-weight: bold; border-radius: 4px; padding: 5px 10px; }
   </style>
 </head>
 
 <body>
 <header class="topbar">
-  <div style="font-weight:bold; font-size:1.2rem;">Yesterday's Air Quality: Cheverly, MD</div>
-  <nav><a href="index.html" style="color:white; text-decoration:none;">Home</a></nav>
+  <div style="font-weight:bold; font-size:1.2rem;">Yesterdays Air Quality: Cheverly, MD</div>
+  <nav><a href="index.html" style="color:white; text-decoration:none; font-weight: 500;">Home</a></nav>
 </header>
 
 <div id="layout">
   <aside id="sidebar">
     <div class="card">
       <h2>How was the air at my house?</h2>
-      <div class="search-group">
-        <input type="text" id="addrInput" placeholder="Enter street address...">
-      </div>
+      <input type="text" id="addrInput" placeholder="Enter street address...">
       <button class="btn-primary" onclick="searchAddress()">Check My Location</button>
     </div>
 
-    <div id="resultCard" class="card" style="display:none;">
+    <div class="card" id="resultCard" style="display:none;">
       <div class="aqi-display">
-        <div class="aqi-label">Closest Station</div>
-        <div id="statName" style="font-weight:bold; color: var(--brand-navy); margin: 5px 0;">--</div>
+        <div class="aqi-label">Closest Station Reading</div>
+        <div id="statName" style="font-weight:bold; margin: 10px 0; color: var(--brand-navy);">--</div>
         <div id="statAQI" class="aqi-num" style="color:#ccc;">--</div>
-        <div id="aqiStatus" class="aqi-status">--</div>
-        <div class="aqi-label">Based on Yesterday's Data</div>
+        <div id="aqiText" style="font-weight: bold; margin-bottom: 10px;">--</div>
+        <div class="aqi-label">CE-AQI (Yesterday's Avg)</div>
       </div>
 
-      <button class="btn-options" onclick="window.location.href='detailed-data.html'">
-        See hourly peaks or other pollutants →
+      <button class="btn-outline" onclick="window.location.href='detailed-data.html'">
+        For more information on specific air pollutants or when air pollution was highest yesterday … hit here.
       </button>
     </div>
   </aside>
 
-  <div id="main-content" style="flex:1; position: relative;">
-    <div id="map"></div>
-    
-    <div class="map-legend">
-      <div class="legend-row"><span class="dot" style="background:var(--aqi-green)"></span> 0-50 Good</div>
-      <div class="legend-row"><span class="dot" style="background:var(--aqi-yellow)"></span> 51-100 Moderate</div>
-      <div class="legend-row"><span class="dot" style="background:var(--aqi-orange)"></span> 101-150 Sensitive</div>
-      <div class="legend-row"><span class="dot" style="background:var(--aqi-red)"></span> 151+ Unhealthy</div>
-    </div>
-  </div>
+  <div id="map"></div>
 </div>
 
 <script>
-  const API_ENDPOINT = "/api/get_air_quality"; 
-  
-  // Station Metadata
-  const SENSORS = { "203601": "EJAT.CV.1.203601", "284362": "EJAT.PG.1.284362", "52823": "EJAT.CV.6.52823" };
-  const LOCATIONS = { "203601": [38.9213, -76.9175], "284362": [38.9150, -76.9200] };
+  // --- CONFIGURATION & DATA ENGINE ---
+  const API_PROXY = "/api/get_air_quality"; 
+  const STATIONS = {
+    "203601": { name: "EJAT.CV.1.203601", pos: [38.9213, -76.9175] },
+    "52823":  { name: "EJAT.CV.6.52823",  pos: [38.9250, -76.9100] },
+    "284362": { name: "EJAT.PG.1.284362", pos: [38.9150, -76.9200] },
+    "MOD-00745": { name: "QuantAQ 745",   pos: [38.9050, -76.9150] }
+  };
 
-  const map = L.map("map").setView([38.9213, -76.9175], 14);
+  const map = L.map("map", { zoomControl: false }).setView([38.9213, -76.9175], 14);
+  L.control.zoom({ position: 'bottomright' }).addTo(map);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 
   let markerMap = {};
-  let dataStore = [];
+  let globalData = [];
   let userMarker = null;
 
   function getAQIColor(v) {
@@ -158,81 +91,92 @@
     return "#ff0000";
   }
 
-  function getAQIText(v) {
+  function getAQIDescription(v) {
     if (v <= 50) return "Good";
     if (v <= 100) return "Moderate";
     if (v <= 150) return "Unhealthy for Sensitive Groups";
     return "Unhealthy";
   }
 
+  // --- ADDRESS SEARCH LOGIC ---
   async function searchAddress() {
     const q = document.getElementById("addrInput").value;
     if (!q) return;
 
-    // Search limited to Cheverly area
     const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q + ", Cheverly, MD")}`).then(r => r.json());
     
     if (res.length) {
       const loc = [parseFloat(res[0].lat), parseFloat(res[0].lon)];
       
       if (userMarker) map.removeLayer(userMarker);
-      // Highlight search location
-      userMarker = L.marker(loc).addTo(map).bindPopup("<b>Your Searched Location</b>").openPopup();
+      userMarker = L.marker(loc).addTo(map).bindPopup("<b>Your Home</b>").openPopup();
       map.flyTo(loc, 16);
 
-      // Find nearest station
-      let closestId = null, minDist = Infinity;
+      // Find nearest sensor based on actual map distance
+      let nearestId = null, minDist = Infinity;
       Object.keys(markerMap).forEach(id => {
         const d = map.distance(loc, markerMap[id].getLatLng());
-        if (d < minDist) { minDist = d; closestId = id; }
+        if (d < minDist) { minDist = d; nearestId = id; }
       });
 
-      if (closestId) updateSidebar(closestId);
+      if (nearestId) showStationData(nearestId);
     }
   }
 
-  function updateSidebar(id) {
-    const sensor = dataStore.find(s => String(s.id || s.sn) === String(id));
-    if (!sensor) return;
+  // --- SIDEBAR UPDATE LOGIC ---
+  function showStationData(id) {
+    const data = globalData.find(s => String(s.id || s.sn) === String(id));
+    if (!data) return;
 
     document.getElementById("resultCard").style.display = "block";
-    document.getElementById("statName").innerText = SENSORS[id] || id;
+    document.getElementById("statName").innerText = STATIONS[id]?.name || "Station " + id;
     
-    const val = Math.round(sensor.aqi || sensor.live || 0);
+    const val = Math.round(data.aqi || data.live || 0);
     const aqiEl = document.getElementById("statAQI");
-    const statusEl = document.getElementById("aqiStatus");
-
+    const textEl = document.getElementById("aqiText");
+    
     aqiEl.innerText = val;
     aqiEl.style.color = getAQIColor(val);
-    statusEl.innerText = getAQIText(val);
-    statusEl.style.color = getAQIColor(val);
+    textEl.innerText = getAQIDescription(val);
+    textEl.style.color = getAQIColor(val);
+
+    if (markerMap[id]) markerMap[id].openTooltip();
   }
 
+  // --- DATA INITIALIZATION (The "Previous Logic") ---
   async function init() {
     try {
-      const res = await fetch(API_ENDPOINT);
-      const data = await res.json();
-      if (!Array.isArray(data)) return;
-      
-      dataStore = data;
+      const response = await fetch(API_PROXY);
+      const data = await response.json();
+      globalData = data;
 
-      data.forEach(s => {
-        const id = s.id || s.sn;
-        const pos = LOCATIONS[id] || [38.9213 + (Math.random()*0.004), -76.9175 + (Math.random()*0.004)];
-        const val = s.aqi || s.live || 0;
+      data.forEach(sensor => {
+        const id = sensor.id || sensor.sn;
+        // Fallback coordinates if API doesn't provide them
+        const pos = STATIONS[id]?.pos || [38.9213 + (Math.random()*0.005), -76.9175 + (Math.random()*0.005)];
+        const val = sensor.aqi || sensor.live || 0;
 
-        const m = L.circleMarker(pos, { 
-          radius: 12, 
-          fillColor: getAQIColor(val), 
-          color: "#000", 
-          weight: 1, 
-          fillOpacity: 0.8 
+        const m = L.circleMarker(pos, {
+          radius: 14,
+          fillColor: getAQIColor(val),
+          color: "#fff",
+          weight: 3,
+          fillOpacity: 0.9
         }).addTo(map);
 
-        m.on("click", () => updateSidebar(id));
+        m.bindTooltip(`${STATIONS[id]?.name || id}: ${Math.round(val)}`, { 
+          className: 'custom-tip', 
+          direction: 'top' 
+        });
+
+        m.on('click', () => showStationData(id));
         markerMap[id] = m;
       });
-    } catch (e) { console.error("Init failed", e); }
+      
+      console.log("Data successfully rendered to map.");
+    } catch (err) {
+      console.error("Critical error loading station data:", err);
+    }
   }
 
   init();
