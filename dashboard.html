@@ -9,7 +9,10 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <style>
-    :root { --brand-navy: #1a305e; --aqi-green: #00e400; --aqi-yellow: #ffff00; --aqi-orange: #ff7e00; --aqi-red: #ff0000; }
+    :root { 
+      --brand-navy: #1a305e; --aqi-green: #00e400; --aqi-yellow: #ffff00; 
+      --aqi-orange: #ff7e00; --aqi-red: #ff0000;
+    }
     html, body { margin: 0; padding: 0; height: 100%; width: 100%; font-family: "Segoe UI", sans-serif; overflow: hidden; background: #fdfdfd; }
     .topbar { background: var(--brand-navy); color: white; padding: 0 2rem; display: flex; justify-content: space-between; align-items: center; height: 64px; z-index: 2000; position: relative; }
     #layout { display: flex; height: calc(100vh - 64px); width: 100vw; }
@@ -17,11 +20,10 @@
     .card { background: white; padding: 1.25rem; border-radius: 12px; border: 1px solid #ddd; margin-bottom: 1.25rem; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
     #map { height: 100%; width: 100%; z-index: 1; }
     .aqi-val { font-size: 72px; font-weight: 900; display: block; text-align: center; line-height: 1.1; }
-    .subval { margin-top: 10px; font-size: 1.2rem; font-weight: 800; text-align: center; }
     .sublabel { font-size: 0.75rem; color: #777; font-weight: bold; margin-top: 4px; text-align: center; text-transform: uppercase; }
-    .error-msg { color: #d93025; font-weight: bold; text-align: center; margin-top: 20px; font-size: 1.1rem; }
     label { font-size: 0.75rem; font-weight: bold; color: #666; text-transform: uppercase; margin-bottom: 8px; display: block; }
     select { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ccc; font-size: 0.9rem; }
+    .data-text { text-align:center; margin-top:15px; font-weight:bold; font-size: 0.9rem; color: #444; }
   </style>
 </head>
 
@@ -37,22 +39,30 @@
       <label>Station Selection</label>
       <select id="devSel" onchange="handleDropdownChange(this.value)"></select>
     </div>
+
     <div class="card">
-      <div id="statName" style="font-weight:bold; font-size:1rem; margin-bottom:10px; color:var(--brand-navy); text-align:center;">Select a Station</div>
+      <div id="statName" style="font-weight:bold; font-size:1rem; margin-bottom:10px; color:var(--brand-navy); text-align:center;">Loading...</div>
       <div id="statAQI" class="aqi-val" style="color:#ccc;">--</div>
-      <div class="sublabel">Live PM2.5 AQI</div>
-      <div id="statCE" class="subval" style="color:#ccc;">--</div>
-      <div class="sublabel">24-Hour Adjusted CE-AQI</div>
-      <div id="status-msg" class="error-msg"></div>
+      <div class="sublabel">Current PM2.5 AQI</div>
+      <div id="val_param" class="data-text">--</div>
     </div>
   </aside>
-  <div id="main-content" style="flex:1;"><div id="map"></div></div>
+
+  <div id="main-content" style="flex:1;">
+    <div id="map"></div>
+  </div>
 </div>
 
 <script>
-  const API_ENDPOINT = "/api/get_air_quality";
-  const SENSORS = { "203601": "EJAT.CV.1.203601", "284362": "EJAT.PG.1.284362", "52823": "EJAT.CV.6.52823" };
-  const LOCATIONS = { "203601": [38.9213, -76.9175], "52823": [38.9240, -76.9150] };
+  // Point this back to your original WORKING api file
+  const API_ENDPOINT = "/api/get_air_quality"; 
+  
+  const SENSORS = { 
+    "203601": "EJAT.CV.1.203601", "284362": "EJAT.PG.1.284362", 
+    "52823": "EJAT.CV.6.52823", "MOD-00745": "QuantAQ 745" 
+  };
+
+  const LOCATIONS = { "203601": [38.9213, -76.9175], "MOD-00745": [38.9051, -76.9100] };
 
   let markerMap = {};
   const map = L.map("map").setView([38.9213, -76.9175], 14);
@@ -63,27 +73,37 @@
     if (isNaN(v)) return "#ccc";
     if (v <= 50) return "#00e400";
     if (v <= 100) return "#ffff00";
-    return "#ff7e00";
+    if (v <= 150) return "#ff7e00";
+    return "#ff0000";
+  }
+
+  function handleDropdownChange(id) {
+    if(markerMap[id]) {
+      map.flyTo(markerMap[id].getLatLng(), 15);
+      updateDisplay(id);
+    }
   }
 
   async function updateDisplay(id) {
-    const statusEl = document.getElementById("status-msg");
     try {
       const res = await fetch(API_ENDPOINT);
       const data = await res.json();
-      if (!Array.isArray(data)) {
-        statusEl.innerText = "No Data";
-        return;
-      }
-      const sensor = data.find(s => String(s.id) === String(id));
+      
+      // Basic finding logic - works with standard QuantAQ or simple JS proxy
+      const sensor = Array.isArray(data) ? data.find(s => String(s.sn || s.id) === String(id)) : null;
+
       if (sensor) {
-        statusEl.innerText = "";
         document.getElementById("statName").innerText = SENSORS[id] || id;
-        const live = parseFloat(sensor.live);
-        document.getElementById("statAQI").innerText = isNaN(live) ? "--" : Math.round(live);
-        document.getElementById("statAQI").style.color = getAQIColor(live);
+        // Check for 'live' or standard 'aqi' field depending on which API you reverted to
+        const val = parseFloat(sensor.live || sensor.aqi || 0);
+        
+        document.getElementById("statAQI").innerText = Math.round(val);
+        document.getElementById("statAQI").style.color = getAQIColor(val);
+        document.getElementById("val_param").innerText = val.toFixed(2) + " µg/m³";
       }
-    } catch (err) { statusEl.innerText = "Connection Failed"; }
+    } catch (err) {
+      console.error("Fetch Error:", err);
+    }
   }
 
   async function init() {
@@ -91,20 +111,29 @@
     try {
       const res = await fetch(API_ENDPOINT);
       const data = await res.json();
-      if (!Array.isArray(data)) {
-        document.getElementById("status-msg").innerText = "No Data";
-        return;
+
+      if (Array.isArray(data)) {
+        data.forEach(sensor => {
+          const sId = sensor.sn || sensor.id;
+          const pos = LOCATIONS[sId] || [38.9213 + (Math.random()*0.005), -76.9175 + (Math.random()*0.005)];
+          
+          const m = L.circleMarker(pos, { 
+            radius: 12, 
+            fillColor: getAQIColor(sensor.live || sensor.aqi), 
+            color: "#000", 
+            weight: 2, 
+            fillOpacity: 0.9 
+          }).addTo(map);
+
+          m.on("click", () => { sel.value = sId; handleDropdownChange(sId); });
+          markerMap[sId] = m;
+          sel.add(new Option(SENSORS[sId] || sId, sId));
+        });
+        if (sel.options.length) handleDropdownChange(sel.options[0].value);
       }
-      data.forEach(sensor => {
-        const pos = LOCATIONS[sensor.id] || [38.9213 + (Math.random()*0.005), -76.9175 + (Math.random()*0.005)];
-        const m = L.circleMarker(pos, { radius: 12, fillColor: getAQIColor(sensor.ce_aqi), color: "#000", weight: 2, fillOpacity: 0.9 }).addTo(map);
-        m.on("click", () => { sel.value = sensor.id; updateDisplay(sensor.id); });
-        markerMap[sensor.id] = m;
-        sel.add(new Option(SENSORS[sensor.id] || sensor.id, sensor.id));
-      });
-      if (sel.options.length) updateDisplay(sel.options[0].value);
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error("Init failed"); }
   }
+
   init();
 </script>
 </body>
