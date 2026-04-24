@@ -12,21 +12,25 @@
 
   <style>
     :root { 
-      --brand-navy: #1a305e; --search-blue: #4477ce; 
-      --aqi-green: #00e400; --aqi-yellow: #ffff00; --aqi-orange: #ff7e00;
-      --aqi-red: #ff0000; --aqi-purple: #8f3f97; --aqi-maroon: #7e0023;
+      --brand-navy: #1a305e; 
+      --search-blue: #4477ce; 
+      --aqi-green: #00e400;
+      --aqi-yellow: #ffff00;
+      --aqi-orange: #ff7e00;
+      --aqi-red: #ff0000;
     }
+
     html, body { margin: 0; padding: 0; height: 100%; width: 100%; font-family: "Segoe UI", sans-serif; overflow: hidden; background: #fdfdfd; }
-    .topbar { background: var(--brand-navy); color: white; padding: 0 2rem; display: flex; justify-content: space-between; align-items: center; height: 64px; z-index: 2000; position: relative; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    .topbar { background: var(--brand-navy); color: white; padding: 0 2rem; display: flex; justify-content: space-between; align-items: center; height: 64px; z-index: 2000; position: relative; }
     #layout { display: flex; height: calc(100vh - 64px); width: 100vw; }
     #sidebar { width: 380px; min-width: 380px; background: #f4f6f8; border-right: 1px solid #ddd; padding: 1.25rem; overflow-y: auto; box-sizing: border-box; }
     .card { background: white; padding: 1.25rem; border-radius: 12px; border: 1px solid #ddd; margin-bottom: 1.25rem; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
     #map { height: 45%; width: 100%; border-bottom: 1px solid #ddd; z-index: 1; }
     #chart-box { height: 55%; width: 100%; padding: 1.5rem; box-sizing: border-box; background: white; }
     .aqi-val { font-size: 72px; font-weight: 900; display: block; text-align: center; line-height: 1.1; }
-    .subval { margin-top: 10px; font-size: 1.1rem; font-weight: 800; text-align: center; }
+    .subval { margin-top: 10px; font-size: 1.2rem; font-weight: 800; text-align: center; }
     .sublabel { font-size: 0.75rem; color: #777; font-weight: bold; margin-top: 4px; text-align: center; text-transform: uppercase; }
-    .error-msg { color: #ff0000; font-weight: bold; text-align: center; font-size: 0.9rem; margin-top: 10px; }
+    .error-text { color: #d93025; font-weight: bold; text-align: center; margin-top: 10px; font-size: 0.9rem; }
   </style>
 </head>
 
@@ -43,7 +47,7 @@
       <select id="devSel" onchange="handleDropdownChange(this.value)"></select>
     </div>
 
-    <div class="card" id="data-card">
+    <div class="card">
       <div id="statName" style="font-weight:bold; font-size:1rem; margin-bottom:10px; color:var(--brand-navy); text-align:center;">Select a Station</div>
       <div id="statAQI" class="aqi-val" style="color:#ccc;">--</div>
       <div class="sublabel">Live PM2.5 AQI</div>
@@ -51,8 +55,8 @@
       <div id="statCE" class="subval" style="color:#ccc;">--</div>
       <div class="sublabel">24-Hour Adjusted CE-AQI</div>
       
-      <div id="val_param" style="text-align:center; margin-top:15px; font-weight:bold; font-size:0.9rem;">--</div>
-      <div id="db-status" class="error-msg"></div>
+      <div id="val_param" style="text-align:center; margin-top:15px; font-weight:bold;">--</div>
+      <div id="db-error" class="error-text"></div>
     </div>
   </aside>
 
@@ -65,23 +69,18 @@
 <script>
   const API_ENDPOINT = "/api/get_air_quality";
   
-  // Re-populated your station metadata
   const SENSORS = { 
-    "203601": "EJAT.CV.1.203601", "284362": "EJAT.PG.1.284362", "52823": "EJAT.CV.6.52823",
-    "53677": "EJAT.CV.1.53677", "54239": "EJAT.CV.6.54239", "MOD-00745": "QuantAQ 745"
+    "203601": "EJAT.CV.1.203601", "284362": "EJAT.PG.1.284362", "52823": "EJAT.CV.6.52823", "MOD-00745": "QuantAQ 745" 
   };
 
-  const LOCATIONS = {
-    "203601": [38.9213, -76.9175],
-    "MOD-00745": [38.9051, -76.9100],
-    "52823": [38.9240, -76.9150]
-  };
+  const LOCATIONS = { "203601": [38.9213, -76.9175], "MOD-00745": [38.9051, -76.9100] };
 
   let markerMap = {};
   const map = L.map("map").setView([38.9213, -76.9175], 14);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 
   function getAQIColor(aqi) {
+    if (!aqi || isNaN(aqi)) return "#ccc";
     if (aqi <= 50) return "#00e400";
     if (aqi <= 100) return "#ffff00";
     if (aqi <= 150) return "#ff7e00";
@@ -91,67 +90,67 @@
   function handleDropdownChange(id) {
     if(markerMap[id]) {
       map.flyTo(markerMap[id].getLatLng(), 15);
-      updateSidebar(id);
+      updateDisplay(id);
     }
   }
 
-  async function updateSidebar(id) {
+  async function updateDisplay(id) {
+    const errorEl = document.getElementById("db-error");
     try {
       const res = await fetch(API_ENDPOINT);
       const data = await res.json();
       
-      // Check for DB Connection Error
-      if (data[0] && data[0].id === "DB_CONNECT_ERROR") {
-        document.getElementById("db-status").innerText = "Database Offline: Check Vercel Logs";
+      // CRITICAL: Check if data is an error object instead of an array
+      if (data.id === "DB_CONNECT_ERROR" || (data[0] && data[0].id === "DB_CONNECT_ERROR")) {
+        errorEl.innerText = "Database connection failed. Check Aiven/Vercel settings.";
         return;
       }
 
-      const sensor = data.find(s => String(s.id) === String(id));
+      const sensor = Array.isArray(data) ? data.find(s => String(s.id) === String(id)) : null;
+
       if (sensor) {
-        document.getElementById("db-status").innerText = "";
+        errorEl.innerText = "";
         document.getElementById("statName").innerText = SENSORS[id] || id;
-        document.getElementById("statAQI").innerText = Math.round(sensor.live);
-        document.getElementById("statAQI").style.color = getAQIColor(sensor.live);
-        document.getElementById("statCE").innerText = sensor.ce_aqi || "--";
-        document.getElementById("statCE").style.color = getAQIColor(sensor.ce_aqi || 0);
-        document.getElementById("val_param").innerText = sensor.live.toFixed(2) + " µg/m³";
+        
+        const live = parseFloat(sensor.live);
+        const ce = parseFloat(sensor.ce_aqi);
+
+        document.getElementById("statAQI").innerText = isNaN(live) ? "--" : Math.round(live);
+        document.getElementById("statAQI").style.color = getAQIColor(live);
+        document.getElementById("statCE").innerText = isNaN(ce) ? "--" : Math.round(ce);
+        document.getElementById("statCE").style.color = getAQIColor(ce);
+        
+        // Final safety check for toFixed
+        document.getElementById("val_param").innerText = (!isNaN(live)) ? live.toFixed(2) + " µg/m³" : "--";
       }
     } catch (err) {
-      document.getElementById("db-status").innerText = "Error Fetching Data";
+      errorEl.innerText = "Connection error. Refresh page.";
     }
   }
 
   async function init() {
     const sel = document.getElementById("devSel");
+    const errorEl = document.getElementById("db-error");
     try {
       const res = await fetch(API_ENDPOINT);
       const data = await res.json();
 
-      if (data[0] && data[0].id === "DB_CONNECT_ERROR") {
-        document.getElementById("db-status").innerText = "Database connection failed.";
+      if (data.id === "DB_CONNECT_ERROR" || (data[0] && data[0].id === "DB_CONNECT_ERROR")) {
+        errorEl.innerText = "Database Offline.";
         return;
       }
 
-      data.forEach(sensor => {
-        const pos = LOCATIONS[sensor.id] || [38.9213 + (Math.random()*0.005), -76.9175 + (Math.random()*0.005)];
-        
-        const m = L.circleMarker(pos, {
-          radius: 12,
-          fillColor: getAQIColor(sensor.ce_aqi || 0),
-          color: "#000",
-          weight: 2,
-          fillOpacity: 0.9
-        }).addTo(map);
-
-        m.on("click", () => { sel.value = sensor.id; handleDropdownChange(sensor.id); });
-        markerMap[sensor.id] = m;
-        sel.add(new Option(SENSORS[sensor.id] || sensor.id, sensor.id));
-      });
-
-      if (sel.options.length) handleDropdownChange(sel.options[0].value);
-    } catch (err) {
-      console.error("Init Error:", err);
-    }
+      if (Array.isArray(data)) {
+        data.forEach(sensor => {
+          const pos = LOCATIONS[sensor.id] || [38.9213 + (Math.random()*0.005), -76.9175 + (Math.random()*0.005)];
+          const m = L.circleMarker(pos, { radius: 12, fillColor: getAQIColor(sensor.ce_aqi), color: "#000", weight: 2, fillOpacity: 0.9 }).addTo(map);
+          m.on("click", () => { sel.value = sensor.id; handleDropdownChange(sensor.id); });
+          markerMap[sensor.id] = m;
+          sel.add(new Option(SENSORS[sensor.id] || sensor.id, sensor.id));
+        });
+        if (sel.options.length) handleDropdownChange(sel.options[0].value);
+      }
+    } catch (err) { console.error(err); }
   }
 
   init();
