@@ -12,14 +12,10 @@
 
   <style>
     :root { 
-      --brand-navy: #1a305e; 
-      --search-blue: #4477ce; 
-      --aqi-green: #00e400;
-      --aqi-yellow: #ffff00;
-      --aqi-orange: #ff7e00;
+      --brand-navy: #1a305e; --search-blue: #4477ce; 
+      --aqi-green: #00e400; --aqi-yellow: #ffff00; --aqi-orange: #ff7e00;
       --aqi-red: #ff0000;
     }
-
     html, body { margin: 0; padding: 0; height: 100%; width: 100%; font-family: "Segoe UI", sans-serif; overflow: hidden; background: #fdfdfd; }
     .topbar { background: var(--brand-navy); color: white; padding: 0 2rem; display: flex; justify-content: space-between; align-items: center; height: 64px; z-index: 2000; position: relative; }
     #layout { display: flex; height: calc(100vh - 64px); width: 100vw; }
@@ -30,7 +26,7 @@
     .aqi-val { font-size: 72px; font-weight: 900; display: block; text-align: center; line-height: 1.1; }
     .subval { margin-top: 10px; font-size: 1.2rem; font-weight: 800; text-align: center; }
     .sublabel { font-size: 0.75rem; color: #777; font-weight: bold; margin-top: 4px; text-align: center; text-transform: uppercase; }
-    .error-text { color: #d93025; font-weight: bold; text-align: center; margin-top: 10px; font-size: 0.9rem; }
+    .error-msg { color: #d93025; font-weight: bold; text-align: center; margin-top: 15px; font-size: 0.9rem; }
   </style>
 </head>
 
@@ -56,7 +52,7 @@
       <div class="sublabel">24-Hour Adjusted CE-AQI</div>
       
       <div id="val_param" style="text-align:center; margin-top:15px; font-weight:bold;">--</div>
-      <div id="db-error" class="error-text"></div>
+      <div id="status-display" class="error-msg"></div>
     </div>
   </aside>
 
@@ -70,20 +66,26 @@
   const API_ENDPOINT = "/api/get_air_quality";
   
   const SENSORS = { 
-    "203601": "EJAT.CV.1.203601", "284362": "EJAT.PG.1.284362", "52823": "EJAT.CV.6.52823", "MOD-00745": "QuantAQ 745" 
+    "203601": "EJAT.CV.1.203601", "284362": "EJAT.PG.1.284362", "52823": "EJAT.CV.6.52823",
+    "53677": "EJAT.CV.1.53677", "54239": "EJAT.CV.6.54239", "MOD-00745": "QuantAQ 745"
   };
 
-  const LOCATIONS = { "203601": [38.9213, -76.9175], "MOD-00745": [38.9051, -76.9100] };
+  const LOCATIONS = {
+    "203601": [38.9213, -76.9175],
+    "MOD-00745": [38.9051, -76.9100],
+    "52823": [38.9240, -76.9150]
+  };
 
   let markerMap = {};
   const map = L.map("map").setView([38.9213, -76.9175], 14);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 
   function getAQIColor(aqi) {
-    if (!aqi || isNaN(aqi)) return "#ccc";
-    if (aqi <= 50) return "#00e400";
-    if (aqi <= 100) return "#ffff00";
-    if (aqi <= 150) return "#ff7e00";
+    const v = Number(aqi);
+    if (isNaN(v)) return "#ccc";
+    if (v <= 50) return "#00e400";
+    if (v <= 100) return "#ffff00";
+    if (v <= 150) return "#ff7e00";
     return "#ff0000";
   }
 
@@ -95,62 +97,70 @@
   }
 
   async function updateDisplay(id) {
-    const errorEl = document.getElementById("db-error");
+    const statusEl = document.getElementById("status-display");
     try {
       const res = await fetch(API_ENDPOINT);
-      const data = await res.json();
-      
-      // CRITICAL: Check if data is an error object instead of an array
-      if (data.id === "DB_CONNECT_ERROR" || (data[0] && data[0].id === "DB_CONNECT_ERROR")) {
-        errorEl.innerText = "Database connection failed. Check Aiven/Vercel settings.";
+      if (!res.ok) {
+        statusEl.innerText = `API Error: ${res.status}. Check vercel.json.`;
         return;
       }
 
-      const sensor = Array.isArray(data) ? data.find(s => String(s.id) === String(id)) : null;
+      const data = await res.json();
 
+      if (data.id === "DB_CONNECT_ERROR" || (data[0] && data[0].id === "DB_CONNECT_ERROR")) {
+        statusEl.innerText = "Database Offline: Check Aiven Credentials.";
+        return;
+      }
+
+      const sensor = data.find(s => String(s.id) === String(id));
       if (sensor) {
-        errorEl.innerText = "";
+        statusEl.innerText = "";
         document.getElementById("statName").innerText = SENSORS[id] || id;
         
-        const live = parseFloat(sensor.live);
-        const ce = parseFloat(sensor.ce_aqi);
+        const liveVal = parseFloat(sensor.live);
+        const ceVal = parseFloat(sensor.ce_aqi);
 
-        document.getElementById("statAQI").innerText = isNaN(live) ? "--" : Math.round(live);
-        document.getElementById("statAQI").style.color = getAQIColor(live);
-        document.getElementById("statCE").innerText = isNaN(ce) ? "--" : Math.round(ce);
-        document.getElementById("statCE").style.color = getAQIColor(ce);
+        document.getElementById("statAQI").innerText = isNaN(liveVal) ? "--" : Math.round(liveVal);
+        document.getElementById("statAQI").style.color = getAQIColor(liveVal);
+        document.getElementById("statCE").innerText = isNaN(ceVal) ? "--" : Math.round(ceVal);
+        document.getElementById("statCE").style.color = getAQIColor(ceVal);
         
-        // Final safety check for toFixed
-        document.getElementById("val_param").innerText = (!isNaN(live)) ? live.toFixed(2) + " µg/m³" : "--";
+        // Safety check for toFixed
+        document.getElementById("val_param").innerText = (!isNaN(liveVal)) ? liveVal.toFixed(2) + " µg/m³" : "--";
       }
     } catch (err) {
-      errorEl.innerText = "Connection error. Refresh page.";
+      statusEl.innerText = "Connection Failed.";
     }
   }
 
   async function init() {
     const sel = document.getElementById("devSel");
-    const errorEl = document.getElementById("db-error");
+    const statusEl = document.getElementById("status-display");
     try {
       const res = await fetch(API_ENDPOINT);
+      if (!res.ok) throw new Error();
       const data = await res.json();
 
       if (data.id === "DB_CONNECT_ERROR" || (data[0] && data[0].id === "DB_CONNECT_ERROR")) {
-        errorEl.innerText = "Database Offline.";
+        statusEl.innerText = "Database Connection Failed.";
         return;
       }
 
-      if (Array.isArray(data)) {
-        data.forEach(sensor => {
-          const pos = LOCATIONS[sensor.id] || [38.9213 + (Math.random()*0.005), -76.9175 + (Math.random()*0.005)];
-          const m = L.circleMarker(pos, { radius: 12, fillColor: getAQIColor(sensor.ce_aqi), color: "#000", weight: 2, fillOpacity: 0.9 }).addTo(map);
-          m.on("click", () => { sel.value = sensor.id; handleDropdownChange(sensor.id); });
-          markerMap[sensor.id] = m;
-          sel.add(new Option(SENSORS[sensor.id] || sensor.id, sensor.id));
-        });
-        if (sel.options.length) handleDropdownChange(sel.options[0].value);
-      }
-    } catch (err) { console.error(err); }
+      data.forEach(sensor => {
+        const pos = LOCATIONS[sensor.id] || [38.9213 + (Math.random()*0.005), -76.9175 + (Math.random()*0.005)];
+        const m = L.circleMarker(pos, {
+          radius: 12, fillColor: getAQIColor(sensor.ce_aqi), color: "#000", weight: 2, fillOpacity: 0.9
+        }).addTo(map);
+
+        m.on("click", () => { sel.value = sensor.id; handleDropdownChange(sensor.id); });
+        markerMap[sensor.id] = m;
+        sel.add(new Option(SENSORS[sensor.id] || sensor.id, sensor.id));
+      });
+
+      if (sel.options.length) handleDropdownChange(sel.options[0].value);
+    } catch (err) {
+      statusEl.innerText = "API 404: Check file name in /api folder.";
+    }
   }
 
   init();
