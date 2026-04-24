@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Cheverly Air Quality | Dashboard</title>
 
+  <link rel="icon" href="data:;base64,iVBORw0KGgo=">
+
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
@@ -18,11 +20,13 @@
     #layout { display: flex; height: calc(100vh - 64px); width: 100vw; }
     #sidebar { width: 380px; min-width: 380px; background: #f4f6f8; border-right: 1px solid #ddd; padding: 1.25rem; overflow-y: auto; box-sizing: border-box; }
     .card { background: white; padding: 1.25rem; border-radius: 12px; border: 1px solid #ddd; margin-bottom: 1.25rem; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-    #map { height: 50%; width: 100%; border-bottom: 1px solid #ddd; z-index: 1; }
+    #map { height: 100%; width: 100%; z-index: 1; }
     .aqi-val { font-size: 72px; font-weight: 900; display: block; text-align: center; line-height: 1.1; }
     .subval { margin-top: 10px; font-size: 1.2rem; font-weight: 800; text-align: center; }
     .sublabel { font-size: 0.75rem; color: #777; font-weight: bold; margin-top: 4px; text-align: center; text-transform: uppercase; }
-    .error-msg { color: #d93025; font-weight: bold; text-align: center; margin-top: 20px; font-size: 0.9rem; }
+    .error-msg { color: #d93025; font-weight: bold; text-align: center; margin-top: 20px; font-size: 0.9rem; border: 1px solid #d93025; padding: 10px; border-radius: 8px; background: #fff5f5; display: none; }
+    label { font-size: 0.75rem; font-weight: bold; color: #666; text-transform: uppercase; margin-bottom: 8px; display: block; }
+    select { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ccc; font-size: 0.9rem; }
   </style>
 </head>
 
@@ -35,7 +39,7 @@
 <div id="layout">
   <aside id="sidebar">
     <div class="card">
-      <label style="font-size: 0.75rem; font-weight: bold; color: #666; text-transform: uppercase;">Station Selection</label>
+      <label>Station Selection</label>
       <select id="devSel" onchange="handleDropdownChange(this.value)"></select>
     </div>
 
@@ -61,11 +65,16 @@
   const API_ENDPOINT = "/api/get_air_quality";
   
   const SENSORS = { 
-    "203601": "EJAT.CV.1.203601", "284362": "EJAT.PG.1.284362", 
-    "52823": "EJAT.CV.6.52823", "MOD-00745": "QuantAQ 745" 
+    "203601": "EJAT.CV.1.203601", 
+    "284362": "EJAT.PG.1.284362", 
+    "52823": "EJAT.CV.6.52823", 
+    "MOD-00745": "QuantAQ 745" 
   };
 
-  const LOCATIONS = { "203601": [38.9213, -76.9175], "MOD-00745": [38.9051, -76.9100] };
+  const LOCATIONS = { 
+    "203601": [38.9213, -76.9175], 
+    "MOD-00745": [38.9051, -76.9100] 
+  };
 
   let markerMap = {};
   const map = L.map("map").setView([38.9213, -76.9175], 14);
@@ -93,15 +102,16 @@
       const res = await fetch(API_ENDPOINT);
       const data = await res.json();
       
-      // Check if the response is an error object instead of an array of sensors
+      // If data is an error object, show it
       if (!Array.isArray(data)) {
-        statusEl.innerText = "Database Offline. Check Aiven connection.";
+        statusEl.innerText = "Database Connection Error. Check Aiven IP filters.";
+        statusEl.style.display = "block";
         return;
       }
 
       const sensor = data.find(s => String(s.id) === String(id));
       if (sensor) {
-        statusEl.innerText = "";
+        statusEl.style.display = "none";
         document.getElementById("statName").innerText = SENSORS[id] || id;
         
         const live = parseFloat(sensor.live);
@@ -112,11 +122,12 @@
         document.getElementById("statCE").innerText = isNaN(ce) ? "--" : Math.round(ce);
         document.getElementById("statCE").style.color = getAQIColor(ce);
         
-        // The Safety Net for toFixed
+        // Strict safety check for toFixed
         document.getElementById("val_param").innerText = (!isNaN(live)) ? live.toFixed(2) + " µg/m³" : "No Data";
       }
     } catch (err) {
       statusEl.innerText = "Connection Failed.";
+      statusEl.style.display = "block";
     }
   }
 
@@ -128,7 +139,8 @@
       const data = await res.json();
 
       if (!Array.isArray(data)) {
-        statusEl.innerText = "Database connection failed.";
+        statusEl.innerText = "Database Connection Error.";
+        statusEl.style.display = "block";
         return;
       }
 
@@ -141,7 +153,10 @@
       });
 
       if (sel.options.length) handleDropdownChange(sel.options[0].value);
-    } catch (err) { console.error(err); }
+    } catch (err) { 
+      statusEl.innerText = "API Offline.";
+      statusEl.style.display = "block";
+    }
   }
 
   init();
