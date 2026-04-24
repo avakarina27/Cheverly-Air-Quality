@@ -2,81 +2,52 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Cheverly Air Quality | Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cheverly Air Quality | Debug Dashboard</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
-
   <style>
-    :root { 
-      --brand-navy: #1a305e; --search-blue: #4477ce; 
-      --aqi-green: #00e400; --aqi-yellow: #ffff00; --aqi-orange: #ff7e00;
-      --aqi-red: #ff0000; --aqi-purple: #8f3f97; --aqi-maroon: #7e0023;
-    }
-    html, body { margin: 0; padding: 0; height: 100%; width: 100%; font-family: sans-serif; overflow: hidden; background: #fdfdfd; }
-    .topbar { background: var(--brand-navy); color: white; padding: 0 2rem; display: flex; justify-content: space-between; align-items: center; height: 64px; z-index: 2000; position: relative; }
-    #layout { display: flex; height: calc(100vh - 64px); width: 100vw; }
-    #sidebar { width: 380px; background: #f4f6f8; border-right: 1px solid #ddd; padding: 1.25rem; overflow-y: auto; box-sizing: border-box; }
-    .card { background: white; padding: 1.25rem; border-radius: 12px; border: 1px solid #ddd; margin-bottom: 1.25rem; }
-    #main-content { flex: 1; display: flex; flex-direction: column; }
-    #map { height: 50%; width: 100%; z-index: 1; }
-    #chart-box { height: 50%; width: 100%; padding: 1rem; box-sizing: border-box; }
-    .aqi-val { font-size: 64px; font-weight: 900; text-align: center; display: block; }
-    .subval { font-size: 1.2rem; font-weight: bold; text-align: center; margin-top: 5px; }
-    .sublabel { font-size: 0.7rem; text-align: center; color: #666; text-transform: uppercase; margin-bottom: 10px;}
+    :root { --brand-navy: #1a305e; }
+    body { margin: 0; font-family: sans-serif; display: flex; flex-direction: column; height: 100vh; }
+    .topbar { background: var(--brand-navy); color: white; padding: 1rem; font-weight: bold; }
+    #layout { display: flex; flex: 1; overflow: hidden; }
+    #sidebar { width: 350px; background: #f4f4f4; padding: 1rem; border-right: 1px solid #ccc; }
+    #map { flex: 1; background: #eee; }
+    .card { background: white; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .aqi-large { font-size: 48px; font-weight: bold; text-align: center; display: block; margin: 10px 0; }
   </style>
 </head>
-
 <body>
-<header class="topbar">
-  <div style="font-weight:bold;">Cheverly Air Quality</div>
-  <nav><a href="index.html" style="color:white; text-decoration:none;">Home</a></nav>
-</header>
+
+<div class="topbar">Cheverly Air Quality Dashboard</div>
 
 <div id="layout">
   <aside id="sidebar">
     <div class="card">
-      <label style="font-size:0.8rem; font-weight:bold;">STATION SELECTION</label>
-      <select id="devSel" onchange="handleDropdownChange(this.value)"></select>
+      <label>Select Station:</label>
+      <select id="devSel" style="width:100%; padding:8px;" onchange="handleDropdownChange(this.value)"></select>
     </div>
-
-    <div class="card">
-      <div id="statName" style="text-align:center; font-weight:bold;">--</div>
-      <div id="statAQI" class="aqi-val">--</div>
-      <div class="sublabel">Live PM2.5 AQI</div>
-      
-      <div id="statCE" class="subval">--</div>
-      <div class="sublabel">CE-AQI (Adjusted)</div>
-      
-      <div style="border-top:1px solid #eee; padding-top:10px; font-size:0.9rem;">
-        <strong>Concentration:</strong> <span id="val_param">--</span>
-      </div>
+    <div class="card" id="detailsCard">
+      <div id="statName" style="font-weight:bold; text-align:center;">No Station Selected</div>
+      <div id="statAQI" class="aqi-large" style="color:#ccc;">--</div>
+      <div style="text-align:center; font-size:0.8rem; color:#666;">LIVE AQI</div>
+      <hr>
+      <div id="statCE" style="text-align:center; font-weight:bold; font-size:1.2rem;">--</div>
+      <div style="text-align:center; font-size:0.8rem; color:#666;">CE-AQI (ADJUSTED)</div>
     </div>
   </aside>
-
-  <div id="main-content">
-    <div id="map"></div>
-    <div id="chart-box"><canvas id="airChart"></canvas></div>
-  </div>
+  <div id="map"></div>
 </div>
 
 <script>
-  const API_ENDPOINT = "/api/get_air_quality";
-  
-  // Coordinates Lookup (Add your sensor coords here)
-  const COORDS = {
-    "203601": [38.9213, -76.9175],
-    "MOD-00745": [38.9051, -76.9100],
-    "D14781": [38.9240, -76.9150]
-  };
+  console.log("Dashboard Script Started...");
 
-  const SENSOR_NAMES = { "203601": "EJAT.CV.1.203601", "MOD-00745": "QuantAQ 745" };
-
-  let markerMap = {};
+  // 1. Setup Map
   const map = L.map("map").setView([38.9213, -76.9175], 14);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+  console.log("Map Initialized.");
+
+  const markerMap = {};
 
   function getAQIColor(aqi) {
     if (aqi <= 50) return "#00e400";
@@ -85,50 +56,74 @@
     return "#ff0000";
   }
 
-  function handleDropdownChange(id) {
+  async function handleDropdownChange(id) {
+    console.log("Station Changed to:", id);
     if(markerMap[id]) {
       map.flyTo(markerMap[id].getLatLng(), 15);
-      updateSidebar(id);
-    }
-  }
-
-  async function updateSidebar(id) {
-    const res = await fetch(API_ENDPOINT);
-    const data = await res.json();
-    const sensor = data.find(s => String(s.id) === String(id));
-
-    if (sensor) {
-      document.getElementById("statName").innerText = SENSOR_NAMES[id] || id;
-      document.getElementById("statAQI").innerText = Math.round(sensor.live);
-      document.getElementById("statAQI").style.color = getAQIColor(sensor.live);
-      document.getElementById("statCE").innerText = sensor.ce_aqi;
-      document.getElementById("statCE").style.color = getAQIColor(sensor.ce_aqi);
-      document.getElementById("val_param").innerText = sensor.live.toFixed(2) + " µg/m³";
+      
+      try {
+        const res = await fetch("/api/get_air_quality");
+        const data = await res.json();
+        const sensor = data.find(s => String(s.id) === String(id));
+        
+        if(sensor) {
+          document.getElementById("statName").innerText = "Station " + id;
+          document.getElementById("statAQI").innerText = Math.round(sensor.live);
+          document.getElementById("statAQI").style.color = getAQIColor(sensor.live);
+          document.getElementById("statCE").innerText = sensor.ce_aqi;
+          document.getElementById("statCE").style.color = getAQIColor(sensor.ce_aqi);
+        }
+      } catch(e) {
+        console.error("Error updating sidebar:", e);
+      }
     }
   }
 
   async function init() {
+    console.log("Fetching data from /api/get_air_quality...");
     const sel = document.getElementById("devSel");
-    const res = await fetch(API_ENDPOINT);
-    const data = await res.json();
-
-    data.forEach(sensor => {
-      const pos = COORDS[sensor.id] || [38.9213, -76.9175]; // Default to Cheverly if unknown
+    
+    try {
+      const res = await fetch("/api/get_air_quality");
+      if (!res.ok) {
+          throw new Error(`Server responded with status ${res.status}`);
+      }
       
-      const m = L.circleMarker(pos, {
-        radius: 12,
-        fillColor: getAQIColor(sensor.ce_aqi),
-        color: "#000",
-        weight: 2,
-        fillOpacity: 0.9
-      }).addTo(map);
+      const data = await res.json();
+      console.log("Data Received:", data);
 
-      m.on("click", () => { sel.value = sensor.id; handleDropdownChange(sensor.id); });
-      markerMap[sensor.id] = m;
-      sel.add(new Option(SENSOR_NAMES[sensor.id] || sensor.id, sensor.id));
-    });
+      if (data.length === 0) {
+        console.warn("API returned an empty list []. Check your database table names.");
+        alert("No sensor data found in database.");
+        return;
+      }
 
-    if (sel.options.length) handleDropdownChange(sel.options[0].value);
+      data.forEach(sensor => {
+        // Defaulting to Cheverly center if no coords are in the DB
+        const lat = 38.9213 + (Math.random() - 0.5) * 0.01; 
+        const lon = -76.9175 + (Math.random() - 0.5) * 0.01;
+
+        const m = L.circleMarker([lat, lon], {
+          radius: 12,
+          fillColor: getAQIColor(sensor.ce_aqi),
+          color: "#000",
+          weight: 2,
+          fillOpacity: 0.9
+        }).addTo(map);
+
+        m.on("click", () => { sel.value = sensor.id; handleDropdownChange(sensor.id); });
+        markerMap[sensor.id] = m;
+        sel.add(new Option("Station " + sensor.id, sensor.id));
+      });
+
+      if (sel.options.length > 0) {
+          handleDropdownChange(sel.options[0].value);
+      }
+
+    } catch (err) {
+      console.error("CRITICAL INIT ERROR:", err);
+      alert("Could not load data. Check console (F12) for details.");
+    }
   }
 
   init();
