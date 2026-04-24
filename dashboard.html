@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Cheverly Air Quality | Dashboard</title>
-
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -12,231 +11,125 @@
 
   <style>
     :root { 
-      --brand-navy: #1a305e; 
-      --search-blue: #4477ce; 
-      --aqi-green: #00e400;
-      --aqi-yellow: #ffff00;
-      --aqi-orange: #ff7e00;
-      --aqi-red: #ff0000;
-      --aqi-purple: #8f3f97;
-      --aqi-maroon: #7e0023;
+      --brand-navy: #1a305e; --search-blue: #4477ce; 
+      --aqi-green: #00e400; --aqi-yellow: #ffff00; --aqi-orange: #ff7e00;
+      --aqi-red: #ff0000; --aqi-purple: #8f3f97; --aqi-maroon: #7e0023;
     }
-
-    html, body { margin: 0; padding: 0; height: 100%; width: 100%; font-family: "Segoe UI", Roboto, sans-serif; overflow: hidden; background: #fdfdfd; }
-    .topbar { background: var(--brand-navy); color: white; padding: 0 2rem; display: flex; justify-content: space-between; align-items: center; height: 64px; z-index: 2000; position: relative; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-    .brand { font-size: 1.25rem; font-weight: bold; }
-    .nav a { color: white; text-decoration: none; margin-left: 1.5rem; font-size: 0.95rem; font-weight: 500; opacity: 0.8; transition: opacity 0.2s; }
-    .nav a:hover { opacity: 1; }
-    .nav a.active { opacity: 1; border-bottom: 2px solid white; padding-bottom: 4px; }
+    html, body { margin: 0; padding: 0; height: 100%; width: 100%; font-family: sans-serif; overflow: hidden; background: #fdfdfd; }
+    .topbar { background: var(--brand-navy); color: white; padding: 0 2rem; display: flex; justify-content: space-between; align-items: center; height: 64px; z-index: 2000; position: relative; }
     #layout { display: flex; height: calc(100vh - 64px); width: 100vw; }
-    #sidebar { width: 380px; min-width: 380px; background: #f4f6f8; border-right: 1px solid #ddd; padding: 1.25rem; overflow-y: auto; box-sizing: border-box; }
-    .card { background: white; padding: 1.25rem; border-radius: 12px; border: 1px solid #ddd; margin-bottom: 1.25rem; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-    label { font-size: 0.75rem; font-weight: bold; color: #666; text-transform: uppercase; margin-bottom: 8px; display: block; letter-spacing: 0.5px; }
-    input, select { width: 100%; padding: 12px; margin-top: 5px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box; font-size: 0.9rem; }
-    button { width: 100%; padding: 14px; margin-top: 10px; border-radius: 8px; border: none; background: var(--search-blue); color: white; font-weight: bold; cursor: pointer; transition: filter 0.2s; font-size: 0.9rem; }
-    #main-content { flex: 1; display: flex; flex-direction: column; position: relative; }
-    #map { height: 45%; width: 100%; border-bottom: 1px solid #ddd; z-index: 1; }
-    #chart-box { height: 55%; width: 100%; padding: 1.5rem; box-sizing: border-box; background: white; }
-    .map-legend { position: absolute; top: 15px; right: 15px; z-index: 1000; background: rgba(255, 255, 255, 0.95); padding: 12px; border-radius: 12px; border: 1px solid rgba(0,0,0,0.1); box-shadow: 0 4px 12px rgba(0,0,0,0.15); min-width: 170px; }
-    .legend-title { font-size: 0.8rem; font-weight: 800; margin-bottom: 10px; color: var(--brand-navy); text-align: center; border-bottom: 1px solid #eee; padding-bottom: 6px; }
-    .legend-item { display: flex; align-items: center; margin-bottom: 6px; font-size: 0.8rem; font-weight: 600; color: #444; }
-    .dot { width: 12px; height: 12px; border-radius: 50%; margin-right: 10px; border: 1px solid #000; }
-    .aqi-val { font-size: 72px; font-weight: 900; display: block; text-align: center; line-height: 1.1; text-shadow: 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000; }
-    .subval { margin-top: 10px; font-size: 1.1rem; font-weight: 800; text-align: center; text-shadow: 0.5px 0.5px 0 #000, -0.5px -0.5px 0 #000; }
-    .sublabel { font-size: 0.75rem; color: #777; font-weight: bold; margin-top: 4px; text-align: center; text-transform: uppercase; }
-    .kv { display: grid; grid-template-columns: 140px 1fr; gap: 6px 10px; font-size: 0.9rem; margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px; }
-    .kv .k { font-weight: 800; color: #444; }
-    .kv .v { font-weight: 700; color: var(--aqi-red); text-align: left; }
-    .leaflet-tooltip-own { background: #333; color: white; border: none; font-weight: bold; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.3); border-radius: 4px; padding: 4px 8px; }
+    #sidebar { width: 380px; background: #f4f6f8; border-right: 1px solid #ddd; padding: 1.25rem; overflow-y: auto; box-sizing: border-box; }
+    .card { background: white; padding: 1.25rem; border-radius: 12px; border: 1px solid #ddd; margin-bottom: 1.25rem; }
+    #main-content { flex: 1; display: flex; flex-direction: column; }
+    #map { height: 50%; width: 100%; z-index: 1; }
+    #chart-box { height: 50%; width: 100%; padding: 1rem; box-sizing: border-box; }
+    .aqi-val { font-size: 64px; font-weight: 900; text-align: center; display: block; }
+    .subval { font-size: 1.2rem; font-weight: bold; text-align: center; margin-top: 5px; }
+    .sublabel { font-size: 0.7rem; text-align: center; color: #666; text-transform: uppercase; margin-bottom: 10px;}
   </style>
 </head>
 
 <body>
 <header class="topbar">
-  <div class="brand">Cheverly Air Quality</div>
-  <nav class="nav">
-    <a href="index.html">Home</a>
-    <a href="dashboard.html" class="active">Map & Data</a>
-    <a href="writeup.html">FAQs</a>
-  </nav>
+  <div style="font-weight:bold;">Cheverly Air Quality</div>
+  <nav><a href="index.html" style="color:white; text-decoration:none;">Home</a></nav>
 </header>
 
 <div id="layout">
   <aside id="sidebar">
     <div class="card">
-      <label>Location Search</label>
-      <input type="text" id="addrInput" placeholder="Enter Street Address">
-      <button id="locateBtn">Find Nearest Station</button>
-    </div> 
-
-    <div class="card">
-      <label>Station Selection</label>
+      <label style="font-size:0.8rem; font-weight:bold;">STATION SELECTION</label>
       <select id="devSel" onchange="handleDropdownChange(this.value)"></select>
     </div>
 
-    <div class="card" style="min-height: 250px;">
-      <label>Live Station Reading</label>
-      <div id="details">
-        <div id="statName" style="font-weight:bold; font-size:1rem; margin-bottom:10px; color:var(--brand-navy); text-align:center;">--</div>
-        <div id="statAQI" class="aqi-val" style="color:#ccc;">--</div>
-        <div class="sublabel" style="color:var(--brand-navy)">Current AQI</div>
-        
-        <div id="statCE" class="subval" style="color:#ccc;">--</div>
-        <div class="sublabel">CE-AQI (24-Hour Adjusted)</div> 
-        <div id="extraDetails" class="kv">
-          <div class="k" id="label_param">Concentration:</div>
-          <div class="v" id="val_param">--</div>
-        </div>
+    <div class="card">
+      <div id="statName" style="text-align:center; font-weight:bold;">--</div>
+      <div id="statAQI" class="aqi-val">--</div>
+      <div class="sublabel">Live PM2.5 AQI</div>
+      
+      <div id="statCE" class="subval">--</div>
+      <div class="sublabel">CE-AQI (Adjusted)</div>
+      
+      <div style="border-top:1px solid #eee; padding-top:10px; font-size:0.9rem;">
+        <strong>Concentration:</strong> <span id="val_param">--</span>
       </div>
     </div>
   </aside>
 
   <div id="main-content">
     <div id="map"></div>
-    <div class="map-legend">
-      <div class="legend-title">Air Quality Index</div>
-      <div class="legend-item"><span class="dot" style="background-color:var(--aqi-green);"></span> Good (0-50)</div>
-      <div class="legend-item"><span class="dot" style="background-color:var(--aqi-yellow);"></span> Moderate (51-100)</div>
-      <div class="legend-item"><span class="dot" style="background-color:var(--aqi-orange);"></span> Sensitive (101-150)</div>
-      <div class="legend-item"><span class="dot" style="background-color:var(--aqi-red);"></span> Unhealthy (151-200)</div>
-      <div class="legend-item"><span class="dot" style="background-color:var(--aqi-purple);"></span> Very Unhealthy (201-300)</div>
-      <div class="legend-item"><span class="dot" style="background-color:var(--aqi-maroon);"></span> Hazardous (301+)</div>
-    </div>
     <div id="chart-box"><canvas id="airChart"></canvas></div>
   </div>
 </div>
 
 <script>
-  const API_ENDPOINT = "/api/get_air_quality"; // Your Vercel API
+  const API_ENDPOINT = "/api/get_air_quality";
   
-  const SENSORS = { 
-    "284362": "EJAT.PG.1.284362", "52823": "EJAT.CV.6.52823", "53677": "EJAT.CV.1.53677", 
-    "54239": "EJAT.CV.6.54239", "54293": "EJAT.CV.2.54293", "57777": "EJAT.CV.1.57777", 
-    "57783": "EJAT.CV.6.57783", "57841": "EJAT.CV.3.57841", "57955": "EJAT.FH.1.57955", 
-    "160037": "EJAT.PG.1.160037", "175563": "EJAT.PG.1.175563", "178169": "EJAT.PG.1.178169", 
-    "184191": "EJAT.PG.1.184191", "197937": "EJAT.PG.1.197937", "203577": "EJAT.CV.2.203577", 
-    "203601": "EJAT.CV.1.203601", "207729": "EJAT.CV.1.207729", "211993": "EJAT.CV.3.211993", 
-    "218227": "EJAT.PG.1.218227", "218237": "EJAT.PG.1.218237", "218273": "EJAT.PG.1.218273",
-    "156595": "EJAT.CV.156595"
+  // Coordinates Lookup (Add your sensor coords here)
+  const COORDS = {
+    "203601": [38.9213, -76.9175],
+    "MOD-00745": [38.9051, -76.9100],
+    "D14781": [38.9240, -76.9150]
   };
 
-  const SPODS = [ 
-    { sn: "MOD-00745", name: "QuantAQ MOD-00745", lat: 38.905100, lon: -76.910000 }, 
-    { sn: "MOD-00746", name: "QuantAQ MOD-00746", lat: 39.143200, lon: -76.846000 }, 
-    { sn: "MOD-00747", name: "QuantAQ MOD-00747", lat: 39.233944, lon: -76.504501 }, 
-    { sn: "MOD-00748", name: "QuantAQ MOD-00748", lat: 38.969685, lon: -76.542290 }, 
-    { sn: "MOD-00749", name: "QuantAQ MOD-00749", lat: 39.055400, lon: -76.878800 } 
-  ];
-
-  const BP_PM25_24H = [ { cLow: 0.0, cHigh: 12.0, iLow: 0, iHigh: 50 }, { cLow: 12.1, cHigh: 35.4, iLow: 51, iHigh: 100 }, { cLow: 35.5, cHigh: 55.4, iLow: 101, iHigh: 150 }, { cLow: 55.5, cHigh: 150.4, iLow: 151, iHigh: 200 } ];
+  const SENSOR_NAMES = { "203601": "EJAT.CV.1.203601", "MOD-00745": "QuantAQ 745" };
 
   let markerMap = {};
-  let userMarker = null;
-
   const map = L.map("map").setView([38.9213, -76.9175], 14);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
-
-  const chart = new Chart(document.getElementById("airChart").getContext("2d"), {
-    type: "line",
-    data: { 
-      datasets: [
-        { label: "Station AQI", data: [], borderColor: "#4477ce", tension: 0.1, fill: true, backgroundColor: "rgba(68, 119, 206, 0.1)" },
-        { label: "DC Comparative Trend", data: [], borderColor: "rgba(255, 0, 0, 0.6)", borderDash: [5, 5], fill: false, pointRadius: 0 }
-      ] 
-    },
-    options: { responsive: true, maintainAspectRatio: false, scales: { x: { type: "time", time: { unit: 'hour' } }, y: { beginAtZero: true } } }
-  });
 
   function getAQIColor(aqi) {
     if (aqi <= 50) return "#00e400";
     if (aqi <= 100) return "#ffff00";
     if (aqi <= 150) return "#ff7e00";
-    if (aqi <= 200) return "#ff0000";
-    if (aqi <= 300) return "#8f3f97";
-    return "#7e0023";
+    return "#ff0000";
   }
 
-  function aqiFromBreakpoints(c, table) {
-    if (c === null || isNaN(c)) return 0;
-    for (const bp of table) { if (c >= bp.cLow && c <= bp.cHigh) return Math.round(((bp.iHigh - bp.iLow) / (bp.cHigh - bp.cLow)) * (c - bp.cLow) + bp.iLow); }
-    return c > 150.4 ? 201 : 0;
+  function handleDropdownChange(id) {
+    if(markerMap[id]) {
+      map.flyTo(markerMap[id].getLatLng(), 15);
+      updateSidebar(id);
+    }
   }
 
-  function handleDropdownChange(id) { 
-    if(markerMap[id]) { map.flyTo(markerMap[id].getLatLng(), 15); updateDisplay(id); }
-  }
+  async function updateSidebar(id) {
+    const res = await fetch(API_ENDPOINT);
+    const data = await res.json();
+    const sensor = data.find(s => String(s.id) === String(id));
 
-  async function updateDisplay(id) {
-    const response = await fetch(API_ENDPOINT);
-    const allData = await response.json();
-    const sensorData = allData.find(s => String(s.id) === String(id));
-
-    if (!sensorData) return;
-
-    // Update Text Details
-    document.getElementById("statName").innerText = SENSORS[id] || (SPODS.find(s => s.sn === id)?.name) || id;
-    
-    const liveAQI = aqiFromBreakpoints(sensorData.live_pm25, BP_PM25_24H);
-    document.getElementById("statAQI").innerText = liveAQI;
-    document.getElementById("statAQI").style.color = getAQIColor(liveAQI);
-
-    document.getElementById("statCE").innerText = sensorData.ce_aqi;
-    document.getElementById("statCE").style.color = getAQIColor(sensorData.ce_aqi);
-    
-    document.getElementById("val_param").innerText = `${sensorData.live_pm25.toFixed(2)} µg/m³`;
-
-    // Note: To show history on chart, your API should ideally return a 'history' array per sensor.
-    // For now, we clear chart or update if history was provided in JSON.
-    chart.data.datasets[0].data = []; 
-    chart.update();
-  }
-
-  function createInteractiveMarker(id, lat, lon, ceVal) {
-    const m = L.circleMarker([lat, lon], { radius: 11, fillColor: getAQIColor(ceVal), color: "#000", weight: 2, fillOpacity: 0.9 }).addTo(map);
-    m.bindTooltip(`AQI: ${ceVal}`, { permanent: false, direction: 'top', className: 'leaflet-tooltip-own' });
-    m.on("click", () => { document.getElementById("devSel").value = id; handleDropdownChange(id); });
-    markerMap[id] = m;
+    if (sensor) {
+      document.getElementById("statName").innerText = SENSOR_NAMES[id] || id;
+      document.getElementById("statAQI").innerText = Math.round(sensor.live);
+      document.getElementById("statAQI").style.color = getAQIColor(sensor.live);
+      document.getElementById("statCE").innerText = sensor.ce_aqi;
+      document.getElementById("statCE").style.color = getAQIColor(sensor.ce_aqi);
+      document.getElementById("val_param").innerText = sensor.live.toFixed(2) + " µg/m³";
+    }
   }
 
   async function init() {
     const sel = document.getElementById("devSel");
-    const response = await fetch(API_ENDPOINT);
-    const data = await response.json();
+    const res = await fetch(API_ENDPOINT);
+    const data = await res.json();
 
     data.forEach(sensor => {
-      // Find Lat/Lon
-      let lat, lon, name;
-      if (sensor.type === "quantaq") {
-        const match = SPODS.find(s => s.sn === sensor.id);
-        if (match) { lat = match.lat; lon = match.lon; name = match.name; }
-      } else {
-        // Need to ensure your PurpleAir coords are either in DB or constant
-        // Example fallback:
-        name = SENSORS[sensor.id] || sensor.id;
-        // lat/lon lookup logic...
-      }
+      const pos = COORDS[sensor.id] || [38.9213, -76.9175]; // Default to Cheverly if unknown
+      
+      const m = L.circleMarker(pos, {
+        radius: 12,
+        fillColor: getAQIColor(sensor.ce_aqi),
+        color: "#000",
+        weight: 2,
+        fillOpacity: 0.9
+      }).addTo(map);
 
-      if (lat && lon) {
-        createInteractiveMarker(sensor.id, lat, lon, sensor.ce_aqi);
-        sel.add(new Option(name, sensor.id));
-      }
+      m.on("click", () => { sel.value = sensor.id; handleDropdownChange(sensor.id); });
+      markerMap[sensor.id] = m;
+      sel.add(new Option(SENSOR_NAMES[sensor.id] || sensor.id, sensor.id));
     });
 
     if (sel.options.length) handleDropdownChange(sel.options[0].value);
   }
-
-  document.getElementById("locateBtn").onclick = async () => {
-    const q = document.getElementById("addrInput").value; if (!q) return;
-    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q + ", Cheverly, MD")}`).then(r => r.json());
-    if (res.length) {
-      const loc = [parseFloat(res[0].lat), parseFloat(res[0].lon)];
-      if (userMarker) map.removeLayer(userMarker);
-      userMarker = L.marker(loc).addTo(map).bindPopup("Your Location").openPopup();
-      let nearestId = null, minDist = Infinity;
-      Object.keys(markerMap).forEach(id => { const d = map.distance(loc, markerMap[id].getLatLng()); if (d < minDist) { minDist = d; nearestId = id; } });
-      if (nearestId) { document.getElementById("devSel").value = nearestId; handleDropdownChange(nearestId); }
-    }
-  };
 
   init();
 </script>
