@@ -1,8 +1,5 @@
 {
   "rewrites": [
-    { 
-      "source": "/api/get_air_quality", 
-      "destination": "/api/get_air_quality.py" 
-    }
+    { "source": "/api/get_air_quality", "destination": "/api/aq.js" }
   ]
 }
