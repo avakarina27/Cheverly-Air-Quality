@@ -11,14 +11,13 @@
   <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
 
   <style>
-    /* ... (Keeping all your original CSS exactly as it was) ... */
     :root { 
       --brand-navy: #1a305e; --search-blue: #4477ce; 
       --aqi-green: #00e400; --aqi-yellow: #ffff00; --aqi-orange: #ff7e00;
       --aqi-red: #ff0000; --aqi-purple: #8f3f97; --aqi-maroon: #7e0023;
     }
     html, body { margin: 0; padding: 0; height: 100%; width: 100%; font-family: "Segoe UI", sans-serif; overflow: hidden; background: #fdfdfd; }
-    .topbar { background: var(--brand-navy); color: white; padding: 0 2rem; display: flex; justify-content: space-between; align-items: center; height: 64px; z-index: 2000; position: relative; }
+    .topbar { background: var(--brand-navy); color: white; padding: 0 2rem; display: flex; justify-content: space-between; align-items: center; height: 64px; z-index: 2000; position: relative; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
     #layout { display: flex; height: calc(100vh - 64px); width: 100vw; }
     #sidebar { width: 380px; min-width: 380px; background: #f4f6f8; border-right: 1px solid #ddd; padding: 1.25rem; overflow-y: auto; box-sizing: border-box; }
     .card { background: white; padding: 1.25rem; border-radius: 12px; border: 1px solid #ddd; margin-bottom: 1.25rem; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
@@ -27,56 +26,56 @@
     .aqi-val { font-size: 72px; font-weight: 900; display: block; text-align: center; line-height: 1.1; }
     .subval { margin-top: 10px; font-size: 1.1rem; font-weight: 800; text-align: center; }
     .sublabel { font-size: 0.75rem; color: #777; font-weight: bold; margin-top: 4px; text-align: center; text-transform: uppercase; }
+    .error-msg { color: #ff0000; font-weight: bold; text-align: center; font-size: 0.9rem; margin-top: 10px; }
   </style>
 </head>
 
 <body>
 <header class="topbar">
-  <div class="brand">Cheverly Air Quality</div>
-  <nav class="nav">
-    <a href="index.html">Home</a>
-    <a href="dashboard.html" class="active">Map & Data</a>
-  </nav>
+  <div style="font-size: 1.25rem; font-weight: bold;">Cheverly Air Quality</div>
+  <nav><a href="index.html" style="color: white; text-decoration: none;">Home</a></nav>
 </header>
 
 <div id="layout">
   <aside id="sidebar">
     <div class="card">
-      <label>Station Selection</label>
+      <label style="font-size: 0.75rem; font-weight: bold; color: #666; text-transform: uppercase;">Station Selection</label>
       <select id="devSel" onchange="handleDropdownChange(this.value)"></select>
     </div>
 
-    <div class="card" style="min-height: 250px;">
-      <label>Live Station Reading</label>
-      <div id="details">
-        <div id="statName" style="font-weight:bold; font-size:1rem; margin-bottom:10px; color:var(--brand-navy); text-align:center;">--</div>
-        <div id="statAQI" class="aqi-val" style="color:#ccc;">--</div>
-        <div class="sublabel">Current AQI</div>
-        <div id="statCE" class="subval" style="color:#ccc;">--</div>
-        <div class="sublabel">24 Hour Adjusted CE-AQI</div> 
-        <div id="val_param" style="text-align:center; margin-top:15px; font-weight:bold;">--</div>
-      </div>
+    <div class="card" id="data-card">
+      <div id="statName" style="font-weight:bold; font-size:1rem; margin-bottom:10px; color:var(--brand-navy); text-align:center;">Select a Station</div>
+      <div id="statAQI" class="aqi-val" style="color:#ccc;">--</div>
+      <div class="sublabel">Live PM2.5 AQI</div>
+      
+      <div id="statCE" class="subval" style="color:#ccc;">--</div>
+      <div class="sublabel">24-Hour Adjusted CE-AQI</div>
+      
+      <div id="val_param" style="text-align:center; margin-top:15px; font-weight:bold; font-size:0.9rem;">--</div>
+      <div id="db-status" class="error-msg"></div>
     </div>
   </aside>
 
-  <div id="main-content">
+  <div id="main-content" style="flex:1; display:flex; flex-direction:column;">
     <div id="map"></div>
     <div id="chart-box"><canvas id="airChart"></canvas></div>
   </div>
 </div>
 
 <script>
-  // UPDATED: Points to your new Vercel Python API
   const API_ENDPOINT = "/api/get_air_quality";
   
-  // Re-adding your hardcoded locations since they aren't in the DB yet
+  // Re-populated your station metadata
+  const SENSORS = { 
+    "203601": "EJAT.CV.1.203601", "284362": "EJAT.PG.1.284362", "52823": "EJAT.CV.6.52823",
+    "53677": "EJAT.CV.1.53677", "54239": "EJAT.CV.6.54239", "MOD-00745": "QuantAQ 745"
+  };
+
   const LOCATIONS = {
     "203601": [38.9213, -76.9175],
     "MOD-00745": [38.9051, -76.9100],
-    "52823": [38.9240, -76.9150] // Add more as needed
+    "52823": [38.9240, -76.9150]
   };
-
-  const SENSORS = { "284362": "EJAT.PG.1.284362", "203601": "EJAT.CV.1.203601", "MOD-00745": "QuantAQ 745" };
 
   let markerMap = {};
   const map = L.map("map").setView([38.9213, -76.9175], 14);
@@ -89,48 +88,70 @@
     return "#ff0000";
   }
 
-  function handleDropdownChange(id) { 
-    if(markerMap[id]) { map.flyTo(markerMap[id].getLatLng(), 15); updateDisplay(id); }
+  function handleDropdownChange(id) {
+    if(markerMap[id]) {
+      map.flyTo(markerMap[id].getLatLng(), 15);
+      updateSidebar(id);
+    }
   }
 
-  async function updateDisplay(id) {
-    const res = await fetch(API_ENDPOINT);
-    const allData = await res.json();
-    const sensor = allData.find(s => String(s.id) === String(id));
+  async function updateSidebar(id) {
+    try {
+      const res = await fetch(API_ENDPOINT);
+      const data = await res.json();
+      
+      // Check for DB Connection Error
+      if (data[0] && data[0].id === "DB_CONNECT_ERROR") {
+        document.getElementById("db-status").innerText = "Database Offline: Check Vercel Logs";
+        return;
+      }
 
-    if (sensor) {
-      document.getElementById("statName").innerText = SENSORS[id] || id;
-      document.getElementById("statAQI").innerText = Math.round(sensor.live);
-      document.getElementById("statAQI").style.color = getAQIColor(sensor.live);
-      document.getElementById("statCE").innerText = sensor.ce_aqi;
-      document.getElementById("statCE").style.color = getAQIColor(sensor.ce_aqi);
-      document.getElementById("val_param").innerText = sensor.live.toFixed(2) + " µg/m³";
+      const sensor = data.find(s => String(s.id) === String(id));
+      if (sensor) {
+        document.getElementById("db-status").innerText = "";
+        document.getElementById("statName").innerText = SENSORS[id] || id;
+        document.getElementById("statAQI").innerText = Math.round(sensor.live);
+        document.getElementById("statAQI").style.color = getAQIColor(sensor.live);
+        document.getElementById("statCE").innerText = sensor.ce_aqi || "--";
+        document.getElementById("statCE").style.color = getAQIColor(sensor.ce_aqi || 0);
+        document.getElementById("val_param").innerText = sensor.live.toFixed(2) + " µg/m³";
+      }
+    } catch (err) {
+      document.getElementById("db-status").innerText = "Error Fetching Data";
     }
   }
 
   async function init() {
     const sel = document.getElementById("devSel");
-    const res = await fetch(API_ENDPOINT);
-    const data = await res.json();
+    try {
+      const res = await fetch(API_ENDPOINT);
+      const data = await res.json();
 
-    if (!data || data.length === 0) {
-        console.error("API returned no data");
+      if (data[0] && data[0].id === "DB_CONNECT_ERROR") {
+        document.getElementById("db-status").innerText = "Database connection failed.";
         return;
+      }
+
+      data.forEach(sensor => {
+        const pos = LOCATIONS[sensor.id] || [38.9213 + (Math.random()*0.005), -76.9175 + (Math.random()*0.005)];
+        
+        const m = L.circleMarker(pos, {
+          radius: 12,
+          fillColor: getAQIColor(sensor.ce_aqi || 0),
+          color: "#000",
+          weight: 2,
+          fillOpacity: 0.9
+        }).addTo(map);
+
+        m.on("click", () => { sel.value = sensor.id; handleDropdownChange(sensor.id); });
+        markerMap[sensor.id] = m;
+        sel.add(new Option(SENSORS[sensor.id] || sensor.id, sensor.id));
+      });
+
+      if (sel.options.length) handleDropdownChange(sel.options[0].value);
+    } catch (err) {
+      console.error("Init Error:", err);
     }
-
-    data.forEach(sensor => {
-      const pos = LOCATIONS[sensor.id] || [38.9213 + (Math.random()*0.01), -76.9175 + (Math.random()*0.01)];
-      
-      const m = L.circleMarker(pos, {
-        radius: 11, fillColor: getAQIColor(sensor.ce_aqi), color: "#000", weight: 2, fillOpacity: 0.9
-      }).addTo(map);
-
-      m.on("click", () => { sel.value = sensor.id; handleDropdownChange(sensor.id); });
-      markerMap[sensor.id] = m;
-      sel.add(new Option(SENSORS[sensor.id] || sensor.id, sensor.id));
-    });
-
-    if (sel.options.length) handleDropdownChange(sel.options[0].value);
   }
 
   init();
