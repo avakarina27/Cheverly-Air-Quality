@@ -725,6 +725,39 @@
       background: white;
     }
 
+
+    .pm25-comparison-card {
+      min-height: 390px;
+    }
+
+    .pm25-comparison-wrap {
+      height: 310px;
+      width: 100%;
+      padding: 1rem 1.25rem 0.75rem;
+      background: white;
+    }
+
+    .pm25-comparison-status {
+      padding: 0 1.25rem 0.75rem;
+      color: var(--text-muted);
+      font-size: 0.82rem;
+      font-weight: 800;
+      background: white;
+    }
+
+    .pm25-comparison-note {
+      margin: 0;
+      padding: 0 1.25rem 0.65rem;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      line-height: 1.45;
+      background: white;
+    }
+
+    .pm25-comparison-note:last-child {
+      padding-bottom: 1.15rem;
+    }
+
     .leaflet-tooltip-own {
       background: #1f2937 !important;
       color: white !important;
@@ -1277,6 +1310,11 @@
         padding: 10px;
       }
 
+      .pm25-comparison-wrap {
+        height: 285px;
+        padding: 10px;
+      }
+
       .aqi-showcase {
         grid-template-columns: 96px 1fr;
       }
@@ -1454,6 +1492,31 @@
         <canvas id="airChart"></canvas>
       </div>
     </section>
+
+    <section id="pm25ComparisonSection" class="chart-card pm25-comparison-card">
+      <div class="card-header">
+        <div>
+          <h3>PM₂.₅ comparison with nearby regulatory monitors</h3>
+          <p>Hourly PM₂.₅ concentrations over the last 24 hours.</p>
+        </div>
+        <span class="type-pill">Preliminary AirNow data</span>
+      </div>
+
+      <div class="pm25-comparison-wrap">
+        <canvas id="pm25ComparisonChart"></canvas>
+      </div>
+
+      <div id="pm25ComparisonStatus" class="pm25-comparison-status">
+        Select a PurpleAir or QuantAQ station to load the comparison.
+      </div>
+
+      <p class="pm25-comparison-note">
+        This chart compares PM₂.₅ concentrations only. It does not compare the full CE-AQI with the official AQI.
+      </p>
+      <p class="pm25-comparison-note">
+        Preliminary AirNow observations provided by MDE, DC DOEE, and the U.S. EPA AirNow program. Data are subject to change.
+      </p>
+    </section>
   </main>
 </div>
 
@@ -1619,6 +1682,14 @@
   let selectedStationId = null;
   const stationBreakdownCache = {};
   const BREAKDOWN_MAX_AQI = 200;
+
+  let pm25ComparisonChart = null;
+  let pm25ComparisonRequestId = 0;
+  let airNowReferenceCache = {
+    data: null,
+    fetchedAt: 0
+  };
+  const AIRNOW_REFERENCE_CACHE_MS = 15 * 60 * 1000;
 
   const map = L.map("map").setView([38.9283, -76.9158], 15);
 
@@ -3509,6 +3580,243 @@
     return { lat: null, lon: null };
   }
 
+
+  function floorToUtcHour(timestamp) {
+    const ms = normalizeTimestampMs(timestamp);
+    if (!Number.isFinite(ms)) return null;
+
+    const date = new Date(ms);
+    date.setUTCMinutes(0, 0, 0);
+    return date.getTime();
+  }
+
+  function averagePM25ByHour(points) {
+    const buckets = new Map();
+
+    for (const point of Array.isArray(points) ? points : []) {
+      const hourMs = floorToUtcHour(point?.timestamp ?? point?.x);
+      const value = safeNum(point?.value ?? point?.y);
+
+      if (hourMs === null || value === null || value < 0) continue;
+
+      if (!buckets.has(hourMs)) {
+        buckets.set(hourMs, { total: 0, count: 0 });
+      }
+
+      const bucket = buckets.get(hourMs);
+      bucket.total += value;
+      bucket.count += 1;
+    }
+
+    return Array.from(buckets.entries())
+      .map(([x, bucket]) => ({
+        x,
+        y: bucket.count ? bucket.total / bucket.count : null
+      }))
+      .filter(point => Number.isFinite(point.y))
+      .sort((a, b) => a.x - b.x);
+  }
+
+  async function loadAirNowReferenceHistory() {
+    const now = Date.now();
+
+    if (
+      airNowReferenceCache.data &&
+      now - airNowReferenceCache.fetchedAt < AIRNOW_REFERENCE_CACHE_MS
+    ) {
+      return airNowReferenceCache.data;
+    }
+
+    const response = await proxyGet({
+      action: "airnow_pm25_history",
+      hours: 24
+    });
+
+    if (response?.sites) {
+      airNowReferenceCache = {
+        data: response,
+        fetchedAt: now
+      };
+    }
+
+    return response;
+  }
+
+  function destroyPM25ComparisonChart() {
+    if (pm25ComparisonChart) {
+      pm25ComparisonChart.destroy();
+      pm25ComparisonChart = null;
+    }
+  }
+
+  function showPM25ComparisonMessage(message) {
+    const status = document.getElementById("pm25ComparisonStatus");
+    if (status) status.textContent = message;
+  }
+
+  function renderPM25ComparisonChart(stationName, localPoints, airNowPayload) {
+    const canvas = document.getElementById("pm25ComparisonChart");
+    if (!canvas) return;
+
+    destroyPM25ComparisonChart();
+
+    const regulatorySites = Array.isArray(airNowPayload?.sites)
+      ? airNowPayload.sites
+      : [];
+
+    const datasets = [
+      {
+        label: stationName,
+        data: averagePM25ByHour(localPoints),
+        borderColor: "#1a305e",
+        backgroundColor: "rgba(26, 48, 94, 0.10)",
+        borderWidth: 4,
+        pointRadius: 2.5,
+        pointHoverRadius: 5,
+        tension: 0.18,
+        spanGaps: false
+      }
+    ];
+
+    const referenceStyles = [
+      { borderColor: "#4477ce", borderDash: [] },
+      { borderColor: "#d84a4a", borderDash: [7, 4] },
+      { borderColor: "#8b4bb3", borderDash: [3, 4] }
+    ];
+
+    regulatorySites.forEach((site, index) => {
+      const style = referenceStyles[index] || referenceStyles[0];
+      const points = (Array.isArray(site?.points) ? site.points : [])
+        .map(point => ({
+          x: normalizeTimestampMs(point?.timestamp),
+          y: safeNum(point?.value)
+        }))
+        .filter(point => point.x !== null && point.y !== null && point.y >= 0)
+        .sort((a, b) => a.x - b.x);
+
+      datasets.push({
+        label: site.name,
+        data: points,
+        borderColor: style.borderColor,
+        borderDash: style.borderDash,
+        borderWidth: 2,
+        pointRadius: 1.5,
+        pointHoverRadius: 4,
+        tension: 0.18,
+        spanGaps: false
+      });
+    });
+
+    const periodStart = normalizeTimestampMs(airNowPayload?.requestedPeriod?.start);
+    const periodEnd = normalizeTimestampMs(airNowPayload?.requestedPeriod?.end);
+
+    pm25ComparisonChart = new Chart(canvas.getContext("2d"), {
+      type: "line",
+      data: { datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        normalized: true,
+        parsing: false,
+        interaction: {
+          mode: "index",
+          intersect: false
+        },
+        scales: {
+          x: {
+            type: "time",
+            min: periodStart || undefined,
+            max: periodEnd || undefined,
+            time: {
+              unit: "hour",
+              displayFormats: {
+                hour: "h a"
+              },
+              tooltipFormat: "MMM d, h:mm a"
+            },
+            ticks: {
+              source: "auto",
+              maxRotation: 0,
+              autoSkip: true
+            },
+            title: {
+              display: true,
+              text: "Local time"
+            }
+          },
+          y: {
+            beginAtZero: true,
+            title: {
+              display: true,
+              text: "PM₂.₅ concentration (µg/m³)"
+            }
+          }
+        },
+        plugins: {
+          legend: {
+            position: "bottom",
+            labels: {
+              usePointStyle: true,
+              boxWidth: 10
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label(context) {
+                const value = context.parsed.y;
+                return Number.isFinite(value)
+                  ? `${context.dataset.label}: ${value.toFixed(1)} µg/m³`
+                  : `${context.dataset.label}: No data`;
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  async function updatePM25Comparison(id, localPoints) {
+    const requestId = ++pm25ComparisonRequestId;
+    const stationName = getStationDisplayName(id);
+
+    if (String(id).startsWith("C12-")) {
+      destroyPM25ComparisonChart();
+      showPM25ComparisonMessage(
+        "PM₂.₅ comparison is unavailable for C-12 monitors because they measure black carbon."
+      );
+      return;
+    }
+
+    showPM25ComparisonMessage("Loading PM₂.₅ comparison…");
+
+    const airNowPayload = await loadAirNowReferenceHistory();
+
+    if (requestId !== pm25ComparisonRequestId) return;
+
+    const cleanLocal = averagePM25ByHour(localPoints);
+
+    if (!airNowPayload?.sites) {
+      destroyPM25ComparisonChart();
+      showPM25ComparisonMessage(
+        "Regulatory reference data are temporarily unavailable."
+      );
+      return;
+    }
+
+    renderPM25ComparisonChart(stationName, cleanLocal, airNowPayload);
+
+    if (cleanLocal.length === 0) {
+      showPM25ComparisonMessage(
+        "The regulatory reference lines are available, but this station has no PM₂.₅ history for the selected period."
+      );
+    } else {
+      showPM25ComparisonMessage(
+        "The selected station is shown with the three nearest regulatory reference sites."
+      );
+    }
+  }
+
   async function updateDisplay(id) {
     selectedStationId = id;
     setElementText("summaryType", getStationTypeLabel(id));
@@ -3569,6 +3877,19 @@
         chart.data.datasets[0].data = [];
         setChartTimeWindow(windowEndMs);
       }
+
+      const purplePM25Points = Array.isArray(json?.data)
+        ? json.data
+            .map(row => ({
+              timestamp: row?.[0],
+              value: row?.[1]
+            }))
+            .filter(point => safeNum(point.value) !== null)
+        : [];
+
+      updatePM25Comparison(id, purplePM25Points).catch(error => {
+        console.warn("PM2.5 comparison failed:", error);
+      });
 
       const nearestQForPurpleAir = nearestQuantAQ(stationLat, stationLon);
       if (nearestQForPurpleAir) {
@@ -3633,6 +3954,17 @@
         setChartTimeWindow(windowEndMs);
       }
 
+      const quantPM25Points = historyRows
+        .map(row => ({
+          timestamp: row?.timestamp,
+          value: row?.pm25
+        }))
+        .filter(point => safeNum(point.value) !== null);
+
+      updatePM25Comparison(id, quantPM25Points).catch(error => {
+        console.warn("PM2.5 comparison failed:", error);
+      });
+
       const ownPollutants = [];
       addQuantAQPollutants(ownPollutants, averages || latest, id, true);
 
@@ -3686,6 +4018,10 @@
       };
 
       document.getElementById("statName").innerText = c12Obj ? c12Obj.name : id;
+
+      updatePM25Comparison(id, []).catch(error => {
+        console.warn("PM2.5 comparison failed:", error);
+      });
       document.getElementById("val_param").innerText = bc !== null ? `${bc} ng/m³` : "--";
       document.getElementById("label_param").innerText = "Black Carbon Concentration";
 
