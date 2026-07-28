@@ -20,6 +20,168 @@ globalThis.cheverlyDbPool = pool;
 
 export const config = { runtime: "nodejs" };
 
+const AIRNOW_REFERENCE_SITES = [
+  {
+    key: "hu_beltsville",
+    name: "Howard University Beltsville",
+    agency: "Maryland Department of the Environment",
+    latitude: 39.055302,
+    longitude: -76.878304
+  },
+  {
+    key: "river_terrace",
+    name: "River Terrace",
+    agency: "District Department of Energy and Environment",
+    latitude: 38.895683,
+    longitude: -76.958089
+  },
+  {
+    key: "dc_near_road",
+    name: "DC Near Road",
+    agency: "District Department of Energy and Environment",
+    latitude: 38.894749,
+    longitude: -76.953427
+  }
+];
+
+const AIRNOW_BBOX = "-76.98,38.88,-76.85,39.07";
+const AIRNOW_CACHE_MS = 15 * 60 * 1000;
+
+const airNowCache =
+  globalThis.cheverlyAirNowCache || new Map();
+
+globalThis.cheverlyAirNowCache = airNowCache;
+
+function formatAirNowHour(date) {
+  const year = date.getUTCFullYear();
+  const month = String(
+    date.getUTCMonth() + 1
+  ).padStart(2, "0");
+
+  const day = String(
+    date.getUTCDate()
+  ).padStart(2, "0");
+
+  const hour = String(
+    date.getUTCHours()
+  ).padStart(2, "0");
+
+  return `${year}-${month}-${day}T${hour}`;
+}
+
+function normalizeAirNowTimestamp(value) {
+  if (!value) return null;
+
+  const text = String(value).trim();
+
+  const formatted =
+    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(text)
+      ? `${text}:00Z`
+      : text.endsWith("Z")
+        ? text
+        : `${text}Z`;
+
+  const date = new Date(formatted);
+
+  return Number.isFinite(date.getTime())
+    ? date.toISOString()
+    : null;
+}
+
+function coordinatesMatch(
+  row,
+  site,
+  tolerance = 0.0005
+) {
+  const latitude = Number(row?.Latitude);
+  const longitude = Number(row?.Longitude);
+
+  return (
+    Number.isFinite(latitude) &&
+    Number.isFinite(longitude) &&
+    Math.abs(
+      latitude - site.latitude
+    ) <= tolerance &&
+    Math.abs(
+      longitude - site.longitude
+    ) <= tolerance
+  );
+}
+
+function findAirNowReferenceSite(row) {
+  return (
+    AIRNOW_REFERENCE_SITES.find(site =>
+      coordinatesMatch(row, site)
+    ) || null
+  );
+}
+
+function parseAirNowReferenceRows(rows) {
+  if (!Array.isArray(rows)) {
+    return [];
+  }
+
+  return rows
+    .map(row => {
+      const site =
+        findAirNowReferenceSite(row);
+
+      if (!site) return null;
+
+      const parameter = String(
+        row?.Parameter || ""
+      )
+        .toUpperCase()
+        .replace(/[^A-Z0-9.]/g, "");
+
+      const unit = String(
+        row?.Unit || ""
+      ).toUpperCase();
+
+      const value = Number(row?.Value);
+
+      const timestamp =
+        normalizeAirNowTimestamp(row?.UTC);
+
+      if (
+        parameter !== "PM2.5" &&
+        parameter !== "PM25"
+      ) {
+        return null;
+      }
+
+      if (unit !== "UG/M3") {
+        return null;
+      }
+
+      if (
+        !Number.isFinite(value) ||
+        value < 0
+      ) {
+        return null;
+      }
+
+      if (!timestamp) {
+        return null;
+      }
+
+      return {
+        siteKey: site.key,
+        siteName: site.name,
+        agency: site.agency,
+        timestamp,
+        value,
+        units: "µg/m³"
+      };
+    })
+    .filter(Boolean)
+    .sort(
+      (a, b) =>
+        new Date(a.timestamp) -
+        new Date(b.timestamp)
+    );
+}
+
 export default async function handler(req, res) {
   try {
     const action = req.query.action;
