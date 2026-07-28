@@ -186,9 +186,17 @@ export default async function handler(req, res) {
   try {
     const action = req.query.action;
 
-    const PURPLEAIR_KEY = process.env.PURPLEAIR_API_KEY;
-    const QUANTAQ_KEY = process.env.QUANTAQ_API_KEY;
-    const GROVE_KEY = process.env.GROVESTREAMS_API_KEY;
+    const PURPLEAIR_KEY =
+      process.env.PURPLEAIR_API_KEY;
+    
+    const QUANTAQ_KEY =
+      process.env.QUANTAQ_API_KEY;
+    
+    const GROVE_KEY =
+      process.env.GROVESTREAMS_API_KEY;
+    
+    const AIRNOW_KEY =
+      process.env.AIRNOW_API_KEY;
 
     if (!action) {
       return res.status(400).json({
@@ -215,6 +223,221 @@ export default async function handler(req, res) {
       };
     };
 
+    // --------------------------------------------------
+    // AirNow: PM2.5 history for reference monitors
+    // --------------------------------------------------
+    
+    if (action === "airnow_pm25_history") {
+      if (!AIRNOW_KEY) {
+        return res.status(500).json({
+          error: "missing_AIRNOW_API_KEY"
+        });
+      }
+    
+      const requestedHours = Number(
+        req.query.hours ?? 24
+      );
+    
+      const hours = Number.isFinite(
+        requestedHours
+      )
+        ? Math.min(
+            Math.max(
+              Math.round(requestedHours),
+              1
+            ),
+            48
+          )
+        : 24;
+    
+      const cacheKey = `pm25:${hours}`;
+      const cached =
+        airNowCache.get(cacheKey);
+    
+      if (
+        cached &&
+        Date.now() < cached.expiresAt
+      ) {
+        res.setHeader(
+          "Cache-Control",
+          "s-maxage=300, stale-while-revalidate=600"
+        );
+    
+        return res
+          .status(200)
+          .json(cached.data);
+      }
+    
+      const end = new Date();
+    
+      end.setUTCMinutes(
+        0,
+        0,
+        0
+      );
+    
+      const start = new Date(
+        end.getTime() -
+          hours * 60 * 60 * 1000
+      );
+    
+      const params = new URLSearchParams({
+        startDate:
+          formatAirNowHour(start),
+    
+        endDate:
+          formatAirNowHour(end),
+    
+        parameters: "PM25",
+    
+        BBOX: AIRNOW_BBOX,
+    
+        dataType: "B",
+    
+        format: "application/json",
+    
+        verbose: "0",
+    
+        monitorType: "0",
+    
+        includerawconcentrations: "0",
+    
+        API_KEY: AIRNOW_KEY
+      });
+    
+      const airNowUrl =
+        "https://www.airnowapi.org/aq/data/?" +
+        params.toString();
+    
+      const controller =
+        new AbortController();
+    
+      const timeout = setTimeout(
+        () => controller.abort(),
+        20000
+      );
+    
+      try {
+        const output = await fetchJson(
+          airNowUrl,
+          {
+            signal: controller.signal,
+            headers: {
+              Accept: "application/json"
+            }
+          }
+        );
+    
+        if (!output.ok) {
+          return res.status(502).json({
+            error:
+              "airnow_request_failed",
+    
+            status: output.status,
+    
+            details: output.data
+          });
+        }
+    
+        if (
+          !Array.isArray(output.data)
+        ) {
+          return res.status(502).json({
+            error:
+              "airnow_unexpected_response",
+    
+            details: output.data
+          });
+        }
+    
+        const parsedRows =
+          parseAirNowReferenceRows(
+            output.data
+          );
+    
+        const sites =
+          AIRNOW_REFERENCE_SITES.map(
+            site => ({
+              key: site.key,
+              name: site.name,
+              agency: site.agency,
+              latitude: site.latitude,
+              longitude: site.longitude,
+    
+              points: parsedRows
+                .filter(
+                  point =>
+                    point.siteKey ===
+                    site.key
+                )
+                .map(point => ({
+                  timestamp:
+                    point.timestamp,
+    
+                  value:
+                    point.value
+                }))
+            })
+          );
+    
+        const payload = {
+          parameter: "PM2.5",
+          units: "µg/m³",
+          hours,
+          preliminary: true,
+    
+          generatedAt:
+            new Date().toISOString(),
+    
+          requestedPeriod: {
+            start:
+              start.toISOString(),
+    
+            end:
+              end.toISOString()
+          },
+    
+          sites
+        };
+    
+        airNowCache.set(
+          cacheKey,
+          {
+            expiresAt:
+              Date.now() +
+              AIRNOW_CACHE_MS,
+    
+            data: payload
+          }
+        );
+    
+        res.setHeader(
+          "Cache-Control",
+          "s-maxage=300, stale-while-revalidate=600"
+        );
+    
+        return res
+          .status(200)
+          .json(payload);
+      } catch (error) {
+        const isTimeout =
+          error?.name ===
+          "AbortError";
+    
+        return res.status(502).json({
+          error: isTimeout
+            ? "airnow_request_timeout"
+            : "airnow_request_error",
+    
+          detail: String(
+            error?.message ||
+            error
+          )
+        });
+      } finally {
+        clearTimeout(timeout);
+      }
+    }
     // --------------------------------------------------
     // PurpleAir helper
     // --------------------------------------------------
