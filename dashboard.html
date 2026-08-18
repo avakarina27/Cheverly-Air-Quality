@@ -375,7 +375,6 @@
 .dashboard-grid {
   display: grid;
   grid-template-columns: minmax(560px, 2fr) minmax(320px, 0.9fr);
-  grid-auto-rows: max-content;
   gap: 12px;
   min-height: 480px;
   align-items: stretch;
@@ -1480,6 +1479,90 @@
       }
     }
 
+        /* ==================================================
+       FINAL MAP + STATION PANEL LAYOUT FIX
+       Keep this at the END of the stylesheet.
+       ================================================== */
+    
+    .dashboard-grid {
+      display: flex;
+      flex-direction: row;
+      align-items: stretch;
+      gap: 12px;
+      width: 100%;
+      min-height: 480px;
+    }
+    
+    /* Left map area */
+    .dashboard-grid > .map-card {
+      flex: 1 1 auto;
+      min-width: 0;
+      min-height: 480px;
+      height: auto;
+      align-self: stretch;
+    }
+    
+    /* Right station information area */
+    .dashboard-grid > .panel-card {
+      flex: 0 0 32%;
+      min-width: 320px;
+      height: auto;
+      min-height: 480px;
+      align-self: auto;
+      overflow: visible;
+    }
+    
+    /* Let the station's bottom cards determine the panel height */
+    .dashboard-grid .reading-grid {
+      position: static;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 10px;
+      width: 100%;
+      margin: 16px 0 10px;
+    }
+    
+    .dashboard-grid .reading-tile {
+      position: static;
+      min-width: 0;
+      min-height: 100px;
+      height: auto;
+      overflow: visible;
+    }
+    
+    /* The comparison section must remain in normal document flow */
+    #pm25ComparisonSection {
+      position: static;
+      width: 100%;
+      flex-shrink: 0;
+      margin-top: 0;
+    }
+    
+    /* Stack map + station panel on narrower screens */
+    @media (max-width: 1180px) {
+      .dashboard-grid {
+        flex-direction: column;
+      }
+    
+      .dashboard-grid > .map-card,
+      .dashboard-grid > .panel-card {
+        flex: none;
+        width: 100%;
+        min-width: 0;
+      }
+    
+      .dashboard-grid > .panel-card {
+        min-height: 0;
+      }
+    }
+    
+    /* Phone layout */
+    @media (max-width: 760px) {
+      .dashboard-grid .reading-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+    
   </style>
 </head>
 
