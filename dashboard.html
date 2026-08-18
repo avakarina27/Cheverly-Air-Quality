@@ -758,6 +758,110 @@
       padding-bottom: 1.15rem;
     }
 
+
+    .station-help-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 7px;
+    }
+
+    .station-help-link,
+    .driver-learn-link {
+      color: var(--search-blue);
+      font-size: 0.73rem;
+      font-weight: 900;
+      text-decoration: none;
+    }
+
+    .station-help-link:hover,
+    .driver-learn-link:hover {
+      text-decoration: underline;
+    }
+
+    .driver-learn-link {
+      display: inline-block;
+      margin-top: 7px;
+    }
+
+    .reference-marker-icon {
+      background: transparent !important;
+      border: 0 !important;
+    }
+
+    .reference-marker {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      border: 3px solid #1a305e;
+      background: #ffffff;
+      color: #1a305e;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.62rem;
+      line-height: 1;
+      font-weight: 950;
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.3);
+    }
+
+    .sensor-symbol.reference {
+      border-radius: 50%;
+      background: white;
+      border: 3px solid var(--brand-navy);
+      box-shadow: none;
+    }
+
+    .pm25-belief {
+      margin: 0;
+      padding: 13px 16px;
+      background: #f5f8ff;
+      color: #334155;
+      font-size: 0.84rem;
+      line-height: 1.5;
+      font-weight: 800;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .pm25-toggle-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 14px;
+      padding: 11px 16px;
+      background: white;
+      border-bottom: 1px solid #eef2f7;
+    }
+
+    .pm25-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: #475467;
+      font-size: 0.76rem;
+      font-weight: 850;
+      cursor: pointer;
+      text-transform: none;
+      letter-spacing: 0;
+      margin: 0;
+    }
+
+    .pm25-toggle input {
+      width: auto;
+      margin: 0;
+      padding: 0;
+      accent-color: var(--search-blue);
+    }
+
+    .pm25-aqi-explainer {
+      margin: 0;
+      padding: 0 1.25rem 0.7rem;
+      color: #475467;
+      font-size: 0.76rem;
+      line-height: 1.45;
+      font-weight: 800;
+      background: white;
+    }
+
     .leaflet-tooltip-own {
       background: #1f2937 !important;
       color: white !important;
@@ -1215,7 +1319,9 @@
       }
 
       .brand {
-        font-size: 1rem;
+        font-size: 0.9rem;
+        line-height: 1.15;
+        max-width: 100%;
       }
 
       .nav {
@@ -1369,7 +1475,7 @@
 <body>
 <a class="skip-link" href="#main-content">Skip to dashboard content</a>
 <header class="topbar">
-  <div class="brand">Cheverly Air Quality</div>
+  <div class="brand">The Greater Cheverly Area Air Quality</div>
   <nav class="nav">
     <a href="index.html">Home</a>
     <a href="dashboard.html" class="active">Map & Data</a>
@@ -1440,6 +1546,7 @@
             <div class="sensor-key-row"><span class="sensor-symbol pa"></span> PurpleAir</div>
             <div class="sensor-key-row"><span class="sensor-symbol mod"></span> QuantAQ</div>
             <div class="sensor-key-row"><span class="sensor-symbol c12"></span> C-12</div>
+            <div class="sensor-key-row"><span class="sensor-symbol reference"></span> Regulatory reference</div>
           </div>
         </div>
       </div>
@@ -1449,6 +1556,9 @@
           <div>
             <h3 id="statName">--</h3>
             <div id="stationTypeText" class="station-subtitle">Select a station to begin</div>
+            <div class="station-help-links">
+              <a class="station-help-link" href="writeup.html#sensor-identification">What does this station name mean?</a>
+            </div>
           </div>
           <span id="panelCategory" class="status-pill">--</span>
         </div>
@@ -1461,6 +1571,8 @@
           <div>
             <p id="riskDescription" class="risk-copy">Choose a station or click a map marker to load the latest reading.</p>
             <div id="panelDriver" class="driver-chip">Main driver: --</div>
+            <br>
+            <a id="driverLearnLink" class="driver-learn-link" href="writeup.html#health" target="_blank" rel="noopener noreferrer">Learn about this pollutant ↗</a>
           </div>
         </div>
 
@@ -1494,12 +1606,35 @@
     </section>
 
     <section id="pm25ComparisonSection" class="chart-card pm25-comparison-card">
+      <p class="pm25-belief">
+        We believe PM₂.₅ does not tell the full air-quality picture. This comparison uses PM₂.₅ AQI as a common measure between the selected Cheverly monitor and nearby regulatory monitors.
+      </p>
+
       <div class="card-header">
         <div>
-          <h3>PM₂.₅ comparison with nearby regulatory monitors</h3>
-          <p>Hourly PM₂.₅ concentrations over the last 24 hours.</p>
+          <h3>PM₂.₅ AQI comparison with nearby regulatory monitors</h3>
+          <p>Hourly PM₂.₅ readings converted to AQI over the last 24 hours.</p>
         </div>
         <span class="type-pill">Preliminary AirNow data</span>
+      </div>
+
+      <div class="pm25-toggle-row" aria-label="Choose comparison lines">
+        <label class="pm25-toggle">
+          <input id="toggleSelectedStation" type="checkbox" data-pm25-dataset="selected" checked>
+          Selected station
+        </label>
+        <label class="pm25-toggle">
+          <input id="toggleHoward" type="checkbox" data-pm25-dataset="hu_beltsville" checked>
+          Howard University Beltsville
+        </label>
+        <label class="pm25-toggle">
+          <input id="toggleRiverTerrace" type="checkbox" data-pm25-dataset="river_terrace">
+          River Terrace
+        </label>
+        <label class="pm25-toggle">
+          <input id="toggleDCNearRoad" type="checkbox" data-pm25-dataset="dc_near_road">
+          DC Near Road
+        </label>
       </div>
 
       <div class="pm25-comparison-wrap">
@@ -1510,8 +1645,12 @@
         Select a PurpleAir or QuantAQ station to load the comparison.
       </div>
 
+      <p class="pm25-aqi-explainer">
+        PM₂.₅ concentration is the amount of fine particulate matter measured in the air; PM₂.₅ AQI converts that concentration to the AQI health scale.
+      </p>
+
       <p class="pm25-comparison-note">
-        This chart compares PM₂.₅ concentrations only. It does not compare the full CE-AQI with the official AQI.
+        This chart compares PM₂.₅ AQI only. It does not compare the full CE-AQI with the regulatory AQI.
       </p>
       <p class="pm25-comparison-note">
         Preliminary AirNow observations provided by MDE, DC DOEE, and the U.S. EPA AirNow program. Data are subject to change.
@@ -1691,15 +1830,44 @@
   };
   const AIRNOW_REFERENCE_CACHE_MS = 15 * 60 * 1000;
 
+  const REGULATORY_REFERENCE_SITES = [
+    {
+      key: "hu_beltsville",
+      shortLabel: "HUB",
+      name: "Howard University Beltsville",
+      agency: "Maryland Department of the Environment",
+      lat: 39.055302,
+      lon: -76.878304
+    },
+    {
+      key: "river_terrace",
+      shortLabel: "RT",
+      name: "River Terrace",
+      agency: "District Department of Energy and Environment",
+      lat: 38.895683,
+      lon: -76.958089
+    },
+    {
+      key: "dc_near_road",
+      shortLabel: "DC",
+      name: "DC Near Road",
+      agency: "District Department of Energy and Environment",
+      lat: 38.894749,
+      lon: -76.953427
+    }
+  ];
+
+  let stationMapReady = false;
+  let resolveStationMapReady;
+  const stationMapReadyPromise = new Promise(resolve => {
+    resolveStationMapReady = resolve;
+  });
+
   const map = L.map("map").setView([38.9283, -76.9158], 15);
 
-  L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 19,
-  }).addTo(map);
-
-  L.tileLayer("https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}", {
-    maxZoom: 19,
-    pane: 'overlayPane'
+    attribution: "&copy; OpenStreetMap contributors"
   }).addTo(map);
 
   const cluster = L.markerClusterGroup({
@@ -1726,6 +1894,9 @@
   });
 
   map.addLayer(cluster);
+
+  const regulatoryReferenceLayer = L.layerGroup().addTo(map);
+  addRegulatoryReferenceMarkers();
 
   const chart = new Chart(document.getElementById("airChart").getContext("2d"), {
     type: "line",
@@ -3009,6 +3180,46 @@
     });
   }
 
+  function createRegulatoryReferenceIcon(site) {
+    return L.divIcon({
+      className: "reference-marker-icon",
+      html: `<div class="reference-marker">${escapeHTML(site.shortLabel)}</div>`,
+      iconSize: [30, 30],
+      iconAnchor: [15, 15],
+      popupAnchor: [0, -12],
+      tooltipAnchor: [0, -12]
+    });
+  }
+
+  function addRegulatoryReferenceMarkers() {
+    regulatoryReferenceLayer.clearLayers();
+
+    for (const site of REGULATORY_REFERENCE_SITES) {
+      const marker = L.marker([site.lat, site.lon], {
+        icon: createRegulatoryReferenceIcon(site),
+        title: `${site.name} regulatory reference monitor`,
+        keyboard: true,
+        alt: `${site.name}, regulatory PM2.5 reference monitor`
+      });
+
+      marker.bindTooltip(`${escapeHTML(site.name)}<br>Regulatory PM₂.₅ reference monitor`, {
+        direction: "top",
+        className: "leaflet-tooltip-own",
+        opacity: 1
+      });
+
+      marker.bindPopup(`
+        <div style="min-width:210px;">
+          <div style="font-weight:900; color:#1a305e; margin-bottom:5px;">${escapeHTML(site.name)}</div>
+          <div style="font-size:0.78rem; color:#667085; margin-bottom:6px;">${escapeHTML(site.agency)}</div>
+          <div style="font-size:0.8rem; color:#334155;">Regulatory PM₂.₅ reference monitor used in the comparison chart below.</div>
+        </div>
+      `);
+
+      marker.addTo(regulatoryReferenceLayer);
+    }
+  }
+
   function getAQICategory(aqi) {
     const value = Number(aqi);
 
@@ -3105,6 +3316,7 @@
     setElementText("mapStationType", typeLabel);
     setElementText("riskDescription", category.guidance);
     setElementText("panelDriver", `Main driver: ${driver}`);
+    updateDriverLearnLink(result);
 
     setStatusClass("panelCategory", category);
     setShowcaseClass(category);
@@ -3138,6 +3350,48 @@
       .replaceAll("PM10", "PM₁₀")
       .replaceAll("NO2", "NO₂")
       .replaceAll("O3", "O₃");
+  }
+
+  const POLLUTANT_INFO_LINKS = [
+    {
+      test: label => /PM2\.5|PM10|PM₂\.₅|PM₁₀/i.test(label),
+      url: "https://www.epa.gov/pm-pollution/health-and-environmental-effects-particulate-matter-pm"
+    },
+    {
+      test: label => /O3|O₃|ozone/i.test(label),
+      url: "https://www.epa.gov/ground-level-ozone-pollution/health-effects-ozone-pollution"
+    },
+    {
+      test: label => /\bCO\b|carbon monoxide/i.test(label),
+      url: "https://www.epa.gov/co-pollution/basic-information-about-carbon-monoxide-co-outdoor-air-pollution"
+    },
+    {
+      test: label => /NO2|NO₂|nitrogen dioxide/i.test(label),
+      url: "https://www.epa.gov/no2-pollution/basic-information-about-no2"
+    },
+    {
+      test: label => /DPM|diesel/i.test(label),
+      url: "https://iris.epa.gov/ChemicalLanding/&substance_nmbr=642"
+    },
+    {
+      test: label => /\bBC\b|black carbon/i.test(label),
+      url: "https://www.epa.gov/amtic/continuous-carbonaceous-aerosol-measurements"
+    }
+  ];
+
+  function getPollutantInfoUrl(label) {
+    const text = String(label || "");
+    const match = POLLUTANT_INFO_LINKS.find(item => item.test(text));
+    return match?.url || "writeup.html#health";
+  }
+
+  function updateDriverLearnLink(result) {
+    const link = document.getElementById("driverLearnLink");
+    if (!link) return;
+
+    const driverLabel = String(result?.baseLabel || "");
+    link.href = getPollutantInfoUrl(driverLabel);
+    link.style.display = driverLabel && driverLabel !== "No data" ? "inline-block" : "none";
   }
 
   function getStationDisplayName(id) {
@@ -3513,8 +3767,10 @@
     btn.disabled = true;
     btn.style.opacity = "0.6";
 
+    let center = null;
+
     try {
-      const center = await geocodeAddress(addr);
+      center = await geocodeAddress(addr);
 
       if (!center) {
         alert("Location not found. Try adding Cheverly, MD or using a simpler address.");
@@ -3527,21 +3783,49 @@
 
       userMarker = L.marker(center)
         .addTo(map)
-        .bindPopup(`<b>Search location:</b><br>${addr}`)
+        .bindPopup(`<b>Search location:</b><br>${escapeHTML(addr)}`)
         .openPopup();
+
+      // The address may be found before the dashboard finishes building
+      // the station marker network. Wait for initialization instead of
+      // telling the user that no station markers exist.
+      if (!stationMapReady) {
+        btn.innerText = "Loading stations...";
+
+        await Promise.race([
+          stationMapReadyPromise,
+          new Promise(resolve => setTimeout(resolve, 30000))
+        ]);
+      }
 
       const closestId = findClosestStationId(center);
 
-      if (closestId) {
-        document.getElementById("devSel").value = closestId;
-        await handleDropdownChange(closestId, true);
-      } else {
+      if (!closestId) {
         map.flyTo(center, 16);
-        alert("Address found, but no station markers are available yet.");
+        alert("Address found, but station data are still loading. Please try again in a moment.");
+        return;
+      }
+
+      const stationSelect = document.getElementById("devSel");
+      if (stationSelect) {
+        stationSelect.value = closestId;
+      }
+
+      try {
+        await handleDropdownChange(closestId, true);
+      } catch (stationError) {
+        console.error("Address found, but nearest station details failed:", {
+          address: addr,
+          closestId,
+          error: stationError
+        });
+
+        map.flyTo(center, 16);
+        alert("The address was found, but the nearest station data could not be loaded. Please select a station from the list.");
       }
     } catch (err) {
       console.error("Location search error:", err);
-      alert("The location search failed. Try a simpler address.");
+      alert("The location search could not be completed. Please try again.");
     } finally {
       btn.innerText = originalText;
       btn.disabled = false;
@@ -3654,6 +3938,93 @@
     if (status) status.textContent = message;
   }
 
+  function pm25ConcentrationToAQI(value) {
+    const concentration = safeNum(value);
+    if (concentration === null || concentration < 0) return null;
+    return aqiFromBreakpoints(concentration, BP_PM25_24H);
+  }
+
+  const pm25AQIBandsPlugin = {
+    id: "pm25AQIBands",
+    beforeDraw(chartInstance) {
+      const { ctx, chartArea, scales } = chartInstance;
+      const y = scales?.y;
+
+      if (!chartArea || !y) return;
+
+      const bands = [
+        { low: 0, high: 50, color: "rgba(0, 228, 0, 0.07)" },
+        { low: 50, high: 100, color: "rgba(255, 255, 0, 0.09)" },
+        { low: 100, high: 150, color: "rgba(255, 126, 0, 0.08)" },
+        { low: 150, high: 200, color: "rgba(255, 0, 0, 0.06)" },
+        { low: 200, high: 300, color: "rgba(143, 63, 151, 0.06)" },
+        { low: 300, high: 500, color: "rgba(126, 0, 35, 0.05)" }
+      ];
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(
+        chartArea.left,
+        chartArea.top,
+        chartArea.right - chartArea.left,
+        chartArea.bottom - chartArea.top
+      );
+      ctx.clip();
+
+      for (const band of bands) {
+        const yTop = y.getPixelForValue(band.high);
+        const yBottom = y.getPixelForValue(band.low);
+
+        ctx.fillStyle = band.color;
+        ctx.fillRect(
+          chartArea.left,
+          Math.min(yTop, yBottom),
+          chartArea.right - chartArea.left,
+          Math.abs(yBottom - yTop)
+        );
+      }
+
+      ctx.restore();
+    }
+  };
+
+  function getPM25AQICategoryLabel(aqi) {
+    const value = Number(aqi);
+    if (!Number.isFinite(value)) return "No data";
+    if (value <= 50) return "Good";
+    if (value <= 100) return "Moderate";
+    if (value <= 150) return "Unhealthy for Sensitive Groups";
+    if (value <= 200) return "Unhealthy";
+    if (value <= 300) return "Very Unhealthy";
+    return "Hazardous";
+  }
+
+  function wirePM25ToggleControls() {
+    const inputs = document.querySelectorAll("[data-pm25-dataset]");
+
+    inputs.forEach(input => {
+      const datasetKey = input.dataset.pm25Dataset;
+      const dataset = pm25ComparisonChart?.data?.datasets?.find(
+        item => item.datasetKey === datasetKey
+      );
+
+      if (dataset) {
+        input.checked = dataset.hidden !== true;
+      }
+
+      input.onchange = () => {
+        const activeDataset = pm25ComparisonChart?.data?.datasets?.find(
+          item => item.datasetKey === datasetKey
+        );
+
+        if (!activeDataset || !pm25ComparisonChart) return;
+
+        activeDataset.hidden = !input.checked;
+        pm25ComparisonChart.update();
+      };
+    });
+  }
+
   function renderPM25ComparisonChart(stationName, localPoints, airNowPayload) {
     const canvas = document.getElementById("pm25ComparisonChart");
     if (!canvas) return;
@@ -3664,37 +4035,52 @@
       ? airNowPayload.sites
       : [];
 
+    const selectedAQIPoints = averagePM25ByHour(localPoints)
+      .map(point => ({
+        x: point.x,
+        y: pm25ConcentrationToAQI(point.y)
+      }))
+      .filter(point => point.x !== null && point.y !== null)
+      .sort((a, b) => a.x - b.x);
+
     const datasets = [
       {
+        datasetKey: "selected",
         label: stationName,
-        data: averagePM25ByHour(localPoints),
+        data: selectedAQIPoints,
         borderColor: "#1a305e",
         backgroundColor: "rgba(26, 48, 94, 0.10)",
         borderWidth: 4,
         pointRadius: 2.5,
         pointHoverRadius: 5,
         tension: 0.18,
-        spanGaps: false
+        spanGaps: false,
+        hidden: false
       }
     ];
 
-    const referenceStyles = [
-      { borderColor: "#4477ce", borderDash: [] },
-      { borderColor: "#d84a4a", borderDash: [7, 4] },
-      { borderColor: "#8b4bb3", borderDash: [3, 4] }
-    ];
+    const referenceStyles = {
+      hu_beltsville: { borderColor: "#4477ce", borderDash: [] },
+      river_terrace: { borderColor: "#d84a4a", borderDash: [7, 4] },
+      dc_near_road: { borderColor: "#8b4bb3", borderDash: [3, 4] }
+    };
 
-    regulatorySites.forEach((site, index) => {
-      const style = referenceStyles[index] || referenceStyles[0];
+    regulatorySites.forEach(site => {
+      const style = referenceStyles[site?.key] || {
+        borderColor: "#667085",
+        borderDash: [5, 4]
+      };
+
       const points = (Array.isArray(site?.points) ? site.points : [])
         .map(point => ({
           x: normalizeTimestampMs(point?.timestamp),
-          y: safeNum(point?.value)
+          y: pm25ConcentrationToAQI(point?.value)
         }))
-        .filter(point => point.x !== null && point.y !== null && point.y >= 0)
+        .filter(point => point.x !== null && point.y !== null)
         .sort((a, b) => a.x - b.x);
 
       datasets.push({
+        datasetKey: site.key,
         label: site.name,
         data: points,
         borderColor: style.borderColor,
@@ -3703,7 +4089,8 @@
         pointRadius: 1.5,
         pointHoverRadius: 4,
         tension: 0.18,
-        spanGaps: false
+        spanGaps: false,
+        hidden: site.key !== "hu_beltsville"
       });
     });
 
@@ -3713,6 +4100,7 @@
     pm25ComparisonChart = new Chart(canvas.getContext("2d"), {
       type: "line",
       data: { datasets },
+      plugins: [pm25AQIBandsPlugin],
       options: {
         responsive: true,
         maintainAspectRatio: false,
@@ -3747,26 +4135,23 @@
           },
           y: {
             beginAtZero: true,
+            suggestedMax: 200,
             title: {
               display: true,
-              text: "PM₂.₅ concentration (µg/m³)"
+              text: "PM₂.₅ AQI"
             }
           }
         },
         plugins: {
           legend: {
-            position: "bottom",
-            labels: {
-              usePointStyle: true,
-              boxWidth: 10
-            }
+            display: false
           },
           tooltip: {
             callbacks: {
               label(context) {
                 const value = context.parsed.y;
                 return Number.isFinite(value)
-                  ? `${context.dataset.label}: ${value.toFixed(1)} µg/m³`
+                  ? `${context.dataset.label}: AQI ${Math.round(value)} (${getPM25AQICategoryLabel(value)})`
                   : `${context.dataset.label}: No data`;
               }
             }
@@ -3774,6 +4159,8 @@
         }
       }
     });
+
+    wirePM25ToggleControls();
   }
 
   async function updatePM25Comparison(id, localPoints) {
@@ -3788,7 +4175,7 @@
       return;
     }
 
-    showPM25ComparisonMessage("Loading PM₂.₅ comparison…");
+    showPM25ComparisonMessage("Loading PM₂.₅ AQI comparison…");
 
     const airNowPayload = await loadAirNowReferenceHistory();
 
@@ -3812,7 +4199,7 @@
       );
     } else {
       showPM25ComparisonMessage(
-        "The selected station is shown with the three nearest regulatory reference sites."
+        "Selected station and Howard University Beltsville are shown by default. Use the checkboxes to add or remove comparison lines."
       );
     }
   }
@@ -4237,6 +4624,13 @@
     }
 
     document.getElementById("mapLoading")?.classList.add("hidden");
+
+    stationMapReady = true;
+    if (resolveStationMapReady) {
+      resolveStationMapReady();
+      resolveStationMapReady = null;
+    }
+
     setTimeout(() => map.invalidateSize(), 50);
 
     if (sel.options.length) {
