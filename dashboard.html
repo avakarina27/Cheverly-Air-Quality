@@ -283,7 +283,7 @@
       gap: 14px;
       overflow-y: auto;
       padding-right: 2px;
-      padding-bottom: 82px;
+      padding-bottom: 120px;
     }
 
     .dashboard-hero {
@@ -729,7 +729,10 @@
 
     .pm25-comparison-card {
       min-height: 390px;
-      margin-bottom: 18px;
+      height: auto;
+      overflow: visible;
+      margin-bottom: 40px;
+      flex-shrink: 0;
     }
 
     .pm25-comparison-wrap {
@@ -749,11 +752,14 @@
 
     .pm25-comparison-note {
       margin: 0;
-      padding: 0 1.25rem 0.65rem;
+      padding: 0 1.25rem 0.8rem;
       color: var(--text-muted);
       font-size: 0.75rem;
-      line-height: 1.45;
+      line-height: 1.55;
       background: white;
+      white-space: normal;
+      overflow: visible;
+      height: auto;
     }
 
     .pm25-comparison-note:last-child {
@@ -856,12 +862,15 @@
 
     .pm25-aqi-explainer {
       margin: 0;
-      padding: 0 1.25rem 0.7rem;
+      padding: 0 1.25rem 0.8rem;
       color: #475467;
       font-size: 0.76rem;
-      line-height: 1.45;
+      line-height: 1.55;
       font-weight: 800;
       background: white;
+      white-space: normal;
+      overflow: visible;
+      height: auto;
     }
 
     .leaflet-tooltip-own {
