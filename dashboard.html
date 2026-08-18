@@ -283,6 +283,7 @@
       gap: 14px;
       overflow-y: auto;
       padding-right: 2px;
+      padding-bottom: 82px;
     }
 
     .dashboard-hero {
@@ -728,6 +729,7 @@
 
     .pm25-comparison-card {
       min-height: 390px;
+      margin-bottom: 18px;
     }
 
     .pm25-comparison-wrap {
@@ -1360,6 +1362,7 @@
         order: 1;
         overflow: visible;
         width: 100%;
+        padding-bottom: 12px;
       }
 
       #sidebar {
@@ -1746,7 +1749,8 @@
     "quantaq_history",
     "quantaq_averages",
     "c12_history",
-    "c12_average"
+    "c12_average",
+    "map_snapshot"
   ]);
   let databaseRequestChain = Promise.resolve();
 
@@ -1863,7 +1867,7 @@
     resolveStationMapReady = resolve;
   });
 
-  const map = L.map("map").setView([38.9283, -76.9158], 15);
+  const map = L.map("map", { zoomSnap: 0.25, zoomDelta: 0.25 }).setView([38.9188, -76.9125], 13.75);
 
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 19,
@@ -3953,12 +3957,12 @@
       if (!chartArea || !y) return;
 
       const bands = [
-        { low: 0, high: 50, color: "rgba(0, 228, 0, 0.07)" },
-        { low: 50, high: 100, color: "rgba(255, 255, 0, 0.09)" },
-        { low: 100, high: 150, color: "rgba(255, 126, 0, 0.08)" },
-        { low: 150, high: 200, color: "rgba(255, 0, 0, 0.06)" },
-        { low: 200, high: 300, color: "rgba(143, 63, 151, 0.06)" },
-        { low: 300, high: 500, color: "rgba(126, 0, 35, 0.05)" }
+        { low: 0, high: 50, color: "rgba(0, 228, 0, 0.10)" },
+        { low: 50, high: 100, color: "rgba(255, 230, 0, 0.12)" },
+        { low: 100, high: 150, color: "rgba(255, 126, 0, 0.11)" },
+        { low: 150, high: 200, color: "rgba(255, 0, 0, 0.09)" },
+        { low: 200, high: 300, color: "rgba(143, 63, 151, 0.09)" },
+        { low: 300, high: 500, color: "rgba(126, 0, 35, 0.08)" }
       ];
 
       ctx.save();
@@ -4048,7 +4052,7 @@
         datasetKey: "selected",
         label: stationName,
         data: selectedAQIPoints,
-        borderColor: "#1a305e",
+        borderColor: "#102654",
         backgroundColor: "rgba(26, 48, 94, 0.10)",
         borderWidth: 4,
         pointRadius: 2.5,
@@ -4060,9 +4064,9 @@
     ];
 
     const referenceStyles = {
-      hu_beltsville: { borderColor: "#4477ce", borderDash: [] },
-      river_terrace: { borderColor: "#d84a4a", borderDash: [7, 4] },
-      dc_near_road: { borderColor: "#8b4bb3", borderDash: [3, 4] }
+      hu_beltsville: { borderColor: "#2457b8", borderDash: [] },
+      river_terrace: { borderColor: "#b83232", borderDash: [7, 4] },
+      dc_near_road: { borderColor: "#6f378c", borderDash: [3, 4] }
     };
 
     regulatorySites.forEach(site => {
@@ -4085,8 +4089,8 @@
         data: points,
         borderColor: style.borderColor,
         borderDash: style.borderDash,
-        borderWidth: 2,
-        pointRadius: 1.5,
+        borderWidth: 3,
+        pointRadius: 2,
         pointHoverRadius: 4,
         tension: 0.18,
         spanGaps: false,
@@ -4459,7 +4463,7 @@
     chart.update("none");
   }
 
-  async function init() {
+  async function initLegacy() {
     const sel = document.getElementById("devSel");
     sel.innerHTML = "";
     cluster.clearLayers();
@@ -4617,10 +4621,7 @@
     cluster.refreshClusters();
 
     if (cluster.getLayers().length > 0) {
-      map.fitBounds(cluster.getBounds(), {
-        padding: [30, 30],
-        maxZoom: 13
-      });
+      map.setView([38.9188, -76.9125], 13.75, { animate: false });
     }
 
     document.getElementById("mapLoading")?.classList.add("hidden");
@@ -4650,6 +4651,207 @@
         setTimeout(loadDefaultStation, 0);
       }
     }
+  }
+
+
+  function seedCachesFromMapSnapshot(snapshot) {
+    const quantSupport = snapshot?.support?.quant || {};
+    const c12Support = snapshot?.support?.c12 || {};
+
+    for (const [sn, data] of Object.entries(quantSupport)) {
+      if (data) {
+        quantAveragesCache[sn] = data;
+      }
+    }
+
+    for (const [compId, data] of Object.entries(c12Support)) {
+      if (!data) continue;
+
+      const lat = safeNum(data.latitude);
+      const lon = safeNum(data.longitude);
+      const bcAverage = activeNum(data.bc_available_average);
+      const latestTimeMs = normalizeTimestampMs(data.latest_record);
+
+      c12Cache[compId] = {
+        ...(c12Cache[compId] || {}),
+        bcAverage,
+        lat,
+        lon,
+        latestTimeMs
+      };
+
+      const sensor = C12S.find(item => item.compId === compId);
+      if (sensor && hasValidCoords(lat, lon)) {
+        sensor.lat = lat;
+        sensor.lon = lon;
+      }
+    }
+  }
+
+  function populateMapFromSnapshot(snapshot) {
+    const sel = document.getElementById("devSel");
+
+    sel.innerHTML = "";
+    cluster.clearLayers();
+    markerMap = {};
+    markerMeta = {};
+    Object.keys(stationBreakdownCache).forEach(
+      key => delete stationBreakdownCache[key]
+    );
+
+    seedCachesFromMapSnapshot(snapshot);
+
+    const stations = Array.isArray(snapshot?.stations)
+      ? [...snapshot.stations]
+      : [];
+
+    stations.sort((a, b) => {
+      if (a.id === "203601") return -1;
+      if (b.id === "203601") return 1;
+      if (a.id === "181253") return 1;
+      if (b.id === "181253") return -1;
+
+      return String(a.name || a.id).localeCompare(
+        String(b.name || b.id)
+      );
+    });
+
+    for (const station of stations) {
+      const id = String(station.id || "");
+      const lat = safeNum(station.lat);
+      const lon = safeNum(station.lon);
+      const ceaqi = safeNum(station.ceaqi) || 0;
+      const latestTimeMs = normalizeTimestampMs(
+        station.latestTimeMs
+      );
+
+      if (!id || !hasValidCoords(lat, lon)) continue;
+
+      if (!id.startsWith("MOD-") && !id.startsWith("C12-")) {
+        paCoords[id] = {
+          lat,
+          lon,
+          pm25: activeNum(station.pm25),
+          latestTimeMs
+        };
+      }
+
+      if (id.startsWith("MOD-")) {
+        const sensor = SPODS.find(item => item.sn === id);
+        if (sensor) {
+          sensor.lat = lat;
+          sensor.lon = lon;
+        }
+      }
+
+      if (id.startsWith("C12-")) {
+        const compId = id.replace("C12-", "");
+        const sensor = C12S.find(item => item.compId === compId);
+
+        if (sensor) {
+          sensor.lat = lat;
+          sensor.lon = lon;
+        }
+      }
+
+      createMarker(
+        id,
+        lat,
+        lon,
+        ceaqi,
+        latestTimeMs,
+        station.baseLabel || null
+      );
+
+      sel.add(
+        new Option(
+          station.name || getStationDisplayName(id),
+          id
+        )
+      );
+    }
+
+    cluster.refreshClusters();
+
+    map.setView(
+      [38.9188, -76.9125],
+      13.75,
+      { animate: false }
+    );
+
+    document
+      .getElementById("mapLoading")
+      ?.classList.add("hidden");
+
+    stationMapReady = true;
+
+    if (resolveStationMapReady) {
+      resolveStationMapReady();
+      resolveStationMapReady = null;
+    }
+
+    setTimeout(() => map.invalidateSize(), 50);
+
+    if (sel.options.length) {
+      const defaultId = markerMap["203601"]
+        ? "203601"
+        : sel.options[0].value;
+
+      sel.value = defaultId;
+      selectedStationId = defaultId;
+
+      const loadDefaultStation = () => {
+        handleDropdownChange(defaultId, false).catch(error => {
+          console.warn(
+            "Default station details failed:",
+            error
+          );
+        });
+      };
+
+      if ("requestIdleCallback" in window) {
+        requestIdleCallback(
+          loadDefaultStation,
+          { timeout: 1000 }
+        );
+      } else {
+        setTimeout(loadDefaultStation, 0);
+      }
+    }
+  }
+
+  async function init() {
+    const loading = document.getElementById("mapLoading");
+
+    if (loading) {
+      loading.textContent = "Loading station map…";
+      loading.classList.remove("hidden");
+    }
+
+    const snapshot = await proxyGet(
+      { action: "map_snapshot" },
+      1
+    );
+
+    if (
+      snapshot &&
+      Array.isArray(snapshot.stations) &&
+      snapshot.stations.length
+    ) {
+      populateMapFromSnapshot(snapshot);
+      return;
+    }
+
+    console.warn(
+      "Fast map snapshot unavailable. Falling back to legacy dashboard loading."
+    );
+
+    if (loading) {
+      loading.textContent =
+        "Loading station data…";
+    }
+
+    await initLegacy();
   }
 
   init().catch(error => {
