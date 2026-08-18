@@ -169,7 +169,7 @@
       display: flex;
       flex-direction: column;
       justify-content: center;
-      min-height: 180px;
+      min-height: 190px;
       box-sizing: border-box;
       border: 1px solid rgba(255, 255, 255, 0.72);
       overflow: hidden;
@@ -223,12 +223,13 @@
 
     .tile h3 {
       margin: 0 0 10px;
-      font-size: 1.08rem;
+      font-size: 1.16rem;
       font-weight: 950;
-      line-height: 1.2;
+      line-height: 1.22;
       position: relative;
       z-index: 1;
       text-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+      text-wrap: balance;
     }
 
     .tile p {
@@ -396,6 +397,12 @@
         padding: 0 1rem;
       }
 
+      .brand {
+        font-size: 0.92rem;
+        line-height: 1.15;
+        max-width: 52%;
+      }
+
       .topbar .nav a {
         margin-left: 0.75rem;
         font-size: 0.82rem;
@@ -426,7 +433,7 @@
 
 <body>
   <header class="topbar">
-    <div class="brand">Cheverly Air Quality</div>
+    <div class="brand">The Greater Cheverly Area Air Quality</div>
     <nav class="nav">
       <a href="index.html" class="active">Home</a>
       <a href="dashboard.html">Map & Data</a>
@@ -437,7 +444,7 @@
   <section class="hero">
     <div class="hero__content">
       <h1>The Air We Breathe</h1>
-      <p>Tracking multiple pollutants simultaneously to<br>provide an accurate view of cumulative air exposure in Cheverly.</p>
+      <p>In Cheverly and the neighboring communities of Cedar Heights, Fairmount Heights, North Englewood, and Seat Pleasant.</p>
     </div>
   </section>
 
@@ -456,7 +463,7 @@
 
       <a class="tile tile-3" href="writeup.html#methodology">
         <h3>The Methodology</h3>
-        <p>Understand why the Cumulative Exposure Air Quality Index is a better tool for Cheverly than the standard EPA AQI.</p>
+        <p>Learn how the Cumulative Exposure Air Quality Index (CE-AQI) compares with the standard EPA Air Quality Index.</p>
       </a>      
 
       <a class="tile tile-4" href="writeup.html#health">
@@ -498,12 +505,12 @@
   
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
-    const PREVIEW_CENTER = { lat: 38.9283, lon: -76.9158 };
-    const PREVIEW_RADIUS_KM = 4.5;
+    const PREVIEW_CENTER = { lat: 38.9235, lon: -76.9155 };
+    const PREVIEW_RADIUS_KM = 6.0;
 
     const miniMap = L.map("mini-map", {
       center: [PREVIEW_CENTER.lat, PREVIEW_CENTER.lon],
-      zoom: 15,
+      zoom: 14,
       dragging: false,
       zoomControl: false,
       scrollWheelZoom: false,
@@ -1575,7 +1582,7 @@
     function fitPreviewMap() {
       miniMap.setView(
         [PREVIEW_CENTER.lat, PREVIEW_CENTER.lon],
-        15,
+        14,
         { animate: false }
       );
     }
