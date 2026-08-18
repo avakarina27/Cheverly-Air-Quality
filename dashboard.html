@@ -630,15 +630,13 @@
       margin: 16px 0 10px;
       align-items: stretch;
     }
-
+    
     .reading-tile {
       padding: 12px 14px;
       border-radius: 14px;
       border: 1px solid #e7edf6;
       background: #f8fbff;
       min-height: 92px;
-      height: auto;
-      overflow: visible;
     }
 
     .reading-tile-label {
@@ -1207,22 +1205,8 @@
       }
 
       .dashboard-grid {
-        display: grid;
-        grid-template-columns: minmax(560px, 2fr) minmax(320px, 0.9fr);
-        grid-template-rows: auto;
-        gap: 12px;
-        min-height: 480px;
-        align-items: start;
-      }
-
-      .panel-card {
-        border-radius: 24px;
-        padding: 14px;
-        min-height: 480px;
-        height: max-content;
-        overflow: visible;
-        align-self: start;
-      }
+      grid-template-columns: minmax(0, 2.05fr) minmax(320px, 0.95fr);
+    }
 
       .aqi-showcase {
         grid-template-columns: 104px 1fr;
