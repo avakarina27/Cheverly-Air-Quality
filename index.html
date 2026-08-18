@@ -505,14 +505,14 @@
   
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
-    const PREVIEW_CENTER = { lat: 38.9256, lon: -76.9125 }; // American Legion Park
+    const PREVIEW_CENTER = { lat: 38.9188, lon: -76.9125 }; // shifted slightly south so Sheriff Road stays in frame
     const PREVIEW_RADIUS_KM = 8.0;
 
     const miniMap = L.map("mini-map", {
       center: [PREVIEW_CENTER.lat, PREVIEW_CENTER.lon],
-      zoom: 13.5,
-      zoomSnap: 0.5,
-      zoomDelta: 0.5,
+      zoom: 13.75,
+      zoomSnap: 0.25,
+      zoomDelta: 0.25,
       dragging: false,
       zoomControl: false,
       scrollWheelZoom: false,
@@ -520,13 +520,9 @@
       touchZoom: false
     });
 
-    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
-      maxZoom: 19
-    }).addTo(miniMap);
-
-    L.tileLayer("https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}", {
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
-      pane: "overlayPane"
+      attribution: "&copy; OpenStreetMap contributors"
     }).addTo(miniMap);
 
     const API_PROXY = "/api/aq";
@@ -1584,7 +1580,7 @@
     function fitPreviewMap() {
       miniMap.setView(
         [PREVIEW_CENTER.lat, PREVIEW_CENTER.lon],
-        13.5,
+        13.75,
         { animate: false }
       );
     }
