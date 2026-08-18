@@ -418,7 +418,8 @@
       }
 
       .brand {
-        font-size: 1rem;
+        font-size: 0.9rem;
+        line-height: 1.15;
       }
 
       .nav {
@@ -475,7 +476,7 @@
 
 <body>
   <header class="topbar">
-    <div class="brand">Cheverly Air Quality</div>
+    <div class="brand">The Greater Cheverly Area Air Quality</div>
     <nav class="nav" aria-label="Primary navigation">
       <a href="index.html">Home</a>
       <a href="dashboard.html">Map &amp; Data</a>
@@ -494,6 +495,7 @@
       <a href="#why-ceaqi">Why CE-AQI</a>
       <a href="#methodology">How it is calculated</a>
       <a href="#dashboard-faq">Dashboard questions</a>
+      <a href="#sensor-identification">Sensor identification</a>
       <a href="#health">Health categories</a>
       <a href="#action">Taking action</a>
     </nav>
@@ -615,7 +617,7 @@
 
         <details>
           <summary>Why does the page sometimes take a few seconds to load?</summary>
-          <p>The dashboard combines PurpleAir, QuantAQ, C-12, database averages, map markers, and recent trend data. Requests are intentionally queued and cached so the database is not overloaded. The map may appear before all station details and trend data finish loading.</p>
+          <p>The dashboard combines PurpleAir, QuantAQ, C-12, database averages, map markers, and comparison data. The main map now uses a cached network snapshot so the station markers can load more quickly, while detailed station information and time-series data are loaded when needed.</p>
         </details>
 
         <details>
@@ -623,10 +625,93 @@
           <p>The dashboard skips a C-12 live reading when it is more than three hours old. A stored C-12 average may still be used in the CE-AQI calculation when historical data are available. The station panel shows the latest detected time so users can judge how current the displayed concentration is.</p>
         </details>
 
+
+        <details>
+          <summary>What is the PM₂.₅ AQI comparison chart showing?</summary>
+          <p>The comparison chart converts PM₂.₅ concentrations from the selected PurpleAir or QuantAQ station and nearby AirNow regulatory monitors to PM₂.₅ AQI so the lines can be viewed on the same scale. The selected station and Howard University Beltsville are shown by default, while River Terrace and DC Near Road can be turned on or off. The chart compares PM₂.₅ AQI only and does not compare the full CE-AQI with the regulatory AQI.</p>
+        </details>
+
         <details>
           <summary>Can I use this dashboard for medical or regulatory decisions?</summary>
           <p>No. This is an experimental community-awareness tool. For official air-quality information, regulatory decisions, or personal medical guidance, use the appropriate government agency or health professional.</p>
         </details>
+      </div>
+    </section>
+
+
+    <section id="sensor-identification">
+      <h2>How Are the Sensors Identified?</h2>
+
+      <p>The dashboard uses short station names so users can tell which monitoring network and community area a sensor belongs to. The final number in a PurpleAir station name is the sensor's PurpleAir identifier.</p>
+
+      <div class="info-box">
+        <h3>Reading a station name</h3>
+        <p>For example, a station such as <strong>EJAT.CV.6.52823</strong> can be read from left to right:</p>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Part</th>
+                <th>What it represents</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>EJAT</strong></td>
+                <td>The Environmental Justice Action Team monitoring network.</td>
+              </tr>
+              <tr>
+                <td><strong>CV</strong></td>
+                <td>The community or area code used for the station.</td>
+              </tr>
+              <tr>
+                <td><strong>6</strong></td>
+                <td>The local station grouping used by the project.</td>
+              </tr>
+              <tr>
+                <td><strong>52823</strong></td>
+                <td>The PurpleAir sensor identifier.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <h3>Community codes used on the dashboard</h3>
+      <p>The current PurpleAir station names use the following community codes:</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Code</th>
+              <th>Area shown in station names</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>CV</strong></td>
+              <td>Cheverly</td>
+            </tr>
+            <tr>
+              <td><strong>FH</strong></td>
+              <td>Fairmount Heights</td>
+            </tr>
+            <tr>
+              <td><strong>CH</strong></td>
+              <td>Cedar Heights</td>
+            </tr>
+            <tr>
+              <td><strong>PG</strong></td>
+              <td>Prince George's area stations in the EJAT network</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="limitation-box">
+        <p><strong>Note:</strong> QuantAQ and C-12 stations use their instrument identifiers, such as <strong>MOD-00536</strong> or <strong>C-12 B19939</strong>, rather than the PurpleAir naming format above.</p>
       </div>
     </section>
 
