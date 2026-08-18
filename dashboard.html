@@ -274,16 +274,18 @@
     .guide-row.moderate { background: var(--pastel-yellow); }
     .guide-row.sensitive { background: var(--pastel-orange); }
     .guide-row.unhealthy { background: var(--pastel-red); }
-
+    
     #main-content {
       flex: 1;
       min-width: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
+      display: block;
       overflow-y: auto;
       padding-right: 2px;
       padding-bottom: 180px;
+    }
+
+    #main-content > section {
+      margin-bottom: 14px;
     }
 
     .dashboard-hero {
@@ -1562,7 +1564,30 @@
         grid-template-columns: 1fr 1fr;
       }
     }
+
+        /* Prevent the top dashboard row from being vertically compressed */
+    .dashboard-grid {
+      flex-shrink: 0 !important;
+      height: auto !important;
+    }
     
+    /* Let the station panel determine the row height when it is taller */
+    .dashboard-grid > .panel-card {
+      height: auto !important;
+      min-height: max-content;
+      overflow: visible !important;
+    }
+    
+    /* Make the map stretch to match the station panel */
+    .dashboard-grid > .map-card {
+      height: auto !important;
+      align-self: stretch;
+    }
+    
+    /* Make sure the comparison card starts after the entire top row */
+    #pm25ComparisonSection {
+      flex-shrink: 0 !important;
+    }
   </style>
 </head>
 
