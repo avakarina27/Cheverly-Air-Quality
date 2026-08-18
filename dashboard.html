@@ -283,7 +283,7 @@
       gap: 14px;
       overflow-y: auto;
       padding-right: 2px;
-      padding-bottom: 120px;
+      padding-bottom: 180px;
     }
 
     .dashboard-hero {
@@ -403,8 +403,10 @@
     .panel-card {
       padding: 14px;
       min-height: 480px;
+      height: auto;
+      overflow: visible;
     }
-
+    
     .card-header {
       display: flex;
       align-items: flex-start;
@@ -630,14 +632,18 @@
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 8px;
-      margin: 12px 0;
+      margin: 18px 0 24px;
+      align-items: stretch;
     }
 
     .reading-tile {
-      padding: 10px;
+      padding: 14px;
       border-radius: 14px;
       border: 1px solid #e7edf6;
       background: #f8fbff;
+      min-height: 108px;
+      height: auto;
+      overflow: visible;
     }
 
     .reading-tile-label {
@@ -653,7 +659,9 @@
       color: var(--brand-navy);
       font-weight: 950;
       font-size: 0.88rem;
+      line-height: 1.35;
       overflow-wrap: anywhere;
+      white-space: normal;
     }
 
     .kv {
@@ -667,9 +675,11 @@
     .latest-time {
       margin-top: 0;
       font-size: 0.9rem;
+      line-height: 1.35;
       color: var(--brand-navy);
       text-align: left;
       font-weight: 950;
+      white-space: normal;
     }
 
     .ceaqi-breakdown {
