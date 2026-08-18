@@ -505,12 +505,14 @@
   
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
-    const PREVIEW_CENTER = { lat: 38.9235, lon: -76.9155 };
-    const PREVIEW_RADIUS_KM = 6.0;
+    const PREVIEW_CENTER = { lat: 38.9256, lon: -76.9125 }; // American Legion Park
+    const PREVIEW_RADIUS_KM = 8.0;
 
     const miniMap = L.map("mini-map", {
       center: [PREVIEW_CENTER.lat, PREVIEW_CENTER.lon],
-      zoom: 12,
+      zoom: 13.5,
+      zoomSnap: 0.5,
+      zoomDelta: 0.5,
       dragging: false,
       zoomControl: false,
       scrollWheelZoom: false,
@@ -1582,7 +1584,7 @@
     function fitPreviewMap() {
       miniMap.setView(
         [PREVIEW_CENTER.lat, PREVIEW_CENTER.lon],
-        14,
+        13.5,
         { animate: false }
       );
     }
