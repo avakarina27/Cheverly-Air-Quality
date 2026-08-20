@@ -1585,10 +1585,12 @@
       );
     }
 
-    async function loadPreviewDots() {
-      const purpleAirBox = await proxyGet({
-        action: "purpleair_box"
-      });
+    async function loadPreviewDotsLegacyPurpleAirOnly() {
+      const purpleAirBox = await proxyGet(
+        { action: "purpleair_box" },
+        2,
+        25000
+      );
 
       const purpleAirRows =
         Array.isArray(purpleAirBox?.data)
@@ -1617,19 +1619,76 @@
       addQuickPurpleAirMarkers();
       fitPreviewMap();
 
-      // Load the SQL-backed groups in sequence so the small database pool
-      // never receives a burst of averages queries from the home page.
-      await loadQuantAQData();
-      await loadC12Data();
-
-      clearMiniMarkers();
-      addPreviewMarkers();
-      fitPreviewMap();
-
       setTimeout(
         () => miniMap.invalidateSize(),
         50
       );
+    }
+
+    async function loadPreviewDots() {
+      // New fast path: get every map marker in one cached backend request.
+      // This avoids the old home-page burst of quantaq_averages and c12_average calls.
+      const snapshot = await proxyGet(
+        { action: "map_snapshot" },
+        2,
+        45000
+      );
+
+      const stations = Array.isArray(snapshot?.stations)
+        ? snapshot.stations
+        : [];
+
+      if (stations.length > 0) {
+        clearMiniMarkers();
+
+        for (const station of stations) {
+          const lat = safeNum(station.lat);
+          const lon = safeNum(station.lon);
+          const ceaqi = safeNum(station.ceaqi) ?? 0;
+
+          if (
+            !hasValidCoords(lat, lon) ||
+            !isInsidePreviewArea(lat, lon)
+          ) {
+            continue;
+          }
+
+          const stationType = String(station.type || "").toLowerCase();
+
+          const markerType =
+            stationType === "c-12" || stationType === "c12"
+              ? "c12"
+              : stationType === "quantaq"
+                ? "mod"
+                : "pa";
+
+          addMiniMarker(
+            station.id || station.name || "station",
+            lat,
+            lon,
+            ceaqi,
+            markerType,
+            station.name || station.id || "Air quality station"
+          );
+        }
+
+        fitPreviewMap();
+
+        setTimeout(
+          () => miniMap.invalidateSize(),
+          50
+        );
+
+        return;
+      }
+
+      console.warn(
+        "Fast map snapshot unavailable on the home page. Loading PurpleAir preview only."
+      );
+
+      // Safe fallback: keep the preview useful without retrying the older
+      // SQL-heavy QuantAQ/C-12 requests that can return 500s.
+      await loadPreviewDotsLegacyPurpleAirOnly();
     }
 
     loadPreviewDots().catch(error => {
