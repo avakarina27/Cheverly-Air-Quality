@@ -4817,7 +4817,10 @@
     setTimeout(() => map.invalidateSize(), 50);
 
     if (sel.options.length) {
-      const defaultId = markerMap["203601"] ? "203601" : sel.options[0].value;
+      const defaultId =
+        markerMap["211993"]
+          ? "211993"
+          : Object.keys(SENSORS).find(id => markerMap[id]) || sel.options[0].value;
       sel.value = defaultId;
       selectedStationId = defaultId;
 
@@ -4888,13 +4891,20 @@
       : [];
 
     stations.sort((a, b) => {
-      if (a.id === "203601") return -1;
-      if (b.id === "203601") return 1;
-      if (a.id === "181253") return 1;
-      if (b.id === "181253") return -1;
+      const typeRank = station => {
+        const id = String(station?.id || "");
+        if (id.startsWith("MOD-")) return 1;
+        if (id.startsWith("C12-")) return 2;
+        return 0; // PurpleAir first
+      };
+
+      const rankDiff = typeRank(a) - typeRank(b);
+      if (rankDiff !== 0) return rankDiff;
 
       return String(a.name || a.id).localeCompare(
-        String(b.name || b.id)
+        String(b.name || b.id),
+        undefined,
+        { numeric: true, sensitivity: "base" }
       );
     });
 
@@ -4975,9 +4985,10 @@
     setTimeout(() => map.invalidateSize(), 50);
 
     if (sel.options.length) {
-      const defaultId = markerMap["203601"]
-        ? "203601"
-        : sel.options[0].value;
+      const defaultId =
+        markerMap["211993"]
+          ? "211993"
+          : Object.keys(SENSORS).find(id => markerMap[id]) || sel.options[0].value;
 
       sel.value = defaultId;
       selectedStationId = defaultId;
