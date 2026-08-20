@@ -274,18 +274,16 @@
     .guide-row.moderate { background: var(--pastel-yellow); }
     .guide-row.sensitive { background: var(--pastel-orange); }
     .guide-row.unhealthy { background: var(--pastel-red); }
-    
+
     #main-content {
       flex: 1;
       min-width: 0;
-      display: block;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
       overflow-y: auto;
       padding-right: 2px;
       padding-bottom: 180px;
-    }
-
-    #main-content > section {
-      margin-bottom: 14px;
     }
 
     .dashboard-hero {
@@ -1564,30 +1562,98 @@
         grid-template-columns: 1fr 1fr;
       }
     }
+    
+  
+    /* ==================================================
+       STABLE DASHBOARD FLOW
+       ================================================== */
 
-        /* Prevent the top dashboard row from being vertically compressed */
+    #main-content {
+      flex: 1;
+      min-width: 0;
+      display: block;
+      overflow-y: auto;
+      padding-right: 2px;
+      padding-bottom: 180px;
+    }
+
+    #main-content > section {
+      margin-bottom: 14px;
+    }
+
     .dashboard-grid {
-      flex-shrink: 0 !important;
-      height: auto !important;
+      display: grid !important;
+      grid-template-columns: minmax(0, 2fr) minmax(320px, 0.95fr) !important;
+      gap: 12px;
+      width: 100%;
+      min-height: 480px;
+      align-items: stretch;
     }
-    
-    /* Let the station panel determine the row height when it is taller */
-    .dashboard-grid > .panel-card {
-      height: auto !important;
-      min-height: max-content;
-      overflow: visible !important;
-    }
-    
-    /* Make the map stretch to match the station panel */
+
     .dashboard-grid > .map-card {
-      height: auto !important;
+      min-width: 0;
+      min-height: 480px;
+      height: 100%;
       align-self: stretch;
     }
-    
-    /* Make sure the comparison card starts after the entire top row */
-    #pm25ComparisonSection {
-      flex-shrink: 0 !important;
+
+    .dashboard-grid > .panel-card {
+      min-width: 320px;
+      min-height: 480px;
+      height: auto;
+      align-self: stretch;
+      overflow: visible;
     }
+
+    .dashboard-grid .reading-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 10px;
+      margin: 16px 0 10px;
+    }
+
+    .dashboard-grid .reading-tile {
+      min-width: 0;
+      min-height: 100px;
+      height: auto;
+      overflow: visible;
+    }
+
+    #pm25ComparisonSection {
+      position: static;
+      width: 100%;
+      margin-top: 0;
+    }
+
+    @media (max-width: 1180px) {
+      .dashboard-grid {
+        grid-template-columns: 1fr !important;
+      }
+
+      .dashboard-grid > .map-card,
+      .dashboard-grid > .panel-card {
+        width: 100%;
+        min-width: 0;
+        height: auto;
+      }
+
+      .dashboard-grid > .panel-card {
+        min-height: 0;
+      }
+    }
+
+    @media (max-width: 760px) {
+      #main-content {
+        display: block;
+        overflow: visible;
+        padding-bottom: 12px;
+      }
+
+      #main-content > section {
+        margin-bottom: 12px;
+      }
+    }
+
   </style>
 </head>
 
