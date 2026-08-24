@@ -250,6 +250,12 @@ const MAP_SPODS = [
     name: "QuantAQ MOD-00749",
     lat: 39.055400,
     lon: -76.878800
+  },
+  {
+    sn: "MOD-00537",
+    name: "QuantAQ MOD-00537 – Turner Station North",
+    lat: null,
+    lon: null
   }
 ];
 
@@ -1026,6 +1032,187 @@ export default async function handler(
           );
       }
 
+      // --------------------------------------------------
+      // Resolve missing coordinates for newly added stations
+      // --------------------------------------------------
+
+      const dynamicQuantCoords = new Map();
+      const dynamicC12Coords = new Map();
+
+      if (QUANTAQ_KEY) {
+        try {
+          const quantAuth =
+            Buffer.from(
+              `${QUANTAQ_KEY}:`
+            ).toString(
+              "base64"
+            );
+
+          const devicesOutput =
+            await fetchJson(
+              "https://api.quant-aq.com/v1/devices?per_page=200&page=1",
+              {
+                headers: {
+                  Accept:
+                    "application/json",
+
+                  Authorization:
+                    `Basic ${quantAuth}`
+                }
+              }
+            );
+
+          const devices =
+            Array.isArray(
+              devicesOutput
+                ?.data?.data
+            )
+              ? devicesOutput
+                  .data.data
+              : [];
+
+          for (
+            const device of
+            devices
+          ) {
+            const sn =
+              String(
+                device?.sn ||
+                ""
+              );
+
+            if (!sn) {
+              continue;
+            }
+
+            const lat =
+              mapSafeNum(
+                device
+                  ?.latitude ??
+                device?.lat ??
+                device
+                  ?.location
+                  ?.latitude ??
+                device
+                  ?.location
+                  ?.lat
+              );
+
+            const lon =
+              mapSafeNum(
+                device
+                  ?.longitude ??
+                device?.lon ??
+                device?.lng ??
+                device
+                  ?.location
+                  ?.longitude ??
+                device
+                  ?.location
+                  ?.lon ??
+                device
+                  ?.location
+                  ?.lng
+              );
+
+            if (
+              mapHasCoords(
+                lat,
+                lon
+              )
+            ) {
+              dynamicQuantCoords
+                .set(
+                  sn,
+                  {
+                    lat,
+                    lon
+                  }
+                );
+            }
+          }
+        } catch (error) {
+          console.warn(
+            "Map snapshot: could not resolve QuantAQ coordinates:",
+            error
+          );
+        }
+      }
+
+      if (GROVE_KEY) {
+        await Promise.all(
+          MAP_C12_IDS.map(
+            async compId => {
+              try {
+                const url =
+                  `https://grovestreams.com/api/comp/` +
+                  `${encodeURIComponent(
+                    compId
+                  )}` +
+                  `/last_value` +
+                  `?retStreamId` +
+                  `&api_key=${encodeURIComponent(
+                    GROVE_KEY
+                  )}`;
+
+                const output =
+                  await fetchJson(
+                    url
+                  );
+
+                const rows =
+                  Array.isArray(
+                    output?.data
+                  )
+                    ? output.data
+                    : [];
+
+                const lat =
+                  mapSafeNum(
+                    rows.find(
+                      row =>
+                        row
+                          ?.streamId ===
+                        "lat"
+                    )?.data
+                  );
+
+                const lon =
+                  mapSafeNum(
+                    rows.find(
+                      row =>
+                        row
+                          ?.streamId ===
+                        "long"
+                    )?.data
+                  );
+
+                if (
+                  mapHasCoords(
+                    lat,
+                    lon
+                  )
+                ) {
+                  dynamicC12Coords
+                    .set(
+                      compId,
+                      {
+                        lat,
+                        lon
+                      }
+                    );
+                }
+              } catch (error) {
+                console.warn(
+                  `Map snapshot: could not resolve C-12 coordinates for ${compId}:`,
+                  error
+                );
+              }
+            }
+          )
+        );
+      }
+
       const purpleUrl =
         "https://api.purpleair.com/v1/sensors" +
         "?nwlng=-77.15&nwlat=39.05&selng=-76.75&selat=38.75" +
@@ -1296,6 +1483,73 @@ export default async function handler(
           ])
         );
 
+      // Fill missing QuantAQ coordinates from the
+      // QuantAQ devices endpoint.
+      for (
+        const sensor of
+        MAP_SPODS
+      ) {
+        if (
+          !mapHasCoords(
+            sensor.lat,
+            sensor.lon
+          )
+        ) {
+          const dynamic =
+            dynamicQuantCoords
+              .get(
+                sensor.sn
+              );
+
+          if (dynamic) {
+            sensor.lat =
+              dynamic.lat;
+
+            sensor.lon =
+              dynamic.lon;
+          }
+        }
+      }
+
+      // Fill missing C-12 coordinates from
+      // GroveStreams live station metadata.
+      // The historical BC backfill can exist in
+      // c12_master without latitude/longitude.
+      for (
+        const compId of
+        MAP_C12_IDS
+      ) {
+        const row =
+          c12Rows.get(
+            compId
+          );
+
+        if (!row) {
+          continue;
+        }
+
+        if (
+          !mapHasCoords(
+            row.latitude,
+            row.longitude
+          )
+        ) {
+          const dynamic =
+            dynamicC12Coords
+              .get(
+                compId
+              );
+
+          if (dynamic) {
+            row.latitude =
+              dynamic.lat;
+
+            row.longitude =
+              dynamic.lon;
+          }
+        }
+      }
+
       const stations = [];
 
       for (
@@ -1428,7 +1682,7 @@ export default async function handler(
         });
       }
 
-            for (
+      for (
         const sensor of
         MAP_SPODS
       ) {
@@ -2377,7 +2631,7 @@ export default async function handler(
         });
     }
 
-        // --------------------------------------------------
+    // --------------------------------------------------
     // QuantAQ database: latest stored reading
     // --------------------------------------------------
 
@@ -3011,7 +3265,7 @@ export default async function handler(
         );
     }
 
-        // --------------------------------------------------
+    // --------------------------------------------------
     // C-12 database: Black Carbon history
     // --------------------------------------------------
 
