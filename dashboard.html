@@ -1654,19 +1654,118 @@
       }
     }
 
-    .map-header-actions {display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end;}
-    .map-mode-toggle {display:inline-flex;align-items:center;gap:4px;padding:4px;border-radius:12px;background:#eef4ff;border:1px solid #cfe0ff;}
-    .map-mode-toggle button {width:auto;min-height:0;margin:0;padding:7px 10px;border-radius:9px;border:0;background:transparent;color:var(--brand-navy);box-shadow:none;font-size:.74rem;font-weight:900;}
-    .map-mode-toggle button:hover {transform:none;filter:none;background:rgba(255,255,255,.7);}
-    .map-mode-toggle button.active {background:var(--brand-navy);color:#fff;}
-    .aqi-comparison-box {margin:0 0 12px;padding:12px;border-radius:16px;background:#f8fbff;border:1px solid #e1e9f4;}
-    .aqi-comparison-title {margin:0 0 9px;color:var(--brand-navy);font-size:.76rem;font-weight:950;text-transform:uppercase;letter-spacing:.06em;}
-    .aqi-comparison-grid {display:grid;grid-template-columns:1fr 1fr;gap:8px;}
-    .aqi-comparison-item {padding:9px 10px;border-radius:12px;background:#fff;border:1px solid #e7edf6;}
-    .aqi-comparison-item span {display:block;color:var(--text-muted);font-size:.66rem;font-weight:900;text-transform:uppercase;letter-spacing:.05em;}
-    .aqi-comparison-item strong {display:block;margin-top:3px;color:var(--brand-navy);font-size:1.3rem;font-weight:950;}
-    .aqi-comparison-why {margin:9px 0 0;color:#475467;font-size:.74rem;line-height:1.45;font-weight:750;}
-    @media (max-width:760px){.map-header-actions{width:100%;justify-content:flex-start}.map-mode-toggle{width:100%}.map-mode-toggle button{flex:1}}
+    .map-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .map-mode-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px;
+      border-radius: 12px;
+      background: #eef4ff;
+      border: 1px solid #cfe0ff;
+    }
+
+    .map-mode-toggle button {
+      width: auto;
+      min-height: 0;
+      margin: 0;
+      padding: 7px 10px;
+      border-radius: 9px;
+      border: 0;
+      background: transparent;
+      color: var(--brand-navy);
+      box-shadow: none;
+      font-size: 0.74rem;
+      font-weight: 900;
+    }
+
+    .map-mode-toggle button:hover {
+      transform: none;
+      filter: none;
+      background: rgba(255,255,255,0.7);
+    }
+
+    .map-mode-toggle button.active {
+      background: var(--brand-navy);
+      color: #fff;
+    }
+
+    .aqi-comparison-box {
+      margin: 0 0 12px;
+      padding: 12px;
+      border-radius: 16px;
+      background: #f8fbff;
+      border: 1px solid #e1e9f4;
+    }
+
+    .aqi-comparison-title {
+      margin: 0 0 9px;
+      color: var(--brand-navy);
+      font-size: 0.76rem;
+      font-weight: 950;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .aqi-comparison-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .aqi-comparison-item {
+      padding: 9px 10px;
+      border-radius: 12px;
+      background: #fff;
+      border: 1px solid #e7edf6;
+    }
+
+    .aqi-comparison-item span {
+      display: block;
+      color: var(--text-muted);
+      font-size: 0.66rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .aqi-comparison-item strong {
+      display: block;
+      margin-top: 3px;
+      color: var(--brand-navy);
+      font-size: 1.3rem;
+      font-weight: 950;
+    }
+
+    .aqi-comparison-why {
+      margin: 9px 0 0;
+      color: #475467;
+      font-size: 0.74rem;
+      line-height: 1.45;
+      font-weight: 750;
+    }
+
+    @media (max-width: 760px) {
+      .map-header-actions {
+        width: 100%;
+        justify-content: flex-start;
+      }
+
+      .map-mode-toggle {
+        width: 100%;
+      }
+
+      .map-mode-toggle button {
+        flex: 1;
+      }
+    }
 
   </style>
 </head>
@@ -1771,7 +1870,7 @@
         <div id="aqiShowcase" class="aqi-showcase">
           <div>
             <div id="statAQI" class="aqi-val">--</div>
-            <div class="sublabel">CE-AQI</div>
+            <div id="primaryIndexLabel" class="sublabel">CE-AQI</div>
           </div>
           <div>
             <p id="riskDescription" class="risk-copy">Choose a station or click a map marker to load the latest reading.</p>
@@ -1782,12 +1881,20 @@
         </div>
 
         <div class="aqi-comparison-box" aria-live="polite">
-          <div class="aqi-comparison-title">Why CE-AQI can differ from traditional AQI</div>
+          <div class="aqi-comparison-title">AQI comparison</div>
           <div class="aqi-comparison-grid">
-            <div class="aqi-comparison-item"><span>Traditional AQI</span><strong id="traditionalAQIValue">--</strong></div>
-            <div class="aqi-comparison-item"><span>CE-AQI</span><strong id="comparisonCEAQIValue">--</strong></div>
+            <div class="aqi-comparison-item">
+              <span>Traditional AQI</span>
+              <strong id="traditionalAQIValue">--</strong>
+            </div>
+            <div class="aqi-comparison-item">
+              <span>CE-AQI</span>
+              <strong id="comparisonCEAQIValue">--</strong>
+            </div>
           </div>
-          <p id="aqiDifferenceText" class="aqi-comparison-why">Select a station to compare the two index approaches.</p>
+          <p id="aqiDifferenceText" class="aqi-comparison-why">
+            Select a station to compare the two index approaches.
+          </p>
         </div>
 
         <button class="secondary-button" type="button" onclick="openRiskBreakdownModal()">View CE-AQI breakdown chart</button>
@@ -2105,7 +2212,7 @@
 
       return L.divIcon({
         className: "worst-cluster-icon",
-        html: `<div class="worst-cluster" style="--cluster-color:${color}" aria-label="${count} stations, worst CE-AQI ${worstAQI || 'unavailable'}">${count}</div>`,
+        html: `<div class="worst-cluster" style="--cluster-color:${color}" aria-label="${count} stations, highest displayed index ${worstAQI || 'unavailable'}">${count}</div>`,
         iconSize: [46, 46],
         iconAnchor: [23, 23]
       });
@@ -3323,70 +3430,228 @@
     };
   }
 
+
   function isTraditionalAQIPollutant(label) {
     const value = String(label || "");
-    return /PM2\.5|PM10|PM₂\.₅|PM₁₀|O3|O₃|\bCO\b|NO2|NO₂/i.test(value) && !/\bBC\b|black carbon|DPM|diesel/i.test(value);
+    return /PM2\.5|PM10|PM₂\.₅|PM₁₀|O3|O₃|\bCO\b|NO2|NO₂/i.test(value)
+      && !/\bBC\b|black carbon|DPM|diesel/i.test(value);
   }
 
   function calcTraditionalAQI(pollutants) {
     const valid = (Array.isArray(pollutants) ? pollutants : [])
       .map(p => ({ ...p, aqi: Math.round(Number(p.aqi)) }))
-      .filter(p => Number.isFinite(p.aqi) && p.aqi > 0 && isTraditionalAQIPollutant(p.label));
-    if (!valid.length) return { aqi: 0, baseLabel: "No criteria-pollutant data", baseItem: null, valid: [] };
-    const baseItem = valid.reduce((max,p) => p.aqi > max.aqi ? p : max, valid[0]);
-    return { aqi: baseItem.aqi, baseLabel: baseItem.label, baseItem, valid };
+      .filter(p =>
+        Number.isFinite(p.aqi) &&
+        p.aqi > 0 &&
+        isTraditionalAQIPollutant(p.label)
+      );
+
+    if (!valid.length) {
+      return {
+        aqi: 0,
+        baseLabel: "No criteria-pollutant data",
+        baseItem: null,
+        valid: []
+      };
+    }
+
+    const baseItem = valid.reduce(
+      (max, p) => p.aqi > max.aqi ? p : max,
+      valid[0]
+    );
+
+    return {
+      aqi: baseItem.aqi,
+      baseLabel: baseItem.label,
+      baseItem,
+      valid
+    };
   }
 
   function cacheTraditionalAQI(id, result) {
     if (!id) return;
-    markerMeta[id] = { ...(markerMeta[id] || {}), traditionalAQI: Number(result?.aqi || 0), traditionalBaseLabel: result?.baseLabel || null };
+    markerMeta[id] = {
+      ...(markerMeta[id] || {}),
+      traditionalAQI: Number(result?.aqi || 0),
+      traditionalBaseLabel: result?.baseLabel || null
+    };
   }
 
   function getMarkerDisplayValue(id) {
     const meta = markerMeta[id] || {};
-    return mapDisplayMode === "aqi" ? Number(meta.traditionalAQI || 0) : Number(meta.ceaqi || 0);
+    return mapDisplayMode === "aqi"
+      ? Number(meta.traditionalAQI || 0)
+      : Number(meta.ceaqi || 0);
+  }
+
+  function getMarkerDisplayLabel() {
+    return mapDisplayMode === "aqi" ? "Traditional AQI" : "CE-AQI";
   }
 
   function refreshMarkerForMapMode(id) {
-    const marker = markerMap[id]; if (!marker) return;
+    const marker = markerMap[id];
+    if (!marker) return;
+
     const meta = markerMeta[id] || {};
     const value = getMarkerDisplayValue(id);
-    const label = mapDisplayMode === "aqi" ? "Traditional AQI" : "CE-AQI";
-    const driver = mapDisplayMode === "aqi" ? meta.traditionalBaseLabel : meta.baseLabel;
+    const displayLabel = getMarkerDisplayLabel();
+    const driverLabel = mapDisplayMode === "aqi"
+      ? meta.traditionalBaseLabel
+      : meta.baseLabel;
+
     marker.options.ceaqiValue = value;
+    marker.options.alt = `${getStationDisplayName(id)}, ${displayLabel} ${value || "unavailable"}`;
     marker.setIcon(createStationIcon(id, value));
-    marker.options.alt = `${getStationDisplayName(id)}, ${label} ${value || "unavailable"}`;
-    const driverText = driver ? `<br>Driver: ${formatPollutantLabel(driver)}` : "";
-    marker.bindTooltip(`${label}: ${value || "--"}${driverText}<br>Latest detected: ${formatLatestTime(meta.latestTimeMs)}`, {permanent:false,direction:"top",className:"leaflet-tooltip-own",sticky:true,opacity:1});
+
+    const driverText = driverLabel
+      ? `<br>Driver: ${escapeHTML(formatPollutantLabel(driverLabel))}`
+      : "";
+
+    marker.bindTooltip(
+      `${displayLabel}: ${value || "--"}${driverText}<br>Latest detected: ${formatLatestTime(meta.latestTimeMs)}`,
+      {
+        permanent: false,
+        direction: "top",
+        className: "leaflet-tooltip-own",
+        sticky: true,
+        opacity: 1
+      }
+    );
+
     const safeIdArg = JSON.stringify(id);
-    marker.bindPopup(`<div style="min-width:215px;"><div style="font-weight:900;color:#1a305e;margin-bottom:4px;">${escapeHTML(getStationDisplayName(id))}</div><div style="font-size:0.78rem;color:#667085;margin-bottom:8px;">${escapeHTML(getStationTypeLabel(id))} station</div><div style="font-size:0.82rem;color:#334155;margin-bottom:4px;">Traditional AQI: <strong>${Number(meta.traditionalAQI || 0) || "--"}</strong></div><div style="font-size:0.82rem;color:#334155;margin-bottom:8px;">CE-AQI: <strong>${Number(meta.ceaqi || 0) || "--"}</strong></div><button class="popup-breakdown-btn" type="button" onclick='selectStationAndOpenBreakdown(${safeIdArg})'>View CE-AQI breakdown chart</button></div>`);
+    marker.bindPopup(`
+      <div style="min-width:215px;">
+        <div style="font-weight:900; color:#1a305e; margin-bottom:4px;">${escapeHTML(getStationDisplayName(id))}</div>
+        <div style="font-size:0.78rem; color:#667085; margin-bottom:8px;">${escapeHTML(getStationTypeLabel(id))} station</div>
+        <div style="font-size:0.82rem; color:#334155; margin-bottom:4px;">
+          Traditional AQI: <strong>${Number(meta.traditionalAQI || 0) || "--"}</strong>
+        </div>
+        <div style="font-size:0.82rem; color:#334155; margin-bottom:8px;">
+          CE-AQI: <strong>${Number(meta.ceaqi || 0) || "--"}</strong>
+        </div>
+        <button class="popup-breakdown-btn" type="button" onclick='selectStationAndOpenBreakdown(${safeIdArg})'>
+          View CE-AQI breakdown chart
+        </button>
+      </div>
+    `);
   }
 
-  function refreshAllMarkersForMapMode() { Object.keys(markerMap).forEach(refreshMarkerForMapMode); cluster.refreshClusters(); }
-
-  function setMapDisplayMode(mode) {
-    mapDisplayMode = mode === "aqi" ? "aqi" : "ceaqi";
-    document.getElementById("mapModeCEAQI")?.classList.toggle("active", mapDisplayMode === "ceaqi");
-    document.getElementById("mapModeAQI")?.classList.toggle("active", mapDisplayMode === "aqi");
-    const description = document.getElementById("mapModeDescription");
-    if (description) description.textContent = mapDisplayMode === "aqi" ? "Marker color follows traditional AQI using criteria pollutants only. Marker shape shows sensor type." : "Marker color follows CE-AQI, including cumulative exposure and additional pollutants. Marker shape shows sensor type.";
-    const legendTitle = document.getElementById("mapLegendTitle");
-    if (legendTitle) legendTitle.textContent = mapDisplayMode === "aqi" ? "Traditional AQI" : "CE-AQI";
-    refreshAllMarkersForMapMode();
+  function refreshAllMarkersForMapMode() {
+    Object.keys(markerMap).forEach(refreshMarkerForMapMode);
+    cluster.refreshClusters();
   }
 
   function updateAQIComparisonPanel(ceResult, traditionalResult) {
     const ceValue = Number(ceResult?.ceaqi || 0);
     const traditionalValue = Number(traditionalResult?.aqi || 0);
+
     setElementText("comparisonCEAQIValue", ceValue || "--");
     setElementText("traditionalAQIValue", traditionalValue || "--");
-    const diffText = document.getElementById("aqiDifferenceText"); if (!diffText) return;
-    if (!traditionalValue && !ceValue) { diffText.textContent = "There are not enough valid pollutant data to compare the two indices at this station."; return; }
-    const traditionalDriver = traditionalResult?.baseLabel ? formatPollutantLabel(traditionalResult.baseLabel) : "the highest available criteria pollutant";
-    const ceDriver = ceResult?.baseLabel ? formatPollutantLabel(ceResult.baseLabel) : "the highest available pollutant";
-    if (ceValue > traditionalValue) diffText.textContent = `Traditional AQI is driven by ${traditionalDriver}. CE-AQI is higher because it can also include Black Carbon, calculated DPM, and adders for multiple simultaneous pollutant exposures; its current main driver is ${ceDriver}.`;
-    else if (ceValue === traditionalValue && ceValue > 0) diffText.textContent = `The two values are currently the same. Traditional AQI is driven by ${traditionalDriver}; the additional CE-AQI pollutants and cumulative-exposure adders are not increasing the total at this station right now.`;
-    else diffText.textContent = `Traditional AQI is driven by ${traditionalDriver}. CE-AQI uses a broader pollutant packet, including Black Carbon and calculated DPM when available, plus cumulative-exposure adders.`;
+
+    const diffText = document.getElementById("aqiDifferenceText");
+    if (!diffText) return;
+
+    if (!traditionalValue && !ceValue) {
+      diffText.textContent = "There are not enough valid pollutant data to compare the two indices at this station.";
+      return;
+    }
+
+    const traditionalDriver = traditionalResult?.baseLabel
+      ? formatPollutantLabel(traditionalResult.baseLabel)
+      : "the highest available criteria pollutant";
+
+    const ceDriver = ceResult?.baseLabel
+      ? formatPollutantLabel(ceResult.baseLabel)
+      : "the highest available pollutant";
+
+    if (ceValue > traditionalValue) {
+      diffText.textContent =
+        `Traditional AQI is driven by ${traditionalDriver}. CE-AQI is higher because it can also include Black Carbon, calculated DPM, and cumulative-exposure adders; its current main driver is ${ceDriver}.`;
+    } else if (ceValue === traditionalValue && ceValue > 0) {
+      diffText.textContent =
+        `The two values are currently the same. Traditional AQI is driven by ${traditionalDriver}; the additional CE-AQI pollutants and cumulative-exposure adders are not increasing the total at this station right now.`;
+    } else {
+      diffText.textContent =
+        `Traditional AQI is driven by ${traditionalDriver}. CE-AQI uses a broader pollutant packet, including Black Carbon and calculated DPM when available, plus cumulative-exposure adders.`;
+    }
+  }
+
+  function updateRightPanelForMode(id) {
+    const ceResult = stationBreakdownCache[id];
+    if (!ceResult) return;
+
+    const pollutants = Array.isArray(ceResult.contributions)
+      ? ceResult.contributions
+      : [];
+
+    const traditionalResult = calcTraditionalAQI(pollutants);
+    updateAQIComparisonPanel(ceResult, traditionalResult);
+    cacheTraditionalAQI(id, traditionalResult);
+
+    const useTraditional = mapDisplayMode === "aqi";
+    const value = useTraditional
+      ? Number(traditionalResult.aqi || 0)
+      : Number(ceResult.ceaqi || 0);
+
+    const category = getAQICategory(value);
+    const driverItem = useTraditional
+      ? traditionalResult.baseItem
+      : ceResult.baseItem;
+
+    setElementText("statAQI", value || "--");
+    setElementText("primaryIndexLabel", useTraditional ? "Traditional AQI" : "CE-AQI");
+    applyAQINumberStyle(value);
+    setStatusClass("panelCategory", category);
+    setShowcaseClass(category);
+    setElementText("riskDescription", category.guidance);
+
+    const driverLabel = driverItem?.label
+      ? formatPollutantLabel(driverItem.label)
+      : "--";
+
+    setElementText("panelDriver", `Main driver: ${driverLabel}`);
+
+    if (driverItem) {
+      displayDrivingPollutant({
+        baseItem: driverItem
+      });
+      setLatestTimeDisplay(getDrivingPollutantTime({ baseItem: driverItem }, markerMeta[id]?.latestTimeMs));
+    } else {
+      document.getElementById("label_param").innerText = "Driving pollutant concentration";
+      document.getElementById("val_param").innerText = "--";
+    }
+
+    const link = document.getElementById("driverLearnLink");
+    if (link) {
+      link.href = getPollutantInfoUrl(driverItem?.label || "");
+      link.style.display = driverItem?.label ? "inline-block" : "none";
+    }
+  }
+
+  function setMapDisplayMode(mode) {
+    mapDisplayMode = mode === "aqi" ? "aqi" : "ceaqi";
+
+    document.getElementById("mapModeCEAQI")?.classList.toggle("active", mapDisplayMode === "ceaqi");
+    document.getElementById("mapModeAQI")?.classList.toggle("active", mapDisplayMode === "aqi");
+
+    const description = document.getElementById("mapModeDescription");
+    if (description) {
+      description.textContent = mapDisplayMode === "aqi"
+        ? "Marker color follows traditional AQI using criteria pollutants only. Marker shape shows sensor type."
+        : "Marker color follows CE-AQI, including cumulative exposure and additional pollutants. Marker shape shows sensor type.";
+    }
+
+    const legendTitle = document.getElementById("mapLegendTitle");
+    if (legendTitle) {
+      legendTitle.textContent = mapDisplayMode === "aqi" ? "Traditional AQI" : "CE-AQI";
+    }
+
+    refreshAllMarkersForMapMode();
+
+    const activeId = selectedStationId || document.getElementById("devSel")?.value;
+    if (activeId) {
+      updateRightPanelForMode(activeId);
+    }
   }
 
   function renderCEAQIBreakdown(result) {
@@ -3855,18 +4120,17 @@
   }
 
   function displayCEAQIResult(result) {
-    const value = result?.ceaqi || 0;
     const activeId = selectedStationId || document.getElementById("devSel")?.value || null;
 
     if (activeId) {
       cacheBreakdownResult(activeId, result);
+      updateRightPanelForMode(activeId);
+    } else {
+      const value = result?.ceaqi || 0;
+      document.getElementById("statAQI").innerText = value || "--";
+      document.getElementById("statAQI").style.color = getAQIColor(value);
     }
 
-    document.getElementById("statAQI").innerText = value || "--";
-    document.getElementById("statAQI").style.color = getAQIColor(value);
-
-    updateSelectedStationVisuals(activeId, result);
-    displayDrivingPollutant(result);
     updateReadingSummary();
   }
 
@@ -3877,7 +4141,13 @@
     const value = Number.isFinite(Number(ceaqi)) ? Math.round(Number(ceaqi)) : 0;
     const oldMeta = markerMeta[id] || {};
 
-    markerMeta[id] = { ...oldMeta, ceaqi: value, latestTimeMs: latestTimeMs ?? oldMeta.latestTimeMs ?? null, baseLabel: baseLabel ?? oldMeta.baseLabel ?? null };
+    markerMeta[id] = {
+      ...oldMeta,
+      ceaqi: value,
+      latestTimeMs: latestTimeMs ?? oldMeta.latestTimeMs ?? null,
+      baseLabel: baseLabel ?? oldMeta.baseLabel ?? null
+    };
+
     refreshMarkerForMapMode(id);
     cluster.refreshClusters(marker);
   }
@@ -4563,10 +4833,12 @@
 
       const result = calcCEAQI(pollutants);
       const traditionalResult = calcTraditionalAQI(pollutants);
-      displayCEAQIResult(result);
-      updateAQIComparisonPanel(result, traditionalResult);
       cacheTraditionalAQI(id, traditionalResult);
-      setLatestTimeDisplay(getDrivingPollutantTime(result, latestTimeMs));
+      displayCEAQIResult(result);
+      setLatestTimeDisplay(getDrivingPollutantTime(
+        mapDisplayMode === "aqi" ? { baseItem: traditionalResult.baseItem } : result,
+        latestTimeMs
+      ));
       updateMarkerValue(id, result.ceaqi, latestTimeMs, result.baseLabel);
     } else if (id.startsWith("MOD-")) {
       const [latestResponse, historyResponse, averagesResponse] = await Promise.all([
@@ -4636,10 +4908,12 @@
 
       const result = calcCEAQI(pollutants);
       const traditionalResult = calcTraditionalAQI(pollutants);
-      displayCEAQIResult(result);
-      updateAQIComparisonPanel(result, traditionalResult);
       cacheTraditionalAQI(id, traditionalResult);
-      setLatestTimeDisplay(getDrivingPollutantTime(result, latestTimeMs));
+      displayCEAQIResult(result);
+      setLatestTimeDisplay(getDrivingPollutantTime(
+        mapDisplayMode === "aqi" ? { baseItem: traditionalResult.baseItem } : result,
+        latestTimeMs
+      ));
       updateMarkerValue(id, result.ceaqi, latestTimeMs, result.baseLabel);
     } else if (id.startsWith("C12-")) {
       const compId = id.replace("C12-", "");
@@ -4729,10 +5003,12 @@
         preferredBaseStartsWith: "BC non-cancer"
       });
       const traditionalResult = calcTraditionalAQI(pollutants);
-      displayCEAQIResult(result);
-      updateAQIComparisonPanel(result, traditionalResult);
       cacheTraditionalAQI(id, traditionalResult);
-      setLatestTimeDisplay(getDrivingPollutantTime(result, latestTimeMs));
+      displayCEAQIResult(result);
+      setLatestTimeDisplay(getDrivingPollutantTime(
+        mapDisplayMode === "aqi" ? { baseItem: traditionalResult.baseItem } : result,
+        latestTimeMs
+      ));
       updateMarkerValue(id, result.ceaqi, latestTimeMs, result.baseLabel);
     }
 
@@ -4839,9 +5115,12 @@
       const ownPollutants = [];
       addPrimaryPM25ForLocation(ownPollutants, lat, lon, pm25, paCoords[id]?.latestTimeMs ?? null);
 
-      const fullPollutants = buildCompletePollutantsForLocation(lat, lon, ownPollutants, { includeNearestQuantPM25: false });
+      const fullPollutants = buildCompletePollutantsForLocation(lat, lon, ownPollutants, {
+        includeNearestQuantPM25: false
+      });
       const result = calcCEAQI(fullPollutants);
       const traditionalResult = calcTraditionalAQI(fullPollutants);
+
       createMarker(id, lat, lon, result.ceaqi, paCoords[id]?.latestTimeMs ?? null, result.baseLabel);
       cacheTraditionalAQI(id, traditionalResult);
       refreshMarkerForMapMode(id);
@@ -4854,10 +5133,17 @@
       const ownPollutants = [];
       addQuantAQPollutants(ownPollutants, quantAveragesCache[s.sn] || quantCache[s.sn], s.sn, true);
 
-      const fullPollutants = buildCompletePollutantsForLocation(s.lat, s.lon, ownPollutants, { skipQuantAQ: s.sn, includeNearestQuantPM25: false });
-      const result = calcCEAQI(fullPollutants, { preferredBaseStartsWith: `PM2.5 (${s.sn})` });
+      const fullPollutants = buildCompletePollutantsForLocation(s.lat, s.lon, ownPollutants, {
+        skipQuantAQ: s.sn,
+        includeNearestQuantPM25: false
+      });
+      const result = calcCEAQI(fullPollutants, {
+        preferredBaseStartsWith: `PM2.5 (${s.sn})`
+      });
       const traditionalResult = calcTraditionalAQI(fullPollutants);
-      const quantLatestTime = getQuantAQTimestampMs(quantCache[s.sn]) ?? normalizeTimestampMs(quantAveragesCache[s.sn]?.latest_record);
+
+      const quantLatestTime = getQuantAQTimestampMs(quantCache[s.sn])
+        ?? normalizeTimestampMs(quantAveragesCache[s.sn]?.latest_record);
       createMarker(s.sn, s.lat, s.lon, result.ceaqi, quantLatestTime, result.baseLabel);
       cacheTraditionalAQI(s.sn, traditionalResult);
       refreshMarkerForMapMode(s.sn);
@@ -4879,9 +5165,15 @@
         }
       );
 
-      const fullPollutants = buildCompletePollutantsForLocation(cd.lat, cd.lon, ownPollutants, { skipC12: c.compId, includeNearestQuantPM25: true });
-      const result = calcCEAQI(fullPollutants, { preferredBaseStartsWith: "BC non-cancer" });
+      const fullPollutants = buildCompletePollutantsForLocation(cd.lat, cd.lon, ownPollutants, {
+        skipC12: c.compId,
+        includeNearestQuantPM25: true
+      });
+      const result = calcCEAQI(fullPollutants, {
+        preferredBaseStartsWith: "BC non-cancer"
+      });
       const traditionalResult = calcTraditionalAQI(fullPollutants);
+
       const c12Id = `C12-${c.compId}`;
       createMarker(c12Id, cd.lat, cd.lon, result.ceaqi, cd.latestTimeMs ?? null, result.baseLabel);
       cacheTraditionalAQI(c12Id, traditionalResult);
@@ -5037,27 +5329,63 @@
         }
       }
 
-      createMarker(id, lat, lon, ceaqi, latestTimeMs, station.baseLabel || null);
+      createMarker(
+        id,
+        lat,
+        lon,
+        ceaqi,
+        latestTimeMs,
+        station.baseLabel || null
+      );
 
       const ownPollutants = [];
+
       if (id.startsWith("MOD-")) {
-        addQuantAQPollutants(ownPollutants, quantAveragesCache[id] || quantCache[id], id, true);
+        addQuantAQPollutants(
+          ownPollutants,
+          quantAveragesCache[id] || quantCache[id],
+          id,
+          true
+        );
       } else if (id.startsWith("C12-")) {
         const compId = id.replace("C12-", "");
         const c12Data = c12Cache[compId] || {};
-        addC12Pollutants(ownPollutants, activeNum(c12Data.bcAverage ?? c12Data.bc), compId, { timestampMs: c12Data.latestTimeMs });
+        addC12Pollutants(
+          ownPollutants,
+          activeNum(c12Data.bcAverage ?? c12Data.bc),
+          compId,
+          { timestampMs: c12Data.latestTimeMs }
+        );
       } else {
-        addPrimaryPM25ForLocation(ownPollutants, lat, lon, activeNum(station.pm25), latestTimeMs);
+        addPrimaryPM25ForLocation(
+          ownPollutants,
+          lat,
+          lon,
+          activeNum(station.pm25),
+          latestTimeMs
+        );
       }
-      const fullPollutants = buildCompletePollutantsForLocation(lat, lon, ownPollutants,
-        id.startsWith("MOD-") ? { skipQuantAQ: id, includeNearestQuantPM25: false } :
-        id.startsWith("C12-") ? { skipC12: id.replace("C12-", ""), includeNearestQuantPM25: true } :
-        { includeNearestQuantPM25: false }
+
+      const fullPollutants = buildCompletePollutantsForLocation(
+        lat,
+        lon,
+        ownPollutants,
+        id.startsWith("MOD-")
+          ? { skipQuantAQ: id, includeNearestQuantPM25: false }
+          : id.startsWith("C12-")
+            ? { skipC12: id.replace("C12-", ""), includeNearestQuantPM25: true }
+            : { includeNearestQuantPM25: false }
       );
+
       cacheTraditionalAQI(id, calcTraditionalAQI(fullPollutants));
       refreshMarkerForMapMode(id);
 
-      sel.add(new Option(station.name || getStationDisplayName(id), id));
+      sel.add(
+        new Option(
+          station.name || getStationDisplayName(id),
+          id
+        )
+      );
     }
 
     cluster.refreshClusters();
