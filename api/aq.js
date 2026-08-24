@@ -254,8 +254,8 @@ const MAP_SPODS = [
   {
     sn: "MOD-00537",
     name: "QuantAQ MOD-00537 – Turner Station North",
-    lat: null,
-    lon: null
+    lat: 39.243,
+    lon: -76.5124
   }
 ];
 
