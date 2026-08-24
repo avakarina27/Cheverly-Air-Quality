@@ -17,6 +17,7 @@ END_DATE = os.getenv("BACKFILL_END_DATE")
 
 SENSORS = [
     "MOD-00536",
+    "MOD-00537",
     "MOD-00745",
     "MOD-00746",
     "MOD-00747",
