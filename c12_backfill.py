@@ -17,8 +17,7 @@ END_DATE = os.getenv("BACKFILL_END_DATE")
 
 # New Turner Station C-12 monitors
 DEVICES = [
-    "D14648",  # Turner Station South
-    "D11556",  # Turner Station North
+    "D11559",
 ]
 
 API_URL = "https://cheverly-air-quality.vercel.app/api/aq"
